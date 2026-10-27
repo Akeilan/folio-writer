@@ -1,0 +1,5 @@
+exec(open("/home/claude/folio2/tests/common.py").read())
+def s0(): win.run("equation")
+def s1(): win.ribbon.select(next(t for t in win.ribbon.tabs if t.name=="Equation")); shot("eq")
+def s2(): shot("eq2"); app.quit()
+steps(s0, s1, s2, delay=3000)

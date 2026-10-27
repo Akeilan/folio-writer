@@ -1,0 +1,129 @@
+FOLIO WRITER — KEYBOARD SHORTCUTS
+==================================
+
+Everything below works out of the box. Shortcuts not listed (arrows,
+Home/End, Ctrl+arrows, Shift+selection, Tab in tables, etc.) behave as usual.
+
+FILE
+  Ctrl+N               New document
+  Ctrl+O / Ctrl+F12    Open
+  Ctrl+S / Shift+F12   Save            (saves .docx by default)
+  F12                  Save As
+  Ctrl+P / Ctrl+Shift+F12   Print
+  Ctrl+F2              Print Preview
+  Ctrl+W / Ctrl+F4     Close document
+  Ctrl+Alt+P           Print Layout view
+
+EDITING
+  Ctrl+Z / Ctrl+Y      Undo / Redo
+  F4                   Repeat last action
+  Ctrl+X / C / V       Cut / Copy / Paste
+  Ctrl+Alt+V           Paste Special
+  Ctrl+Shift+C         Copy formatting
+  Ctrl+Shift+V         Paste formatting (after Ctrl+Shift+C);
+                       otherwise paste as plain text
+  Ctrl+A               Select all
+  Ctrl+F               Find
+  Ctrl+H               Find and Replace
+  Ctrl+G / F5          Go To
+  Shift+F5             Go back to last edit position
+  Ctrl+Backspace/Del   Delete word left / right
+  Insert               (does nothing — no accidental overtype)
+
+CHARACTER FORMATTING
+  Ctrl+B / I / U       Bold / Italic / Underline
+  Ctrl+Shift+D         Double underline
+  Ctrl+Shift+W         Underline words only
+  Ctrl+Shift+A         All caps
+  Ctrl+Shift+K         Small caps
+  Ctrl+Shift+H         Hidden text
+  Ctrl+=               Subscript
+  Ctrl+Shift+=         Superscript
+  Ctrl+Shift+> / <     Grow / shrink font (8 9 10 10.5 11 12 14 16 18 …)
+  Ctrl+] / Ctrl+[      Font size +1 / -1 pt
+  Ctrl+D               Font dialog (also Ctrl+Shift+F, Ctrl+Shift+P)
+  Shift+F3             Change case (lower / UPPER / Title)
+  Ctrl+Alt+H           Highlight (yellow)
+  Ctrl+Space           Remove character formatting (also Ctrl+Shift+Z)
+
+PARAGRAPH FORMATTING
+  Ctrl+L / E / R / J   Align left / center / right / justify
+  Ctrl+1 / 2 / 5       Single / double / 1.5 line spacing
+  Ctrl+0               Add or remove 12 pt space before
+  Ctrl+M / Ctrl+Shift+M   Increase / decrease indent
+  Ctrl+T / Ctrl+Shift+T   Hanging indent / reduce hanging indent
+  Ctrl+Q               Remove paragraph formatting
+  Ctrl+Shift+8         Show / hide formatting marks (¶)
+
+STYLES AND LISTS
+  Ctrl+Alt+1 / 2 / 3   Heading 1 / 2 / 3
+  Ctrl+Shift+N         Normal (Default Paragraph Style)
+  Ctrl+Shift+L         Bulleted list
+  Ctrl+Shift+S         Jump to the style box
+  Ctrl+Alt+Shift+S     Styles pane
+  Alt+Shift+Left/Right Promote / demote heading or list level
+  Alt+Shift+Up/Down    Move paragraph up / down
+  Tab / Shift+Tab      Demote / promote list item (at start of item)
+  Typing "* " or "1. " starts a bulleted / numbered list automatically
+
+INSERT
+  Ctrl+Enter           Page break
+  Ctrl+Shift+Enter     Column break
+  Shift+Enter          Line break
+  Ctrl+Shift+Space     Non-breaking space
+  Ctrl+-               Optional hyphen
+  Ctrl+Shift+-         Non-breaking hyphen
+  Ctrl+K               Hyperlink
+  Ctrl+Alt+M           Comment
+  Ctrl+Alt+F           Footnote
+  Ctrl+Alt+D           Endnote
+  Ctrl+Shift+F5        Bookmark
+  Alt+Shift+D / T / P  Date / time / page-number field
+  Alt+Shift+X          Index entry
+  Alt+=                Equation (opens the equation bar, see below)
+  Ctrl+Alt+C / R / T   © / ® / ™
+  Ctrl+Alt+.           …  (ellipsis)
+  Ctrl+Alt+-           —  (em dash, numeric keypad)
+  Ctrl+Alt+E           €
+  F3                   Insert AutoText
+
+EQUATIONS (equation bar)
+  Alt+=                New equation; with an equation selected, edit it
+  Double-click         Edit an equation
+  Type in linear form  x^2   x_i   a/b   √(x+1)   ∑_(i=1)^n▒i   ■(a&b@c&d)
+  \name + space        Symbol: \alpha α  \pm ±  \to →  \infty ∞  \sum ∑  \int ∫
+  <=  >=  !=  ->  +-   Typed pairs become ≤ ≥ ≠ → ±
+  Tab / Shift+Tab      Next / previous empty box (⬚)
+  Enter                Finish the equation
+  Esc                  Cancel (a new equation is removed, an edited one restored)
+  LaTeX                Pick "LaTeX" in the bar to type \frac{a}{b}, \sqrt{x}, ...
+
+REVIEW
+  F7                   Spelling and grammar
+  Shift+F7             Thesaurus
+  Ctrl+Shift+G         Word count
+  Ctrl+Shift+E         Track changes on / off
+
+RIBBON KEYTIPS
+  Alt+<letter>         Open a tab and show letter badges on its buttons:
+                       F File  H Home  N Insert  G Design  P Page Layout
+                       S References  M Mailings  R Review  W View  L Developer  Y Help
+  F10                  Show badges on the tabs, then type a tab letter
+  then type a badge    Press that button, e.g. Alt+H 1 = Bold, Alt+H A C = Center,
+                       Alt+H F F = font box, Alt+N E = Equation, Alt+P M = Margins
+  Esc                  Back one level / leave KeyTips
+
+HELP
+  Alt+Q                Search for any command by name
+  F1                   Help
+
+NAVIGATION
+  Ctrl+Home / End      Start / end of document
+  Ctrl+Up / Down       Previous / next paragraph
+  Ctrl+PgUp / PgDn     Previous / next page
+  F6                   Move focus between document and ribbon
+  F9                   Update fields
+
+COMMAND LINE
+  folio-writer --reset-settings   re-apply the default look and shortcuts
+  folio-writer --make-default     open .docx/.doc/.rtf/.odt files with Folio

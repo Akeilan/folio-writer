@@ -1,0 +1,41 @@
+//! Page counts against what the original recorded (docProps/app.xml) for
+//! the corpus. Guards against regressions: the number of exact matches
+//! may only go up.
+use folio_core::document::Document;
+use folio_core::fonts::FontCache;
+use folio_core::paginate::layout_document;
+
+const BASELINE: usize = 1231;
+
+#[test]
+fn page_counts_match_word() {
+    let dirs = std::env::var("FOLIO_CORPUS")
+        .unwrap_or("/home/claude/corpus/poi/test-data/document:/home/claude/corpus/word".into());
+    let mut paths: Vec<std::path::PathBuf> = Vec::new();
+    for dir in dirs.split(':') {
+        if let Ok(rd) = std::fs::read_dir(dir) {
+            paths.extend(rd.flatten().map(|e| e.path()).filter(|p| p.extension().map(|x| x == "docx").unwrap_or(false)));
+        }
+    }
+    if paths.is_empty() {
+        return;
+    }
+    let mut fonts = FontCache::new();
+    let (mut exact, mut total) = (0, 0);
+    let mut misses = Vec::new();
+    paths.sort();
+    for p in paths {
+        let Ok(bytes) = std::fs::read(&p) else { continue };
+        let Ok(doc) = Document::open(&bytes) else { continue };
+        let app = doc.pkg.raw("docProps/app.xml").map(|b| String::from_utf8_lossy(b).to_string()).unwrap_or_default();
+        let Some(want) = app.split("<Pages>").nth(1).and_then(|s| s.split('<').next()).and_then(|s| s.trim().parse::<usize>().ok()) else { continue };
+        let got = layout_document(&doc, &mut fonts).pages.len();
+        total += 1;
+        if got == want { exact += 1 } else { misses.push(format!("{}: {got} vs {want}", p.file_name().unwrap().to_string_lossy())) }
+    }
+    eprintln!("exact {exact}/{total}");
+    if let Ok(out) = std::env::var("FOLIO_MISSES") {
+        std::fs::write(out, misses.join("\n")).ok();
+    }
+    assert!(exact >= BASELINE, "page counts regressed: {exact} < {BASELINE}");
+}

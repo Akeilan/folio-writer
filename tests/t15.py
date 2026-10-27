@@ -1,0 +1,10 @@
+exec(open("/home/claude/folio2/tests/common.py").read())
+e = win.engine
+e.view.connect("comment", lambda v, p: log("COMMENT", p[:300]))
+log("tiled", e.view.get_property("tiled-annotations"))
+def s0(): win.actions.insert_text("This sentence gets a comment."); e.command(".uno:SelectWord")
+def s1(): e.command(".uno:InsertAnnotation", {"Text": "Check this wording.", "Author": "Ron"})
+def s2(): log("values", (e.view.get_command_values(".uno:ViewAnnotations") or "")[:300]); win.actions.insert_text(" more")
+def s3(): e.command(".uno:ReplyComment", {"Id": "1", "Text": "Agreed, will fix.", "Author": "Sam"})
+def s4(): log("ranges", [(c.get("author"), c.get("textRange")) for c in win.comments.comments.values()]); shot("t15"); app.quit()
+steps(s0, s1, s2, s3, s4, delay=1500)

@@ -1,0 +1,22 @@
+//! Folio Writer's document engine.
+pub mod xml;
+pub mod package;
+pub mod fonts;
+pub mod props;
+pub mod styles;
+pub mod numbering;
+pub mod pictures;
+pub mod shapes;
+pub mod metafile;
+pub mod math;
+pub mod effects;
+pub mod art;
+pub mod hyph;
+pub mod document;
+pub mod text;
+pub mod layout;
+pub mod paginate;
+pub mod render;
+pub mod editor;
+#[cfg(feature = "python")]
+pub mod py;

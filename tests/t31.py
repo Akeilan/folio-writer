@@ -1,0 +1,6 @@
+exec(open("/home/claude/folio2/tests/common.py").read())
+def s0(): win.unmaximize(); win.resize(1590, 960); win.move(0,0); win.actions.insert_text("Hello")
+def s1(): win.font_combo.set_active(5)
+def s2(): log("font now", win.engine.get(".uno:CharFontName"), app.settings.get("recent_fonts")); win.font_combo.popup()
+def s3(): shot("fontlist"); win.font_combo.popdown(); app.quit()
+steps(s0, s1, s2, s3, delay=2000)

@@ -1,0 +1,5 @@
+exec(open("/home/claude/folio2/tests/common.py").read())
+def s0(): win.unmaximize(); win.resize(1590,960); win.move(0,0); win.dialogs._new_table(3, 3)
+def s1(): win.select_tab("Table Layout")
+def s2(): shot("tl2"); app.quit()
+steps(s0, s1, s2, delay=2500)

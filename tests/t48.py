@@ -1,0 +1,5 @@
+exec(open("/home/claude/folio2/tests/common.py").read())
+def s0(): win.unmaximize(); win.resize(1590,960); win.move(0,0)
+def s1(): shot("caps_home"); win.ribbon.select([t for t in win.ribbon.tabs if t.name=="Layout"][0])
+def s2(): shot("caps_layout"); app.quit()
+steps(s0, s1, s2, delay=1500)
