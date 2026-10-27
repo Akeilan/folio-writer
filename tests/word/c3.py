@@ -1,7 +1,7 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
 from gi.repository import Gdk
-ENV = dict(os.environ, DISPLAY=":99")
+ENV = dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99"))
 def d():
     p = subprocess.Popen(["xclip", "-selection", "clipboard", "-t", "UTF8_STRING", "-i"], env=ENV, stdin=subprocess.PIPE)
     p.stdin.write(b"External clipboard text"); p.stdin.close()

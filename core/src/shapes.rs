@@ -664,6 +664,55 @@ impl Shape {
                 cr.curve_to(w * 1.15, h * 0.05, w * 0.5, h * -0.1, w / 2.0, h * 0.25);
                 cr.close_path();
             }
+            "mathPlus" => {
+                let t = ss * adj(0, 23520.0) / 2.0;
+                let (ex, ey) = (w * 0.3675, h * 0.3675);
+                let (cx, cy) = (w / 2.0, h / 2.0);
+                poly(&[(cx - t, cy - ey), (cx + t, cy - ey), (cx + t, cy - t), (cx + ex, cy - t), (cx + ex, cy + t),
+                       (cx + t, cy + t), (cx + t, cy + ey), (cx - t, cy + ey), (cx - t, cy + t), (cx - ex, cy + t),
+                       (cx - ex, cy - t), (cx - t, cy - t)]);
+            }
+            "mathMinus" => {
+                let t = h * adj(0, 23520.0) / 2.0;
+                cr.rectangle(w * 0.1325, h / 2.0 - t, w * 0.735, 2.0 * t);
+            }
+            "mathMultiply" => {
+                let t = ss * adj(0, 23520.0) / 2.0;
+                let (cx, cy) = (w / 2.0, h / 2.0);
+                let (ex, ey) = (w * 0.34, h * 0.34);
+                // two crossing bars
+                for sgn in [1.0, -1.0] {
+                    let (dx, dy) = (ex, sgn * ey);
+                    let l = (dx * dx + dy * dy).sqrt().max(0.01);
+                    let (nx, ny) = (-dy / l * t, dx / l * t);
+                    poly(&[(cx - dx + nx, cy - dy + ny), (cx + dx + nx, cy + dy + ny),
+                           (cx + dx - nx, cy + dy - ny), (cx - dx - nx, cy - dy - ny)]);
+                    cr.new_sub_path();
+                }
+            }
+            "mathDivide" => {
+                let t = h * adj(0, 23520.0) / 2.0;
+                let gap = h * adj(1, 5880.0);
+                let r = h * adj(2, 11760.0) / 2.0;
+                cr.rectangle(w * 0.1325, h / 2.0 - t, w * 0.735, 2.0 * t);
+                cr.new_sub_path();
+                ellipse(cr, w / 2.0, h / 2.0 - t - gap - r, r, r, false);
+                cr.new_sub_path();
+                ellipse(cr, w / 2.0, h / 2.0 + t + gap + r, r, r, false);
+            }
+            "mathEqual" | "mathNotEqual" => {
+                let t = h * adj(0, 23520.0);
+                let gap = h * adj(if self.geom == "mathEqual" { 1 } else { 2 }, 11760.0);
+                cr.rectangle(w * 0.1325, h / 2.0 - gap / 2.0 - t, w * 0.735, t);
+                cr.rectangle(w * 0.1325, h / 2.0 + gap / 2.0, w * 0.735, t);
+                if self.geom == "mathNotEqual" {
+                    let (cx, cy, ht) = (w / 2.0, h / 2.0, h * 0.4);
+                    let dx = ht * 0.36;
+                    let k = t / 2.0;
+                    cr.new_sub_path();
+                    poly(&[(cx + dx - k, cy - ht), (cx + dx + k, cy - ht), (cx - dx + k, cy + ht), (cx - dx - k, cy + ht)]);
+                }
+            }
             "lightningBolt" => poly(&[(w * 0.39, 0.0), (w * 0.62, h * 0.29), (w * 0.53, h * 0.34), (w * 0.82, h * 0.6),
                                       (w * 0.72, h * 0.64), (w, h), (w * 0.47, h * 0.72), (w * 0.57, h * 0.67),
                                       (w * 0.2, h * 0.42), (w * 0.33, h * 0.36), (0.0, h * 0.17)]),

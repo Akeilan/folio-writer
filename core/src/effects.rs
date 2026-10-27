@@ -44,6 +44,8 @@ pub struct Fx {
     pub reflection: Option<Reflection>,
     /// bevel width, height (points) and preset
     pub bevel: Option<(f64, f64, String)>,
+    /// 3-D rotation: latitude, longitude, revolution (degrees)
+    pub camera: Option<(f64, f64, f64)>,
     /// -1..1
     pub brightness: f64,
     pub contrast: f64,
@@ -92,6 +94,41 @@ impl Fx {
 
 fn val(dom: &XmlDoc, n: NodeId, k: &str, d: f64) -> f64 {
     dom.attr(n, k).and_then(|v| v.parse::<f64>().ok()).unwrap_or(d)
+}
+
+/// The rotation a camera preset stands for (latitude, longitude, revolution).
+pub fn camera_preset(prst: &str) -> Option<(f64, f64, f64)> {
+    Some(match prst {
+        "isometricLeftDown" => (35.0, 45.0, 0.0),
+        "isometricRightUp" => (-35.0, -45.0, 0.0),
+        "isometricTopUp" => (35.0, -45.0, 0.0),
+        "isometricBottomDown" => (-35.0, 45.0, 0.0),
+        "isometricOffAxis1Left" => (10.0, 64.0, 0.0),
+        "isometricOffAxis1Right" => (10.0, -64.0, 0.0),
+        "isometricOffAxis2Left" => (-10.0, 64.0, 0.0),
+        "isometricOffAxis2Right" => (-10.0, -64.0, 0.0),
+        "perspectiveLeft" => (0.0, 20.0, 0.0),
+        "perspectiveRight" => (0.0, -20.0, 0.0),
+        "perspectiveBelow" => (-20.0, 0.0, 0.0),
+        "perspectiveAbove" => (20.0, 0.0, 0.0),
+        "perspectiveRelaxed" => (30.0, 0.0, 0.0),
+        "perspectiveContrastingLeftFacing" => (10.0, 40.0, 0.0),
+        "perspectiveContrastingRightFacing" => (10.0, -40.0, 0.0),
+        "obliqueTopLeft" => (20.0, 20.0, 0.0),
+        "obliqueTopRight" => (20.0, -20.0, 0.0),
+        "obliqueBottomLeft" => (-20.0, 20.0, 0.0),
+        "obliqueBottomRight" => (-20.0, -20.0, 0.0),
+        _ => return None,
+    })
+}
+
+/// The flat picture of a 3-D rotation: x' = a x + c y, y' = b x + d y.
+pub fn camera_matrix(lat: f64, lon: f64, rev: f64) -> (f64, f64, f64, f64) {
+    let (la, lo, rv) = (lat.to_radians(), lon.to_radians(), rev.to_radians());
+    // turn about the vertical axis (longitude), then tip (latitude), then spin
+    let (a, b, c, d) = (lo.cos(), lo.sin() * la.sin(), 0.0, la.cos());
+    let (cs, sn) = (rv.cos(), rv.sin());
+    (cs * a - sn * b, sn * a + cs * b, cs * c - sn * d, sn * c + cs * d)
 }
 
 fn color_of(dom: &XmlDoc, n: NodeId, colors: &HashMap<String, u32>) -> (u32, f64) {
@@ -147,6 +184,13 @@ pub fn parse(dom: &XmlDoc, sppr: Option<NodeId>, blip: Option<NodeId>, colors: &
                     _ => {}
                 }
             }
+        }
+        if let Some(cam) = dom.child(sp, "a:scene3d").and_then(|s| dom.child(s, "a:camera")) {
+            let r = dom.child(cam, "a:rot").map(|r| (val(dom, r, "lat", 0.0) / 60000.0,
+                                                     val(dom, r, "lon", 0.0) / 60000.0,
+                                                     val(dom, r, "rev", 0.0) / 60000.0));
+            let r = r.or_else(|| camera_preset(dom.attr(cam, "prst").unwrap_or("")));
+            fx.camera = r.filter(|(a, b, c)| a.abs() + b.abs() + c.abs() > 0.01);
         }
         if let Some(b) = dom.child(sp, "a:sp3d").and_then(|s| dom.child(s, "a:bevelT")) {
             fx.bevel = Some((val(dom, b, "w", 76200.0) / EMU, val(dom, b, "h", 76200.0) / EMU,

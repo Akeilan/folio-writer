@@ -123,6 +123,32 @@ impl Editor {
 
 impl Editor {
     /// The `n`th body table's cells: rows of cells, each its paragraphs.
+    /// The body's top-level blocks in order: ("p", paragraph) or ("t", table index).
+    pub fn body_blocks(&self) -> Vec<(&'static str, NodeId, usize)> {
+        let mut out = Vec::new();
+        let mut t = 0;
+        for b in &self.doc.blocks {
+            match b.kind {
+                crate::document::BlockKind::Para => out.push(("p", b.node, 0)),
+                crate::document::BlockKind::Table => {
+                    out.push(("t", b.node, t));
+                    t += 1;
+                }
+            }
+        }
+        out
+    }
+
+    /// A paragraph's text as the layout has it (fields shown as results).
+    pub fn para_text_of(&mut self, p: NodeId) -> String {
+        self.doc.para_text(p)
+    }
+
+    /// The names of the changes Undo would take back, most recent last.
+    pub fn undo_names(&self) -> Vec<String> {
+        self.undo.iter().map(|t| t.name.clone()).collect()
+    }
+
     pub fn table_cells(&self, n: usize) -> Vec<Vec<Vec<NodeId>>> {
         let dom = &self.doc.dom;
         let Some(t) = self.doc.blocks.iter().filter(|b| b.kind == crate::document::BlockKind::Table).nth(n).map(|b| b.node) else {
@@ -274,5 +300,184 @@ impl Editor {
             out.push(("Missing document title".into(), "Document".into(), self.doc.body));
         }
         out
+    }
+}
+
+impl Editor {
+    /// Alt+Shift+Up / Down: the paragraph (or the table row) the caret is in
+    /// changes places with the one above / below it.
+    pub fn move_block(&mut self, up: bool) -> bool {
+        let caret = self.caret;
+        let anchor = self.anchor;
+        let dom = &self.doc.dom;
+        // the unit: a table row, else the paragraph(s) of the selection
+        let mut unit = Some(caret.para);
+        let mut row = None;
+        let mut n = caret.para;
+        while let Some(p) = dom.parent(n) {
+            if dom.is(p, "w:tr") {
+                row = Some(p);
+                break;
+            }
+            if dom.is(p, "w:body") {
+                break;
+            }
+            n = p;
+        }
+        if let Some(r) = row {
+            unit = Some(r);
+        }
+        let Some(u) = unit else { return false };
+        let Some(parent) = dom.parent(u) else { return false };
+        let name = if row.is_some() { "w:tr" } else { "" };
+        let sibs: Vec<NodeId> = dom.elements(parent).filter(|&c| if row.is_some() { dom.is(c, name) } else { dom.is(c, "w:p") || dom.is(c, "w:tbl") }).collect();
+        let Some(i) = sibs.iter().position(|&c| c == u) else { return false };
+        let other = if up { if i == 0 { return false } else { sibs[i - 1] } } else { match sibs.get(i + 1) { Some(&x) => x, None => return false } };
+        // keep a section break where it is: the body's last sectPr stays last
+        if dom.elements(parent).last() == Some(other) && dom.is(other, "w:sectPr") {
+            return false;
+        }
+        self.begin();
+        let dom = &mut self.doc.dom;
+        dom.detach(u);
+        let j = dom.index_in_parent(other).unwrap_or(0);
+        dom.insert(parent, if up { j } else { j + 1 }, u);
+        self.doc.scan();
+        self.commit("Move", false);
+        self.caret = caret;
+        self.anchor = anchor;
+        true
+    }
+}
+
+impl Editor {
+    /// Design > Page Color: the document's background (None: No Color).
+    pub fn set_page_color(&mut self, color: Option<&str>) -> bool {
+        self.begin();
+        let root = self.doc.dom.root;
+        if let Some(old) = self.doc.dom.child(root, "w:background") {
+            self.doc.dom.detach(old);
+        }
+        if let Some(c) = color {
+            let bg = self.doc.dom.new_element("w:background", &[("w:color", c)]);
+            self.doc.dom.insert(root, 0, bg);
+        }
+        self.cache.clear();
+        self.commit("Page Color", false);
+        let _ = self.set_settings_xml("w:displayBackgroundShape", if color.is_some() { Some("<w:displayBackgroundShape/>") } else { None });
+        true
+    }
+
+    pub fn page_color(&self) -> Option<String> {
+        self.doc.page_background().map(|c| format!("{:06X}", c))
+    }
+}
+
+impl Editor {
+    /// Page Color > Fill Effects: a gradient, pattern or picture background, as
+    /// Word keeps it (w:background with a VML v:background and v:fill).
+    /// kind: gradient, gradientRadial, pattern, frame, tile.
+    #[allow(clippy::too_many_arguments)]
+    pub fn set_page_fill(&mut self, kind: &str, c1: &str, c2: &str, angle: f64, focus: &str, title: &str,
+                         image: Option<(&[u8], &str)>) -> bool {
+        const NS_V: &str = "urn:schemas-microsoft-com:vml";
+        const NS_O: &str = "urn:schemas-microsoft-com:office:office";
+        const NS_R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        self.begin();
+        let root = self.doc.dom.root;
+        for (k, v) in [("xmlns:v", NS_V), ("xmlns:o", NS_O), ("xmlns:r", NS_R)] {
+            if self.doc.dom.attr(root, k).is_none() {
+                self.doc.dom.set_attr(root, k, v);
+            }
+        }
+        if let Some(old) = self.doc.dom.child(root, "w:background") {
+            self.doc.dom.detach(old);
+        }
+        let mut rid = String::new();
+        if let Some((bytes, ext)) = image {
+            let main = self.doc.main.clone();
+            let mut n = 1;
+            while self.doc.pkg.has(&format!("word/media/image{}.{}", n, ext)) {
+                n += 1;
+            }
+            let part = format!("word/media/image{}.{}", n, ext);
+            self.doc.pkg.put_raw(&part, bytes.to_vec());
+            let ctype = match ext { "png" => "image/png", "gif" => "image/gif", "bmp" => "image/bmp", _ => "image/jpeg" };
+            self.doc.pkg.ensure_default(ext, ctype);
+            let target = crate::package::Package::relative_target(&main, &part);
+            rid = self.doc.pkg.add_rel(&main, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", &target);
+            self.doc.images.insert(rid.clone(), crate::pictures::ImageData { part, bytes: std::sync::Arc::new(bytes.to_vec()) });
+        }
+        let bg = self.doc.dom.new_element("w:background", &[("w:color", c1)]);
+        let fill_color = format!("#{}", c1.to_lowercase());
+        let vb = self.doc.dom.new_element("v:background", &[("id", "_x0000_s1025"), ("o:bwmode", "white"),
+                                                           ("fillcolor", &fill_color), ("o:targetscreensize", "1024,768")]);
+        let color2 = format!("#{}", c2.to_lowercase());
+        let ang = format!("{}", angle.round() as i64);
+        let mut attrs: Vec<(&str, &str)> = vec![("type", kind)];
+        if kind.starts_with("gradient") || kind == "pattern" {
+            attrs.push(("color2", &color2));
+        }
+        if kind == "gradient" {
+            attrs.push(("angle", &ang));
+            attrs.push(("focus", "100%"));
+        }
+        if kind == "gradientRadial" {
+            attrs.push(("focusposition", focus));
+            attrs.push(("focussize", ""));
+            attrs.push(("focus", "100%"));
+        }
+        if !rid.is_empty() {
+            attrs.push(("r:id", &rid));
+            attrs.push(("recolor", "t"));
+        }
+        if !title.is_empty() {
+            attrs.push(("o:title", title));
+        }
+        let f = self.doc.dom.new_element("v:fill", &attrs);
+        self.doc.dom.append(vb, f);
+        self.doc.dom.append(bg, vb);
+        self.doc.dom.insert(root, 0, bg);
+        self.cache.clear();
+        self.commit("Page Color", false);
+        let _ = self.set_settings_xml("w:displayBackgroundShape", Some("<w:displayBackgroundShape/>"));
+        true
+    }
+}
+
+impl Editor {
+    /// Enter at the very start of a table's first cell, when nothing comes
+    /// before the table: a paragraph goes in above it (as in the original).
+    pub fn para_before_table(&mut self) -> bool {
+        if self.caret.off != 0 || self.anchor != self.caret {
+            return false;
+        }
+        let dom = &self.doc.dom;
+        let p = self.caret.para;
+        let Some(tc) = dom.parent(p) else { return false };
+        if !dom.is(tc, "w:tc") || dom.elements(tc).find(|&k| dom.is(k, "w:p")) != Some(p) {
+            return false;
+        }
+        let Some(tr) = dom.parent(tc) else { return false };
+        let Some(tbl) = dom.parent(tr) else { return false };
+        if dom.elements(tr).find(|&k| dom.is(k, "w:tc")) != Some(tc) || dom.elements(tbl).find(|&k| dom.is(k, "w:tr")) != Some(tr) {
+            return false;
+        }
+        let Some(parent) = dom.parent(tbl) else { return false };
+        // only where nothing can take the caret above the table
+        if let Some(i) = dom.index_in_parent(tbl) {
+            if dom.children(parent)[..i].iter().any(|&k| dom.is(k, "w:p") || dom.is(k, "w:tbl")) {
+                return false;
+            }
+        }
+        self.begin();
+        let np = self.doc.dom.new_element("w:p", &[]);
+        let i = self.doc.dom.index_in_parent(tbl).unwrap_or(0);
+        self.doc.dom.insert(parent, i, np);
+        self.doc.scan();
+        self.caret = Pos { para: np, off: 0 };
+        self.anchor = self.caret;
+        self.commit("Typing", false);
+        true
     }
 }

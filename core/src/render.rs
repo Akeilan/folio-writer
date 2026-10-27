@@ -75,9 +75,15 @@ impl Renderer {
     pub fn draw_page(&mut self, cr: &cairo::Context, layout: &Layout, page: &Page, fonts: &mut FontCache,
                      ov: &Overlay) {
         cr.save().ok();
-        cr.set_source_rgb(1.0, 1.0, 1.0);
+        match page.background {
+            Some(c) => cr.set_source_rgb(((c >> 16) & 255) as f64 / 255.0, ((c >> 8) & 255) as f64 / 255.0, (c & 255) as f64 / 255.0),
+            None => cr.set_source_rgb(1.0, 1.0, 1.0),
+        }
         cr.rectangle(0.0, 0.0, page.width, page.height);
         cr.fill().ok();
+        if let Some(f) = &page.fill {
+            self.draw_page_fill(cr, f, page.width, page.height);
+        }
         let text_box = (page.left, page.top, page.width - page.right, page.height - page.bottom);
         if let Some(b) = page.borders.as_ref().filter(|b| !b.front) {
             crate::art::draw(cr, b, page.width, page.height, text_box);
@@ -604,6 +610,92 @@ fn placeholder(cr: &cairo::Context, x: f64, y: f64, w: f64, h: f64, _kind: &str)
 }
 
 impl Renderer {
+    fn draw_page_fill(&mut self, cr: &cairo::Context, f: &crate::document::PageFill, w: f64, h: f64) {
+        let rgb = |c: u32| (((c >> 16) & 255) as f64 / 255.0, ((c >> 8) & 255) as f64 / 255.0, (c & 255) as f64 / 255.0);
+        let (r1, g1, b1) = rgb(f.c1);
+        let (r2, g2, b2) = rgb(f.c2);
+        cr.save().ok();
+        match f.kind.as_str() {
+            "gradient" => {
+                // VML angles: 0 top to bottom... as Word writes them for the six styles
+                let a = f.angle.to_radians();
+                let (dx, dy) = (a.sin() * w / 2.0, a.cos() * h / 2.0);
+                let g = cairo::LinearGradient::new(w / 2.0 - dx, h / 2.0 - dy, w / 2.0 + dx, h / 2.0 + dy);
+                g.add_color_stop_rgb(0.0, r1, g1, b1);
+                g.add_color_stop_rgb(1.0, r2, g2, b2);
+                cr.set_source(&g).ok();
+                cr.paint().ok();
+            }
+            "gradientRadial" => {
+                let (cx, cy) = if f.focus.contains(".5") { (w / 2.0, h / 2.0) } else { (0.0, 0.0) };
+                let g = cairo::RadialGradient::new(cx, cy, 0.0, cx, cy, w.max(h));
+                g.add_color_stop_rgb(0.0, r1, g1, b1);
+                g.add_color_stop_rgb(1.0, r2, g2, b2);
+                cr.set_source(&g).ok();
+                cr.paint().ok();
+            }
+            "pattern" => {
+                cr.set_source_rgb(r2, g2, b2);
+                cr.paint().ok();
+                cr.set_source_rgb(r1, g1, b1);
+                cr.set_line_width(0.75);
+                let t = f.pattern.to_lowercase();
+                let step = if t.contains("wide") { 3.0 } else if t.contains("large") { 12.0 } else { 6.0 };
+                let mut x = -h;
+                while x < w + h {
+                    if t.contains("vertical") || t.contains("grid") {
+                        cr.move_to(x, 0.0);
+                        cr.line_to(x, h);
+                    }
+                    if t.contains("horizontal") || t.contains("grid") {
+                        cr.move_to(0.0, x);
+                        cr.line_to(w, x);
+                    }
+                    if t.contains("upward") || t.contains("cross") {
+                        cr.move_to(x, h);
+                        cr.line_to(x + h, 0.0);
+                    }
+                    if t.contains("downward") || t.contains("cross") {
+                        cr.move_to(x, 0.0);
+                        cr.line_to(x + h, h);
+                    }
+                    if t.contains('%') {
+                        let mut y = 0.0;
+                        while y < h {
+                            if x >= 0.0 && x <= w {
+                                cr.rectangle(x, y, 0.75, 0.75);
+                            }
+                            y += step;
+                        }
+                    }
+                    x += step;
+                }
+                cr.stroke().ok();
+                cr.fill().ok();
+            }
+            "frame" | "tile" => {
+                if let Some(img) = &f.image {
+                    if let Some(s) = self.surface(img) {
+                        let (iw, ih) = (s.width() as f64, s.height() as f64);
+                        if f.kind == "frame" {
+                            cr.scale(w / iw.max(1.0), h / ih.max(1.0));
+                            cr.set_source_surface(&s, 0.0, 0.0).ok();
+                            cr.paint().ok();
+                        } else {
+                            let p = cairo::SurfacePattern::create(&s);
+                            p.set_extend(cairo::Extend::Repeat);
+                            cr.set_source(&p).ok();
+                            cr.rectangle(0.0, 0.0, w, h);
+                            cr.fill().ok();
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        cr.restore().ok();
+    }
+
     fn surface(&mut self, img: &crate::pictures::ImageData) -> Option<cairo::ImageSurface> {
         if !self.pics.contains_key(&img.part) {
             let s = crate::pictures::decode(&img.bytes, self.max_px);
@@ -785,10 +877,11 @@ impl Renderer {
     /// The picture's content in its own box (0, 0, w, h).
     fn draw_content(&mut self, cr: &cairo::Context, pic: &crate::pictures::Pic) {
         let (w, h) = (pic.w, pic.h);
-        if pic.kind == "chart" {
+        if pic.kind == "chart" || pic.kind == "chartex" {
             if let (Some(img), Some(theme)) = (&pic.image, &pic.chart_theme) {
                 cr.save().ok();
-                let ok = crate::chart::draw(cr, &img.bytes, w, h, theme, "Calibri");
+                let ok = if pic.kind == "chartex" { crate::chart::draw_ex(cr, &img.bytes, w, h, theme, "Calibri") }
+                         else { crate::chart::draw(cr, &img.bytes, w, h, theme, "Calibri") };
                 cr.restore().ok();
                 if ok {
                     return;
@@ -918,6 +1011,10 @@ impl Renderer {
         cr.translate(px + w / 2.0, py + h / 2.0);
         if pic.rot != 0.0 {
             cr.rotate(pic.rot.to_radians());
+        }
+        if let Some((la, lo, rv)) = fx.camera {
+            let (a, b, c, d) = E::camera_matrix(la, lo, rv);
+            cr.transform(cairo::Matrix::new(a, b, c, d, 0.0, 0.0));
         }
         cr.translate(-w / 2.0, -h / 2.0);
         let paint_mask = |cr: &cairo::Context, m: &cairo::ImageSurface, pad: i32, color: u32, alpha: f64| {
@@ -1144,12 +1241,52 @@ pub fn render_page_image(r: &mut Renderer, layout: &Layout, page: usize, fonts: 
 
 /// Export the whole layout to PDF.
 pub fn export_pdf(layout: &Layout, fonts: &mut FontCache, path: &str) -> Result<(), String> {
-    let first = layout.pages.first().ok_or("no pages")?;
+    export_pdf_with(layout, fonts, path, &PdfOptions::default())
+}
+
+/// What a PDF carries besides the pages.
+#[derive(Default)]
+pub struct PdfOptions {
+    /// the pages (0-based) to export; empty: all
+    pub pages: Vec<usize>,
+    /// bookmarks: (level 1.., text, page, y in points)
+    pub outline: Vec<(u32, String, usize, f64)>,
+    pub title: String,
+    pub author: String,
+    pub subject: String,
+    pub keywords: String,
+}
+
+pub fn export_pdf_with(layout: &Layout, fonts: &mut FontCache, path: &str, o: &PdfOptions) -> Result<(), String> {
+    let pages: Vec<usize> = if o.pages.is_empty() { (0..layout.pages.len()).collect() }
+                            else { o.pages.iter().copied().filter(|&i| i < layout.pages.len()).collect() };
+    let first = layout.pages.get(*pages.first().ok_or("no pages")?).ok_or("no pages")?;
     let surf = cairo::PdfSurface::new(first.width, first.height, path).map_err(|e| e.to_string())?;
+    for (k, v) in [(cairo::PdfMetadata::Title, &o.title), (cairo::PdfMetadata::Author, &o.author),
+                   (cairo::PdfMetadata::Subject, &o.subject), (cairo::PdfMetadata::Keywords, &o.keywords)] {
+        if !v.is_empty() {
+            surf.set_metadata(k, v).ok();
+        }
+    }
+    surf.set_metadata(cairo::PdfMetadata::Creator, "Folio Writer").ok();
+    // bookmarks: their pages renumbered to the ones exported
+    let mut parents: Vec<(u32, i32)> = Vec::new();
+    for (level, text, page, y) in &o.outline {
+        let Some(pi) = pages.iter().position(|p| p == page) else { continue };
+        while parents.last().map_or(false, |(l, _)| *l >= *level) {
+            parents.pop();
+        }
+        let parent = parents.last().map(|(_, id)| *id).unwrap_or(0);
+        let link = format!("page={} pos=[0 {}]", pi + 1, y.max(0.0));
+        if let Ok(id) = surf.add_outline(parent, text, &link, cairo::PdfOutline::OPEN) {
+            parents.push((*level, id));
+        }
+    }
     let cr = cairo::Context::new(&surf).map_err(|e| e.to_string())?;
     let mut r = Renderer::new();
     r.max_px = 6000;
-    for pg in &layout.pages {
+    for &i in &pages {
+        let pg = &layout.pages[i];
         surf.set_size(pg.width, pg.height).ok();
         r.draw_page(&cr, layout, pg, fonts, &Overlay::default());
         cr.show_page().map_err(|e| e.to_string())?;

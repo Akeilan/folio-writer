@@ -322,6 +322,9 @@ class DocDialogs:
         self.find_replace(2)
 
     def find_replace(self, tab=0, text=None):
+        if getattr(self.win.engine, "native", False):
+            from .native import find
+            return find.dialog(self.win, tab, text)
         m = self._model_or_warn()
         if m is None:
             return
@@ -1223,8 +1226,29 @@ class DocDialogs:
         picw.connect("toggled", lambda w: pbody.set_sensitive(w.get_active()))
         pbody.set_sensitive(False)
         d.add(textw)
-        text = combo(["ASAP", "CONFIDENTIAL", "COPY", "DO NOT COPY", "DRAFT", "ORIGINAL",
-                      "PERSONAL", "SAMPLE", "TOP SECRET", "URGENT"], "CONFIDENTIAL", entry=True)
+        presets = {
+            "English (United States)": ["ASAP", "CONFIDENTIAL", "COPY", "DO NOT COPY", "DRAFT", "ORIGINAL",
+                                        "PERSONAL", "SAMPLE", "TOP SECRET", "URGENT"],
+            "English (United Kingdom)": ["ASAP", "CONFIDENTIAL", "COPY", "DO NOT COPY", "DRAFT", "ORIGINAL",
+                                         "PERSONAL", "SAMPLE", "TOP SECRET", "URGENT"],
+            "French (France)": ["BROUILLON", "CONFIDENTIEL", "COPIE", "ÉCHANTILLON", "ORIGINAL", "PERSONNEL",
+                                "SECRET", "URGENT"],
+            "German (Germany)": ["ENTWURF", "KOPIE", "MUSTER", "NICHT KOPIEREN", "ORIGINAL", "PERSÖNLICH",
+                                 "STRENG GEHEIM", "VERTRAULICH", "DRINGEND"],
+            "Spanish (Spain)": ["BORRADOR", "CONFIDENCIAL", "COPIA", "MUESTRA", "NO COPIAR", "ORIGINAL",
+                                "PERSONAL", "SECRETO", "URGENTE"],
+        }
+        lang = combo(list(presets), 0)
+        text = combo(presets["English (United States)"], "CONFIDENTIAL", entry=True)
+
+        def lang_changed(*_):
+            items = presets.get(lang.get_active_text() or "", presets["English (United States)"])
+            cur = combo_text(text)
+            text.remove_all()
+            for t in items:
+                text.append_text(t)
+            text.get_child().set_text(cur if cur in items else items[0])
+        lang.connect("changed", lang_changed)
         dflt_font = "Calibri" if getattr(self.eng, "native", False) else "Carlito"
         font = combo(self.eng.fonts() or [dflt_font], dflt_font, entry=True)
         color = color_button(0xC0C0C0)
@@ -1237,7 +1261,7 @@ class DocDialogs:
         lay.pack_start(horiz, False, False, 0)
         size = combo(["Auto", "36", "40", "44", "48", "54", "60", "66", "72", "80", "90", "96",
                       "105", "120", "144"], 0, entry=True)
-        body = grid([["_Text:", text], ["_Font:", font], ["_Size:", size], ["_Color:", color, semi],
+        body = grid([["_Language:", lang], ["_Text:", text], ["_Font:", font], ["_Size:", size], ["_Color:", color, semi],
                      ["Layout:", lay]])
         body.set_margin_start(20)
         d.add(body)

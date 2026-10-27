@@ -16,7 +16,7 @@ NUM_TO_UL[9] = "wave"
 JC_TO_ADJ = {"left": 0, "start": 0, "right": 1, "end": 1, "both": 2, "distribute": 2,
              "center": 3}
 ADJ_TO_JC = {0: "left", 1: "right", 2: "both", 3: "center"}
-TAB_KIND = {"left": "LEFT", "center": "CENTER", "right": "RIGHT", "decimal": "DECIMAL"}
+TAB_KIND = {"left": "LEFT", "center": "CENTER", "right": "RIGHT", "decimal": "DECIMAL", "bar": "BAR"}
 LEADER = {"dot": ".", "hyphen": "-", "underscore": "_", "middleDot": "·", "none": " "}
 
 
@@ -346,7 +346,7 @@ class CursorProps:
             tabs = []
             for ts in v:
                 kind = {"LEFT": "left", "CENTER": "center", "RIGHT": "right",
-                        "DECIMAL": "decimal"}.get(_enum_value(ts.Alignment), "left")
+                        "DECIMAL": "decimal", "BAR": "bar"}.get(_enum_value(ts.Alignment), "left")
                 lead = {".": "dot", "-": "hyphen", "_": "underscore",
                         "·": "middleDot"}.get(str(getattr(ts.FillChar, "value", ts.FillChar)), "none")
                 tabs.append((_tw(ts.Position), kind, lead))

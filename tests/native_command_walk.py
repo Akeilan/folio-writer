@@ -99,6 +99,39 @@ def items_of(tabs=None, exclude=()):
         if getattr(c, "action", None) is not None:
             out.append((tab, name_of(c), lambda c=c: c.run()))
         m = getattr(c, "menu", None)
+        if callable(m) and not isinstance(m, Gtk.Widget):
+            # galleries built when opened (Cover Page, WordArt...): their items as lists
+            fn_m = getattr(c, "menu_fn", None) or m
+            try:
+                got = fn_m()
+            except Exception:
+                got = None
+            m = got if isinstance(got, list) else None
+            if isinstance(got, Gtk.Widget) and getattr(c, "tab_name", "") not in ("File",):
+                def buttons(w, acc):
+                    if isinstance(w, Gtk.Button) and not isinstance(w, (Gtk.MenuButton,)):
+                        lab = w.get_label() or w.get_tooltip_text() or ""
+                        if not lab:
+                            for ch in (w.get_children() if isinstance(w, Gtk.Container) else []):
+                                if isinstance(ch, Gtk.Label):
+                                    lab = ch.get_text()
+                                elif isinstance(ch, Gtk.Box):
+                                    for x in ch.get_children():
+                                        if isinstance(x, Gtk.Label):
+                                            lab = lab or x.get_text()
+                        if lab:
+                            acc.append((lab.replace("_", ""), w))
+                        return acc
+                    if isinstance(w, Gtk.Container):
+                        for ch in w.get_children():
+                            buttons(ch, acc)
+                    return acc
+                for lab, b in buttons(got, []):
+                    out.append((tab, name_of(c) + " > " + lab, lambda b=b: b.clicked()))
+                try:
+                    got.popdown() if hasattr(got, "popdown") else None
+                except Exception:
+                    pass
         if isinstance(m, list):
             for it in m:
                 if isinstance(it, tuple) and len(it) >= 2 and it[0] != "#" and callable(it[1]):

@@ -1,6 +1,19 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
 from folio import lists
+if NATIVE:
+    from folio.native import lists as _nl
+    _lm = lists
+    class _L:
+        MULTI = _lm.MULTI
+        restart_at = staticmethod(lambda m, v=1: _nl.restart_at(win, v))
+        continue_numbering = staticmethod(lambda m: _nl.continue_numbering(win))
+        apply_multilevel = staticmethod(lambda m, lv: _nl.apply_multilevel(win, lv))
+        heading_numbering = staticmethod(lambda m, *a: _nl.heading_numbering(win, *a))
+        adjust_indents = staticmethod(lambda w: _lm.adjust_indents(w))
+        set_numbering_value = staticmethod(lambda w: _lm.set_numbering_value(w))
+        define_dialog = staticmethod(lambda w: _lm.define_dialog(w))
+    lists = _L
 def labels():
     return [getattr(p, "ListLabelString", "") for p in paras() if hasattr(p, "ListLabelString")]
 def ctx_items():

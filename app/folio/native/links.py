@@ -62,8 +62,17 @@ class LinkApi:
             out.setdefault(kind, []).append((shown, target))
         return out
 
-    def insert_cross_reference(self, m, kind, target, part="text", hyperlink=True, above=False):
+    def insert_cross_reference(self, m, kind, target, part="text", hyperlink=True, above=False, sep=None):
         self.ed.insert_cross_reference(kind, target, part, hyperlink)
+        if sep:
+            # Separate numbers with: the REF field's \d switch
+            fields = self.ed.body_fields()
+            p, off = self.ed.caret_pos()
+            for i in range(len(fields) - 1, -1, -1):
+                instr, _r, fp, _a, b = fields[i]
+                if fp == p and b <= off and instr.strip().upper().startswith("REF") and "\\d" not in instr:
+                    self.ed.set_field_instr(i, instr.rstrip() + ' \\d "%s" ' % sep.replace('"', ''))
+                    break
         if above and part != "above":
             self.ed.type_text(" ")
             self.ed.insert_cross_reference(kind, target, "above", hyperlink)

@@ -1111,6 +1111,8 @@ def build_ribbon(win):
               None,
               ("Inside Horizontal Border", lambda: BM.apply_win(win, "inside-h")),
               ("Inside Vertical Border", lambda: BM.apply_win(win, "inside-v")),
+              ("Diagonal Down Border", lambda: BM.apply_win(win, "diag-down")),
+              ("Diagonal Up Border", lambda: BM.apply_win(win, "diag-up")),
               None, ("Horizontal Line", lambda: BM.horizontal_line(win)),
               None, ("Draw Table", lambda: win.table_draw.begin("draw")),
               ("View Gridlines", lambda: A.cmd(".uno:TableBoundaries")),
@@ -1192,7 +1194,10 @@ def build_ribbon(win):
         MenuButton(r, "Text\nBox", "cmd/lc_text", [("#", "Built-In")] + [
             (lab, (lambda k=k: win.model_call_sync("insertextras.insert_textbox", k)))
             for lab, k in IX.TEXTBOXES] + [
-            None, ("Draw Text Box", lambda: run(("draw-shape", "textbox")))], keytip="X"),
+            None, ("Draw Text Box", lambda: run(("draw-shape", "textbox"))),
+            ("Save Selection to Text Box Gallery...",
+             lambda: __import__("folio.covers", fromlist=["x"]).save_selection(win, "Text Boxes"))],
+            keytip="X"),
         MenuButton(r, "Quick\nParts", "cmd/lc_insertfieldctrl", lambda: IX.quick_parts_menu(win), keytip="Q"),
         MenuButton(r, "WordArt", "cmd/lc_fontworkgalleryfloater",
                    lambda: _effects_popover(win, "wordart"), keytip="W"),
@@ -1248,7 +1253,7 @@ def build_ribbon(win):
         pens.append(b)
     t.add(Group("Pens", pens))
     t.add(Group("Convert", [
-        btn("Ink to\nMath", "cmd/lc_insertobjectstarmath", "ink-equation", size="large",
+        btn("Ink to\nMath", "cmd/lc_insertobjectstarmath", lambda: __import__("folio.inkmath", fromlist=["x"]).dialog(win), size="large",
             keytip="IM")]))
     r.add_tab(t)
 
@@ -1481,7 +1486,10 @@ def build_ribbon(win):
                                                          "Works Cited")),
              None,
              ("Insert Bibliography", lambda: win.model_call_sync(
-                 "citations.insert_bibliography", ""))], size="small", keytip="B")]]))
+                 "citations.insert_bibliography", "")),
+             ("Save Selection to Bibliography Gallery...",
+              lambda: __import__("folio.covers", fromlist=["x"]).save_selection(win, "Bibliographies"))],
+             size="small", keytip="B")]]))
     t.add(Group("Captions", [
         btn("Insert\nCaption", "cmd/lc_insertcaptiondialog", "caption", size="large", keytip="P"),
         [btn("Insert Table of Figures", "tof", "table-of-figures", keytip="G"),
@@ -1525,12 +1533,16 @@ def build_ribbon(win):
             ("Letters", lambda: DM.start_mail_merge(win, "letters")),
             ("Envelopes...", lambda: DM.start_mail_merge(win, "envelopes")),
             ("Labels...", lambda: DM.start_mail_merge(win, "labels")),
+            ("E-mail Messages", lambda: DM.not_available(win, "Merging to e-mail")),
             ("Directory", lambda: DM.start_mail_merge(win, "directory")),
+            ("Normal Word Document", lambda: DM.start_mail_merge(win, "normal")),
             None,
-            ("Normal Document", lambda: DM.start_mail_merge(win, "normal"))], keytip="S"),
+            ("Step-by-Step Mail Merge Wizard...", lambda: DM.wizard(win))], keytip="S"),
         MenuButton(r, "Select\nRecipients", "cmd/lc_addressbooksource", [
             ("Type a New List...", lambda: DM.type_new_list(win)),
-            ("Use an Existing List...", lambda: DM.use_existing_list(win))], keytip="R"),
+            ("Use an Existing List...", lambda: DM.use_existing_list(win)),
+            ("Choose from Outlook Contacts...", lambda: DM.not_available(win, "Outlook Contacts"))],
+            keytip="R"),
         needs(btn("Edit\nRecipient List", "cmd/lc_mailmergeemaildocuments" if False else
                   "cmd/lc_dbviewtables", lambda: DM.edit_recipients(win), size="large",
                   keytip="D"))]))
@@ -1591,7 +1603,9 @@ def build_ribbon(win):
     t.add(Group("Finish", [
         needs(MenuButton(r, "Finish &\nMerge", "cmd/lc_mailmergecreatedocuments", [
             ("Edit Individual Documents...", lambda: DM.finish(win)),
-            ("Print Documents...", lambda: DM.finish(win, print_after=True))], keytip="F"))]))
+            ("Print Documents...", lambda: DM.finish(win, print_after=True)),
+            ("Send Email Messages...", lambda: DM.not_available(win, "Sending e-mail"))],
+            keytip="F"))]))
     r.add_tab(t)
 
     # ================================================================= REVIEW
@@ -1631,6 +1645,9 @@ def build_ribbon(win):
     t.add(Group("Tracking", [
         SplitButton(r, "Track\nChanges", "cmd/lc_trackchanges", ".uno:TrackChanges", [
             ("For Everyone", lambda: A.cmd(".uno:TrackChanges")),
+            ("Just Mine", lambda: win.status.flash(
+                "Just Mine is for documents shared online, which Folio Writer doesn't do; "
+                "For Everyone tracks your changes.")),
             ("Lock Tracking", lambda: win.lock_tracking())],
             size="large", state=".uno:TrackChanges", keytip="G",
             tooltip="Track Changes (Ctrl+Shift+E)"),
@@ -1905,6 +1922,9 @@ def build_ribbon(win):
                                               for lab, pt in OL.SOFT]
             items += [("#", "Bevel"), ("No Bevel", lambda: oc("set_bevel", None))]
             items += [(n, (lambda n=n: oc("set_bevel", n))) for n in NO.BEVELS]
+            items += [("#", "3-D Rotation"), ("No Rotation", lambda: oc("set_rotation", None))]
+            items += [("#", n) if p is None else (n, (lambda p=p: oc("set_rotation", p)))
+                      for n, p in NO.ROTATIONS]
             return items
         return [("#", "Shadow"),
                 ("No Shadow", lambda: oc("set_shadow", False)),
@@ -2740,7 +2760,7 @@ def _cover_menu(win):
         items += [("#", "Custom")] + [(p["name"], (lambda p=p: covers.insert_saved(
             win, p, "cover"))) for p in saved]
     items += [None, ("Remove Current Cover Page",
-                     lambda: win.engine.sync(lambda: covers.remove_cover(win.engine.model))),
+                     lambda: win.engine.sync(lambda: covers.remove_current(win))),
               ("Save Selection to Cover Page Gallery...",
                lambda: covers.save_selection(win, "Cover Pages"))]
     return menu_popover(None, items)
@@ -2753,9 +2773,8 @@ def _hf_menu(win, which):
     gal = "Headers" if which == "header" else "Footers"
     word = "Header" if which == "header" else "Footer"
     items = [("#", "Built-in")] + [
-        (n, (lambda n=n: (None if getattr(win, "native", False) else
-                          win.engine.sync(lambda: covers.hf_design(win, which, n)),
-                          win.run(which))))
+        (n, (lambda n=n: (covers.hf_design(win, which, n) if getattr(win, "native", False) else
+                          (win.engine.sync(lambda: covers.hf_design(win, which, n)), win.run(which)))))
         for n in names]
     saved = covers.gallery_parts(gal)
     if saved:

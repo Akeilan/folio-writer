@@ -47,7 +47,18 @@ class Painter:
         self.sticky = sticky
         self._show()
 
+    _t = 0.0
+
     def toggle(self, sticky=False):
+        import time
+        now = time.monotonic()
+        if self.active and not sticky and now - self._t < 0.5:
+            # a double-click on the button: it stays on for several places
+            self.sticky = True
+            self._t = 0.0
+            self._show()
+            return
+        self._t = now
         if self.active and not sticky:
             self.stop()
         else:

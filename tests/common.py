@@ -4,7 +4,7 @@ LOG = open("/tmp/ftest.log", "a")
 def log(*a):
     LOG.write(" ".join(str(x) for x in a) + "\n"); LOG.flush()
 def shot(name):
-    subprocess.run(["import", "-window", "root", "/tmp/fshot_%s.png" % name], env=dict(os.environ, DISPLAY=":99"))
+    subprocess.run(["import", "-window", "root", "/tmp/fshot_%s.png" % name], env=dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99")))
 def pump(sec=0.5):
     end = time.time() + sec
     while time.time() < end:

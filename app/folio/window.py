@@ -6,7 +6,6 @@ from gi.repository import Gdk, GLib, Gtk
 
 from . import APP_NAME, docapi
 from .actions import Actions, para_margins, para_spacing, word_style
-from .engine import Engine
 from .keys import KeyMap, PASSTHROUGH
 from .ribbon import Ribbon
 from .statusbar import StatusBar
@@ -50,9 +49,12 @@ class DocWindow(Gtk.ApplicationWindow):
         if self.native:
             from .native.engine import NativeEngine
             self.engine = NativeEngine(app.engine_profile, app.user_name())
+            from .native.autocorrect import AutoCorrect
+            self.engine.view.autocorrect = AutoCorrect(self)
             from .native.spell import Speller
             self.engine.view.speller = Speller(self)
         else:
+            from .engine import Engine
             self.engine = Engine(app.engine_profile, app.user_name())
         self.engine.connect("state-changed", self.on_state)
         self.engine.connect("zoom-changed", lambda e, z: self.status.show_zoom(z))
@@ -124,6 +126,8 @@ class DocWindow(Gtk.ApplicationWindow):
         self._follow_id = 0
         if not self.native:
             self.engine.view.connect("cursor-changed", self.on_cursor_moved)
+        else:
+            self.engine.view.connect("cursor-changed", self._native_cursor_moved)
         # LOKDocView passes every key to the engine but reports it unhandled,
         # so GTK also ran its own arrow-key navigation and moved the focus up
         # into the ribbon (and back, scrolling to page 1). Keys the document
@@ -418,7 +422,11 @@ class DocWindow(Gtk.ApplicationWindow):
         if ok:
             # nudge the engine so it reports the formatting at the cursor
             GLib.timeout_add(200, lambda: (self.engine.command(".uno:GoToStartOfDoc"), False)[1])
-        if not ok:
+        if not ok and getattr(self.engine, "open_error", None) == "needs-converter":
+            self.dialogs.message("To open this kind of file, install LibreOffice (sudo apt install "
+                                 "libreoffice-writer). %s uses it only to convert the file."
+                                 % APP_NAME, kind="error")
+        elif not ok:
             self.dialogs.message("%s couldn't open this file. It may be damaged or in a "
                                  "format %s doesn't support." % (APP_NAME, APP_NAME),
                                  kind="error")
@@ -648,7 +656,14 @@ class DocWindow(Gtk.ApplicationWindow):
                 "Saving as plain text will lose all formatting, pictures and objects. "
                 "Do you want to continue?", yes="OK", no="Cancel"):
             return False
+        self.engine.save_error = None
         ok = self.engine.save_as(path, keep=keep)
+        if not ok and getattr(self.engine, "save_error", None) == "needs-converter":
+            self.dialogs.message("To save in this format, install LibreOffice (sudo apt install "
+                                 "libreoffice-writer). %s uses it only to convert the file. Word "
+                                 "(.docx), PDF and plain text are saved without it." % APP_NAME,
+                                 kind="error")
+            return False
         if keep:
             self._after_save(ok)
             if ok:
@@ -897,6 +912,10 @@ class DocWindow(Gtk.ApplicationWindow):
             if mod == "insertextras" and fn == "insert_textbox":
                 from .native import objects
                 objects.insert_builtin_textbox(self, *args)
+                return
+            if mod == "insertextras" and fn in ("insert_wordart", "text_effect", "toggle_char", "insert_doc_property"):
+                from .native import effects
+                getattr(effects, fn)(self, *args)
                 return
             self.actions._not_yet()
             return
@@ -1209,10 +1228,43 @@ class DocWindow(Gtk.ApplicationWindow):
         self.dialogs.help()
 
     def act_draw_shape(self, kind):
+        if kind == "canvas":
+            self.insert_canvas()
+            return
         if kind == "scribble":
             self.ink.begin("pen")
             return
         self.draw.begin(kind)
+
+    def act_field_braces(self):
+        """Ctrl+F9: empty field braces to type a field code in."""
+        if not self.native:
+            self.run("field-dialog")
+            return
+        from .native.fieldcode import FieldCodeEntry
+        fc = getattr(self.engine.view, "field_code", None) or FieldCodeEntry(self)
+        fc.start()
+
+    def insert_canvas(self):
+        """Insert > Shapes > New Drawing Canvas: an empty area at the caret
+        to draw shapes on."""
+        if not self.native:
+            self.actions._not_yet()
+            return
+        ed = self.engine.ed
+        r = ed.caret_rect()
+        if r is None:
+            return
+        pg, _x, y, _h = r
+        left = ed.page_margins(pg)[3]
+        if ed.insert_shape("rect", pg, left, y + 14, 432.0, 216.0, "Drawing Canvas", False):
+            ed.object_fill("<a:noFill/>")
+            ed.object_outline("<a:ln><a:noFill/></a:ln>")
+            v = self.engine.view
+            v.document_changed()
+            v.objs.refresh()
+            v.after_move()
+            v.grab_focus()
 
     def object_call_module(self, module, fname, *args):
         """Like object_call, for functions in other modules (picture tools)."""
@@ -1653,6 +1705,15 @@ class DocWindow(Gtk.ApplicationWindow):
             self.hide_pane(pane)
         else:
             self.show_pane(ReviewingPane, "left")
+
+    def _native_cursor_moved(self, view, *_a):
+        """The caret in document twips, as the old engine reported it."""
+        ed = self.engine.ed
+        r = ed.caret_rect() if ed is not None else None
+        if r:
+            pg, x, y, h = r
+            top = self.engine.page_top_tw(pg)
+            self._follow_rect = (int(x * 20), int(top + y * 20), 20, int(h * 20))
 
     def on_cursor_moved(self, view, x, y, w, h):
         """Keep the text cursor on screen (LOKDocView leaves that to the host)."""
@@ -2262,6 +2323,32 @@ class DocWindow(Gtk.ApplicationWindow):
                 return self.draw._press(view, event)
             if self.eqbar.ed.active and self.eqbar.ed.press(event):
                 return True
+            ed = self.engine.ed
+            if event.button == 3 and event.type == Gdk.EventType.BUTTON_PRESS and ed is not None:
+                # the shortcut menu (and the Mini Toolbar), as in the original; a
+                # right-click outside the selection moves the caret there first
+                hit = view.page_at(event.x, event.y)
+                if hit is not None and not view.objs.active():
+                    if not (ed.has_selection() and view._in_selection(*hit)):
+                        if ed.object_at(*hit) and ed.select_object_at(*hit):
+                            view.objs.refresh()
+                        else:
+                            ed.click(hit[0], hit[1], hit[2], False)
+                        view.after_move()
+                if self.app.settings.get("mini_toolbar", True):
+                    try:
+                        self.minibar.show(int(event.x), int(event.y) - 4)
+                    except Exception:
+                        pass
+                self.dialogs.context_menu(event)
+                return True
+            if event.button == 2 and event.type == Gdk.EventType.BUTTON_PRESS and ed is not None:
+                hit = view.page_at(event.x, event.y)
+                if hit is not None:
+                    ed.click(hit[0], hit[1], hit[2], False)
+                    view.after_move()
+                self.actions.paste_primary()
+                return True
             if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS and \
                     self.engine.ed is not None:
                 hit = view.page_at(event.x, event.y)
@@ -2753,6 +2840,10 @@ class DocWindow(Gtk.ApplicationWindow):
                                                 & ~Gdk.ModifierType.MOD2_MASK):
             self.keytips.start()
             return True
+        if self.native and in_doc:
+            fc = getattr(self.engine.view, "field_code", None)
+            if fc is not None and fc.active and fc.key(event):
+                return True
         action, mods, keyname = self.keymap.lookup(event)
         if "alt" in mods and "ctrl" not in mods and action is None and len(keyname) == 1:
             # Alt+letter: ribbon KeyTips
@@ -2769,7 +2860,18 @@ class DocWindow(Gtk.ApplicationWindow):
         if self.native:
             # the view does the editing keys itself
             if action is not None:
+                if action != "extend-selection" and self.extend_mode:
+                    self.extend_mode = False
+                    self.extend_level = 0
                 self.run(action)
+                return True
+            if self.extend_mode and event.keyval == Gdk.KEY_Escape:
+                self.extend_mode = False
+                self.extend_level = 0
+                return True
+            if self.extend_mode and self._extend_key(event):
+                return True
+            if self.acwatch.tab_indent(keyname, list(mods)):
                 return True
             return False
         if self.acwatch.tab_indent(keyname, list(mods)):

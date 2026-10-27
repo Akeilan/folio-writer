@@ -13,6 +13,16 @@ class MiniToolbar:
         view.connect("button-release-event", self._release)
         view.connect("key-press-event", lambda *_: (self.hide(), False)[1])
         view.connect("button-press-event", lambda *_: (self.hide(), False)[1])
+        view.connect("motion-notify-event", self._motion)
+        self._at = None
+
+    def _motion(self, view, ev):
+        # as in the original, it fades away as the pointer moves off
+        if self._at is not None and self.get_visible():
+            dx, dy = ev.x - self._at[0], ev.y - self._at[1]
+            if dx * dx + dy * dy > 140 * 140:
+                self.hide()
+        return False
 
     def _release(self, view, ev):
         if ev.button != 1 or not self.win.app.settings.get("mini_toolbar", True):
@@ -28,6 +38,8 @@ class MiniToolbar:
             return False
         if self.win.draw.active:
             return False
+        if getattr(eng.view, "bar_select", False):
+            return False        # the selection bar in the margin: no toolbar over the text
         self.show(x, y)
         return False
 
@@ -35,8 +47,12 @@ class MiniToolbar:
         if self.pop is not None:
             self.pop.popdown()
 
+    def get_visible(self):
+        return self.pop is not None and self.pop.get_visible()
+
     def show(self, x, y):
         self.hide()
+        self._at = (x, y)
         A = self.win.actions
         run = self.win.run
         pop = Gtk.Popover.new(self.win.engine.view)

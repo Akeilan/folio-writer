@@ -6,9 +6,12 @@ import os
 import re
 import zipfile
 
-SHARE_DIRS = ["/usr/lib/libreoffice/share/autocorr", "/opt/libreoffice/share/autocorr"]
+# Folio's own copies first (LibreOffice's English lists, MPL-2.0), so they work without it
+_HERE = os.path.dirname(os.path.abspath(__file__))
+SHARE_DIRS = ["/usr/share/folio-writer/autocorr", os.path.join(_HERE, "..", "..", "share", "autocorr"),
+              "/usr/lib/libreoffice/share/autocorr", "/opt/libreoffice/share/autocorr"]
 LANGS = ["en-US", "en-GB", "en-AU", "en-ZA"]
-AC_VERSION = "2"
+AC_VERSION = "3"
 
 EXTRA = [
     ("(c)", "©"), ("(C)", "©"), ("(r)", "®"), ("(R)", "®"),
@@ -16,7 +19,8 @@ EXTRA = [
     (":)", "\u263a\ufe0e"), (":-)", "\u263a\ufe0e"), (":(", "\u2639\ufe0e"),
     (":-(", "\u2639\ufe0e"),
     ("-->", "→"), ("<--", "←"), ("==>", "⇒"), ("<==", "⇐"),
-    ("<=>", "⇔"), ("...", "…"),
+    ("<=>", "⇔"), ("...", "…"), ("->", "→"), ("<-", "←"), ("=>", "⇒"),
+    ("1/2", "½"), ("1/4", "¼"), ("3/4", "¾"),
     ("abotu", "about"), ("acn", "can"), ("adn", "and"), ("alot", "a lot"),
     ("bakc", "back"), ("becuase", "because"), ("cna", "can"), ("doesnt", "doesn't"),
     ("dont", "don't"), ("didnt", "didn't"), ("freind", "friend"), ("hte", "the"),

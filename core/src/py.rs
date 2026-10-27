@@ -65,6 +65,13 @@ impl PyEditor {
         self.ed.export_pdf(path).map_err(err)
     }
 
+    #[pyo3(signature = (path, pages=Vec::new(), bookmarks=true, title=String::new(), author=String::new(), subject=String::new(), keywords=String::new()))]
+    #[allow(clippy::too_many_arguments)]
+    fn export_pdf_opts(&mut self, path: &str, pages: Vec<usize>, bookmarks: bool, title: String, author: String,
+                       subject: String, keywords: String) -> PyResult<()> {
+        self.ed.export_pdf_opts(path, pages, bookmarks, [title, author, subject, keywords]).map_err(err)
+    }
+
     // ---------------------------------------------------------- pages
     fn page_count(&self) -> usize {
         self.ed.page_count()
@@ -963,6 +970,42 @@ impl PyEditor {
         self.ed.outline_paras()
     }
 
+    #[pyo3(signature = (color=None))]
+    fn set_page_color(&mut self, color: Option<&str>) -> bool {
+        let ok = self.ed.set_page_color(color);
+        self.touched();
+        ok
+    }
+
+    #[pyo3(signature = (kind, c1, c2="FFFFFF", angle=0.0, focus="", title="", image=None, ext="png"))]
+    #[allow(clippy::too_many_arguments)]
+    fn set_page_fill(&mut self, kind: &str, c1: &str, c2: &str, angle: f64, focus: &str, title: &str,
+                     image: Option<Vec<u8>>, ext: &str) -> bool {
+        let ok = self.ed.set_page_fill(kind, c1, c2, angle, focus, title, image.as_deref().map(|b| (b, ext)));
+        self.touched();
+        ok
+    }
+
+    fn page_fill(&self) -> Option<(String, String, String)> {
+        self.ed.doc.page_fill().map(|f| (f.kind, format!("{:06X}", f.c1), format!("{:06X}", f.c2)))
+    }
+
+    fn page_color(&self) -> Option<String> {
+        self.ed.page_color()
+    }
+
+    fn para_before_table(&mut self) -> bool {
+        let ok = self.ed.para_before_table();
+        self.touched();
+        ok
+    }
+
+    fn move_block(&mut self, up: bool) -> bool {
+        let ok = self.ed.move_block(up);
+        self.touched();
+        ok
+    }
+
     fn move_paras(&mut self, nodes: Vec<u32>, target: u32, after: bool) -> bool {
         let ok = self.ed.move_paras(&nodes, target, after);
         self.touched();
@@ -1016,6 +1059,36 @@ impl PyEditor {
         n
     }
 
+    fn body_blocks(&self) -> Vec<(&'static str, u32, usize)> {
+        self.ed.body_blocks()
+    }
+
+    /// Every body paragraph's list label in document order (tables and
+    /// content controls included, text boxes not); "" when it has none.
+    fn body_labels(&self) -> Vec<String> {
+        fn walk(ed: &Editor, n: crate::xml::NodeId, out: &mut Vec<String>) {
+            let dom = &ed.doc.dom;
+            for c in dom.elements(n).collect::<Vec<_>>() {
+                match dom.name(c) {
+                    "w:p" => out.push(ed.para_layout(c).and_then(|l| l.label.as_ref()).map(|l| l.text.clone()).unwrap_or_default()),
+                    "w:tbl" | "w:tr" | "w:tc" | "w:sdt" | "w:sdtContent" => walk(ed, c, out),
+                    _ => {}
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(&self.ed, self.ed.doc.body, &mut out);
+        out
+    }
+
+    fn para_text_of(&mut self, p: u32) -> String {
+        self.ed.para_text_of(p)
+    }
+
+    fn undo_names(&self) -> Vec<String> {
+        self.ed.undo_names()
+    }
+
     fn table_cells(&self, n: usize) -> Vec<Vec<Vec<u32>>> {
         self.ed.table_cells(n)
     }
@@ -1065,6 +1138,8 @@ impl PyEditor {
         d.set_item("inline", i.inline)?;
         d.set_item("kind", i.kind)?;
         d.set_item("wrap", i.wrap)?;
+        d.set_item("para", i.pos.para)?;
+        d.set_item("off", i.pos.off)?;
         Ok(Some(d))
     }
 
@@ -1139,6 +1214,12 @@ impl PyEditor {
     }
 
     /// Bullets / Numbering buttons: kind "bullet" or "number".
+    fn reset_para_formatting(&mut self) -> bool {
+        let r = self.ed.reset_para_formatting();
+        self.touched();
+        r
+    }
+
     fn toggle_list(&mut self, kind: &str) {
         self.ed.toggle_list(kind);
         self.touched();
@@ -1204,6 +1285,12 @@ impl PyEditor {
     }
 
     /// Resolved paragraph formatting of the caret's paragraph.
+    /// The caret paragraph's own w:pPr, as XML ("" if none).
+    fn para_xml(&self) -> String {
+        let d = &self.ed.doc.dom;
+        d.child(self.ed.caret.para, "w:pPr").map(|n| d.serialize_node(n)).unwrap_or_default()
+    }
+
     fn para_values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let p = self.ed.current_para_props();
         para_dict(py, &p)
@@ -1513,8 +1600,9 @@ impl PyEditor {
     }
 
     // ---- charts
-    fn insert_chart(&mut self, xml: &str, xlsx: Vec<u8>, w: f64, h: f64) -> Option<String> {
-        let r = self.ed.insert_chart(xml, &xlsx, w, h);
+    #[pyo3(signature = (xml, xlsx, w, h, ex=false))]
+    fn insert_chart(&mut self, xml: &str, xlsx: Vec<u8>, w: f64, h: f64, ex: bool) -> Option<String> {
+        let r = self.ed.insert_chart(xml, &xlsx, w, h, ex);
         self.touched();
         r
     }
@@ -1924,6 +2012,16 @@ impl PyEditor {
     }
 
     /// Select a range given by nodes (from find_all).
+    /// The selection in document order: (para, off, para, off).
+    fn selection_range(&self) -> (u32, usize, u32, usize) {
+        let (a, b) = self.ed.selection();
+        (a.para, a.off, b.para, b.off)
+    }
+
+    fn anchor_pos(&self) -> (u32, usize) {
+        (self.ed.anchor.para, self.ed.anchor.off)
+    }
+
     fn select_nodes(&mut self, pa: u32, a: usize, pb: u32, b: usize) -> bool {
         if self.ed.para_layout(pa).is_none() || self.ed.para_layout(pb).is_none() {
             return false;
@@ -2117,6 +2215,18 @@ impl PyEditor {
         ok
     }
 
+    #[pyo3(signature = (header=false))]
+    fn sort_items(&self, header: bool) -> Option<(bool, Vec<Vec<String>>)> {
+        self.ed.sort_items(header)
+    }
+
+    #[pyo3(signature = (order, header=false))]
+    fn sort_apply(&mut self, order: Vec<usize>, header: bool) -> bool {
+        let ok = self.ed.sort_apply(&order, header);
+        self.touched();
+        ok
+    }
+
     #[pyo3(signature = (descending=false, numeric=false, header=false))]
     fn sort_paras(&mut self, descending: bool, numeric: bool, header: bool) -> bool {
         let ok = self.ed.sort_paras(descending, numeric, header);
@@ -2142,9 +2252,9 @@ impl PyEditor {
         self.ed.clear_format();
     }
 
-    #[pyo3(signature = (fmt, text, font=None))]
-    fn set_list_format(&mut self, fmt: &str, text: &str, font: Option<&str>) -> bool {
-        let ok = self.ed.set_list_format(fmt, text, font);
+    #[pyo3(signature = (fmt, text, font=None, start=None))]
+    fn set_list_format(&mut self, fmt: &str, text: &str, font: Option<&str>, start: Option<i64>) -> bool {
+        let ok = self.ed.set_list_format_from(fmt, text, font, start);
         self.touched();
         ok
     }
@@ -2285,6 +2395,11 @@ impl PyEditor {
     }
 
     /// Select several stretches [(para, off, para, off)]; formatting goes to each.
+    /// How many ranges are selected (Find In and Select Similar make several).
+    fn selection_count(&self) -> usize {
+        if self.ed.has_selection() { 1 + self.ed.extra_sel.len() } else { 0 }
+    }
+
     fn select_ranges(&mut self, ranges: Vec<(u32, usize, u32, usize)>) {
         let r: Vec<_> = ranges.into_iter().map(|(a, x, b, y)| (crate::editor::Pos { para: a, off: x }, crate::editor::Pos { para: b, off: y })).collect();
         self.ed.select_ranges(&r);
@@ -2304,6 +2419,10 @@ impl PyEditor {
         dom.child(self.ed.caret.para, "w:pPr").and_then(|pp| dom.child(pp, "w:pStyle"))
             .and_then(|n| dom.attr(n, "w:val")).map(|v| v.to_string())
             .unwrap_or_else(|| self.ed.doc.styles.default_para.clone().unwrap_or_default())
+    }
+
+    fn list_info_of(&self, p: u32) -> Option<(i32, i32, bool, String, i32)> {
+        self.ed.list_info_of(p)
     }
 
     fn list_info(&self) -> Option<(i32, i32, bool, String, i32)> {
@@ -2454,6 +2573,16 @@ fn para_dict<'py>(py: Python<'py>, p: &crate::props::ParaProps) -> PyResult<Boun
         })
         .collect();
     d.set_item("tabs", tabs)?;
+    let bd = PyDict::new_bound(py);
+    for (k, b) in [("top", &p.border_top), ("bottom", &p.border_bottom), ("left", &p.border_left),
+                   ("right", &p.border_right), ("between", &p.border_between)] {
+        if let Some(b) = b {
+            if b.style != "nil" && b.style != "none" {
+                bd.set_item(k, (b.style.clone(), b.size, b.space, b.color.map(|c| c as i64).unwrap_or(-1)))?;
+            }
+        }
+    }
+    d.set_item("borders", bd)?;
     Ok(d)
 }
 

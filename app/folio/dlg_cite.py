@@ -254,6 +254,22 @@ def manage_sources(win):
     top.pack_start(Gtk.Label(label="Search:"), False, False, 0)
     top.pack_start(search, True, True, 0)
     top.pack_start(sort, False, False, 0)
+    browse = Gtk.Button(label="_Browse...", use_underline=True)
+    browse.set_tooltip_text("Add the sources in another source list (a Sources.xml file) to the Master List")
+
+    def do_browse(*_):
+        path = win.dialogs.pick_file("Open Source List", ["*.xml"], "Source lists")
+        if not path:
+            return
+        n = 0
+        for src in read_source_list(path):
+            _C(win).add_to_master(src)
+            n += 1
+        fill()
+        if not n:
+            win.dialogs.message("There are no sources in that file.", "Source Manager")
+    browse.connect("clicked", do_browse)
+    top.pack_start(browse, False, False, 0)
     d.add(top)
     lists = Gtk.Box(spacing=8)
     left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -313,3 +329,30 @@ def edit_citation(win):
             new["suppress"] = s2
         win.engine.sync(lambda: _C(win).set_citation_options(m, f, new))
     d.done()
+
+
+def read_source_list(path):
+    """The sources in a Word source list (Sources.xml, b:Sources)."""
+    import xml.etree.ElementTree as ET
+    B = "{http://schemas.openxmlformats.org/officeDocument/2006/bibliography}"
+    try:
+        root = ET.parse(path).getroot()
+    except Exception:
+        return []
+    out = []
+    for s in root.iter(B + "Source"):
+        def t(name):
+            e = s.find(B + name)
+            return (e.text or "").strip() if e is not None and e.text else ""
+        people = []
+        for per in s.iter(B + "Person"):
+            last = per.find(B + "Last")
+            first = per.find(B + "First")
+            people.append(", ".join(x for x in ((last.text if last is not None else ""),
+                                                (first.text if first is not None else "")) if x))
+        tag = t("Tag")
+        if not tag:
+            continue
+        out.append({"tag": tag, "type": t("SourceType") or "Book", "title": t("Title"), "year": t("Year"),
+                    "author": "; ".join(people), "city": t("City"), "publisher": t("Publisher")})
+    return out

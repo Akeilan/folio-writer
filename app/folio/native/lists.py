@@ -78,6 +78,10 @@ def set_numbering_value(win):
 def apply_numbering_value(win, start_new, advance, value):
     ed = _ed(win)
     ed.begin_group("Set Numbering Value")
+    sel = ed.selection_range() if ed.has_selection() else None
+    if sel is not None:
+        # the selection's first paragraph takes the value
+        ed.select_nodes(sel[0], sel[1], sel[0], sel[1])
     try:
         if start_new:
             ed.restart_numbering(value)
@@ -86,6 +90,8 @@ def apply_numbering_value(win, start_new, advance, value):
             if advance:
                 ed.restart_numbering(value)
     finally:
+        if sel is not None:
+            ed.select_nodes(*sel)
         ed.end_group()
     _done(win)
 
@@ -124,22 +130,29 @@ def _lvl_text(fmt):
 
 def levels_xml(levels):
     out = ['<w:multiLevelType w:val="multilevel"/>']
-    for spec in levels:
-        i = spec["n"]
-        left = 360 * (i + 1)
+    tw = lambda mm: int(round(mm * TW_PER_MM100))  # noqa: E731
+    for k, spec in enumerate(levels):
+        i = spec.get("n", k)
+        if "indent" in spec:
+            left = tw(spec["indent"])
+            hang = max(0, left - tw(spec.get("pos", 0)))
+        else:
+            left, hang = 360 * (i + 1), 360
+        start = int(spec.get("start", 1))
+        suff = {1: '<w:suff w:val="space"/>', 2: '<w:suff w:val="nothing"/>'}.get(spec.get("follow", 0), "")
         if spec["kind"] == 6:
             ch = spec.get("char") or "•"
             font = spec.get("font") or "Symbol"
             if font == "OpenSymbol":
                 font = "Arial"
-            out.append('<w:lvl w:ilvl="%d"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="%s"/>'
-                       '<w:lvlJc w:val="left"/><w:pPr><w:ind w:left="%d" w:hanging="360"/></w:pPr>'
+            out.append('<w:lvl w:ilvl="%d"><w:start w:val="%d"/><w:numFmt w:val="bullet"/>%s<w:lvlText w:val="%s"/>'
+                       '<w:lvlJc w:val="left"/><w:pPr><w:ind w:left="%d" w:hanging="%d"/></w:pPr>'
                        '<w:rPr><w:rFonts w:ascii="%s" w:hAnsi="%s" w:hint="default"/></w:rPr></w:lvl>'
-                       % (i, ch, left, font, font))
+                       % (i, start, suff, ch, left, hang, font, font))
         else:
-            out.append('<w:lvl w:ilvl="%d"><w:start w:val="1"/><w:numFmt w:val="%s"/><w:lvlText w:val="%s"/>'
-                       '<w:lvlJc w:val="left"/><w:pPr><w:ind w:left="%d" w:hanging="360"/></w:pPr></w:lvl>'
-                       % (i, FMT.get(spec["kind"], "decimal"), _lvl_text(spec["fmt"]), left))
+            out.append('<w:lvl w:ilvl="%d"><w:start w:val="%d"/><w:numFmt w:val="%s"/>%s<w:lvlText w:val="%s"/>'
+                       '<w:lvlJc w:val="left"/><w:pPr><w:ind w:left="%d" w:hanging="%d"/></w:pPr></w:lvl>'
+                       % (i, start, FMT.get(spec["kind"], "decimal"), suff, _lvl_text(spec["fmt"]), left, hang))
     return "".join(out)
 
 

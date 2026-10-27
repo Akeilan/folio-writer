@@ -525,8 +525,9 @@ KINDS = [("1, 2, 3, ...", ARABIC), ("I, II, III, ...", ROMAN_UP), ("i, ii, iii, 
 def define_dialog(win):
     """Define New Multilevel List: each level's number style, format and
     position."""
-    m = win.engine.model
-    if m is None:
+    native = getattr(win.engine, "native", False)
+    m = None if native else win.engine.model
+    if m is None and not native:
         return
     from .widgets import FDialog
     from .widgets import LengthSpin, grid, combo
@@ -600,7 +601,12 @@ def define_dialog(win):
     lvlist.select_row(lvlist.get_row_at_index(0))
     load(0)
     d.show_all()
-    if d.ask() == Gtk.ResponseType.OK:
+    ok = d.ask() == Gtk.ResponseType.OK
+    if ok and native:
+        store()
+        from .native import lists as nl
+        nl.apply_multilevel(win, [dict(x, n=i) for i, x in enumerate(levels)])
+    elif ok:
         store()
 
         def go():

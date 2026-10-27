@@ -263,7 +263,15 @@ class NativeModel:
 
         class T:
             def getString(self):
-                return "\n".join(t for _p, t, _l in docops.paragraphs(ed))
+                # the body only, as the original's text (headers and footers aren't in it)
+                return "\n".join(self.lines())
+
+            def lines(self):
+                return [t.replace("\ufffc", "") for t in self.eng_lines()]
+
+            def eng_lines(self):
+                return [ed.para_text_of(n) for k, n, _t in ed.body_blocks() if k == "p"]
+        _ = docops
         return T()
 
     def createInstance(self, svc):

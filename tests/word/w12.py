@@ -12,7 +12,15 @@ def items(c):
             for w in find_widget(m, lambda x: isinstance(x, (Gtk.Label,))):
                 out.append(w.get_text())
             return out
-    return [it[0] for it in (m or []) if it and not isinstance(it, Gtk.Widget)]
+    out = []
+    for it in (m or []):
+        if not it or isinstance(it, Gtk.Widget):
+            continue
+        out.append(it[1] if it[0] == "#" and len(it) > 1 and isinstance(it[1], str) else it[0])
+        # a submenu's items count too
+        if len(it) > 1 and isinstance(it[1], list):
+            out += [x[0] for x in it[1] if x and isinstance(x, (list, tuple))]
+    return out
 WANT = {
  ("Picture Format", "Wrap Text"): ["In Line with Text", "Square", "Tight", "Through", "Top and Bottom", "Behind Text", "In Front of Text", "Edit Wrap Points", "Move with Text", "Fix Position on Page", "More Layout Options"],
  ("Picture Format", "Crop"): ["Crop", "Crop to Shape", "Aspect Ratio", "Fill", "Fit"],

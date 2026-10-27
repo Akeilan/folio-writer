@@ -64,6 +64,7 @@ class NativeView(Gtk.DrawingArea):
         self._typing_id = 0
 
     editable = True
+    autocorrect = None          # the window's AutoCorrect (set by the window)
 
     def set_edit(self, on):
         """Read-only (restricted editing, the Original display) or not."""
@@ -444,6 +445,17 @@ class NativeView(Gtk.DrawingArea):
     def after_edit(self):
         self.document_changed()
         self.scroll_to_caret()
+        # Shift+F5 goes back to these
+        try:
+            pos = tuple(self.ed.caret_pos())
+            spots = self.__dict__.setdefault("edit_spots", [])
+            if not spots or spots[-1][0] != pos[0]:
+                spots.append(pos)
+            else:
+                spots[-1] = pos
+            del spots[:-4]
+        except Exception:
+            pass
 
     # ---------------------------------------------------------------- input
     def _on_commit(self, im, text):
@@ -452,6 +464,8 @@ class NativeView(Gtk.DrawingArea):
         if self.objs.active():
             self.ed.deselect_object()
         self.ed.type_text(text)
+        if self.autocorrect is not None and len(text) == 1:
+            self.autocorrect.typed(text)
         # the word being typed isn't marked until the typing pauses or leaves it
         self.typing = text.isalnum() or text in "'’"
         if self._typing_id:
@@ -547,7 +561,18 @@ class NativeView(Gtk.DrawingArea):
             self.after_edit()
             return True
         if k in (Gdk.KEY_Return, Gdk.KEY_KP_Enter) and not alt and not ctrl:
+            if not shift and self.ed.cell_name() and self.ed.para_before_table():
+                self.after_edit()
+                return True
+            if self.autocorrect is not None and self.autocorrect.before_break() in ("table", "handled"):
+                self.after_edit()
+                return True
             self.ed.type_text("\u000b" if shift else "\n")
+            self.after_edit()
+            return True
+        if k == Gdk.KEY_Tab and ctrl and not alt and self.ed.cell_name():
+            # Ctrl+Tab in a table: a tab character
+            self.ed.type_text("\t")
             self.after_edit()
             return True
         if k in (Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab) and not ctrl and not alt and \
@@ -682,6 +707,26 @@ class NativeView(Gtk.DrawingArea):
         if not in_hf and zone != "body" and event.type == Gdk.EventType.BUTTON_PRESS \
                 and self.ed.story() == "body":
             return True
+        if not in_hf and self.ed.story() == "body" and zone == "body" and self._in_selection_bar(pg, x):
+            # the selection bar in the left margin: the line, the paragraph, everything
+            self.bar_select = True
+            left = self.ed.page_margins(pg)[3]
+            if event.type == Gdk.EventType._3BUTTON_PRESS or (event.type == Gdk.EventType.BUTTON_PRESS and ctrl):
+                self.ed.select_all()
+            elif event.type == Gdk.EventType._2BUTTON_PRESS:
+                self.ed.select_paragraph_at(pg, left + 2.0, y)
+            elif shift:
+                self.ed.click(pg, left + 2.0, y, True)
+                self.ed.move_caret("end", True)
+            else:
+                self.ed.click(pg, left + 2.0, y, False)
+                self.ed.move_caret("home", False)
+                self.ed.move_caret("end", True)
+            self.after_move()
+            return True
+        self.bar_select = False
+        if event.type in (Gdk.EventType._2BUTTON_PRESS, Gdk.EventType._3BUTTON_PRESS):
+            self._dnd = None
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             self.ed.select_word_at(pg, x, y)
         elif event.type == Gdk.EventType._3BUTTON_PRESS:
@@ -696,16 +741,64 @@ class NativeView(Gtk.DrawingArea):
                 else:
                     self.emit("hyperlink-clicked", link)
                 return True
+            if not shift and not (event.state & Gdk.ModifierType.CONTROL_MASK) and self.ed.has_selection() \
+                    and self._in_selection(pg, x, y):
+                # a press on the selection: dragging it moves it (Ctrl copies)
+                self._dnd = (self.ed.selection_range(), event.x, event.y)
+                return True
             if event.state & Gdk.ModifierType.CONTROL_MASK and not shift:
-                # Ctrl+click selects the sentence; the paragraph for now
-                self.ed.select_paragraph_at(pg, x, y)
+                # Ctrl+click selects the sentence
+                self.ed.click(pg, x, y, False)
+                from .units import select_unit
+                select_unit(self.ed, "sentence")
             else:
                 self.ed.click(pg, x, y, shift)
             self._dragging = True
         self.after_move()
         return True
 
+    def _drag_out(self, event):
+        """Dragging the selection out of the window: other programs get it
+        (as text and formatted text); the document keeps it."""
+        top = self.get_toplevel()
+        gw = top.get_window() if top is not None else None
+        if gw is None:
+            return False
+        ox, oy = gw.get_origin()[1:3]
+        w, h = gw.get_width(), gw.get_height()
+        if ox <= event.x_root < ox + w and oy <= event.y_root < oy + h:
+            return False
+        text = self.ed.selected_text()
+        html = None
+        try:
+            from . import htmlexport
+            frag = self.ed.copy_fragment()
+            html = htmlexport.fragment_to_html(frag, self.ed.paragraph_styles()) if frag else None
+        except Exception:
+            html = None
+        self._dnd = None
+        self._out_data = (text, html)
+        if not getattr(self, "_out_hooked", False):
+            self.connect("drag-data-get", self._out_get)
+            self._out_hooked = True
+        tl = Gtk.TargetList.new([])
+        if html:
+            tl.add(Gdk.Atom.intern("text/html", False), 0, 2)
+        tl.add_text_targets(1)
+        self.drag_begin_with_coordinates(tl, Gdk.DragAction.COPY, 1, event, -1, -1)
+        return True
+
+    def _out_get(self, widget, ctx, data, info, time):
+        text, html = getattr(self, "_out_data", ("", None))
+        if info == 2 and html:
+            data.set(Gdk.Atom.intern("text/html", False), 8, html.encode("utf-8"))
+        else:
+            data.set_text(text or "", -1)
+
     def _motion(self, widget, event):
+        if self._dnd is not None and self.ed is not None and event.state & Gdk.ModifierType.BUTTON1_MASK:
+            if self._drag_out(event):
+                return True
         for t in self.tools:
             if t.active and t.motion(event):
                 self.queue_draw()
@@ -747,8 +840,81 @@ class NativeView(Gtk.DrawingArea):
         self._cc_key, self._cc_frame = key, frame
         return frame
 
+    _dnd = None
+
+    def _in_selection_bar(self, pg, x):
+        try:
+            left = self.ed.page_margins(pg)[3]
+        except Exception:
+            return False
+        return 4.0 < x < left - 6.0
+
+    def _in_selection(self, pg, x, y):
+        for (p, rx, ry, rw, rh) in self.ed.selection_rects():
+            if p == pg and rx <= x <= rx + rw and ry <= y <= ry + rh:
+                return True
+        return False
+
+    def _para_order(self):
+        ed = self.ed
+        out = []
+        for kind, node, ti in ed.body_blocks():
+            if kind == "p":
+                out.append(node)
+            else:
+                for row in ed.table_cells(ti):
+                    for cell in row:
+                        out.extend(cell)
+        return {p: i for i, p in enumerate(out)}
+
+    def _drop(self, event):
+        """The end of a drag of the selection: the text moves (Ctrl: is copied) there."""
+        (pa, a, pb, b), x0, y0 = self._dnd
+        self._dnd = None
+        ed = self.ed
+        hit = self.page_at(event.x, event.y)
+        if hit is None or (abs(event.x - x0) < 3 and abs(event.y - y0) < 3):
+            # a plain click on the selection: the caret goes there
+            if hit is not None:
+                ed.click(hit[0], hit[1], hit[2], False)
+            self.after_move()
+            return True
+        copy = bool(event.state & Gdk.ModifierType.CONTROL_MASK)
+        frag = ed.copy_fragment()
+        ed.click(hit[0], hit[1], hit[2], False)
+        pd, od = ed.caret_pos()
+        order = self._para_order()
+        key = lambda p, o: (order.get(p, -1), o)  # noqa: E731
+        if key(pa, a) <= key(pd, od) <= key(pb, b) or frag is None:
+            self.after_move()
+            return True
+        after = key(pd, od) > key(pb, b)
+        ed.begin_group("Copy" if copy else "Move")
+        try:
+            if after or copy:
+                ed.select_nodes(pd, od, pd, od)
+                ed.paste_fragment(frag, True)
+                if not copy:
+                    end = ed.caret_pos()
+                    ed.select_nodes(pa, a, pb, b)
+                    ed.delete(True, False)
+                    # the caret after the moved text, as it was
+                    if end[0] == pb and pa == pb:
+                        ed.select_nodes(end[0], end[1] - (b - a), end[0], end[1] - (b - a))
+            else:
+                ed.select_nodes(pa, a, pb, b)
+                ed.delete(True, False)
+                ed.select_nodes(pd, od, pd, od)
+                ed.paste_fragment(frag, True)
+        finally:
+            ed.end_group()
+        self.after_edit()
+        return True
+
     def _release(self, widget, event):
         self._dragging = False
+        if self._dnd is not None and self.ed is not None:
+            return self._drop(event)
         for t in self.tools:
             if t.active and t.release(event):
                 self.queue_draw()

@@ -1,6 +1,6 @@
 """Page Color > Fill Effects: gradient, pattern and picture page
 backgrounds, as in the original."""
-import uno
+from ._lazy import uno
 from gi.repository import Gtk
 
 from . import bridge, docapi
@@ -69,9 +69,34 @@ def _apply(m, spec):
                                             "STRETCH" if not spec.get("tile") else "REPEAT")
 
 
+def _apply_native(win, spec):
+    ed = win.engine.ed
+    k = spec["kind"]
+    h = lambda c: "%06X" % (int(c) & 0xFFFFFF)  # noqa: E731
+    if k == "gradient":
+        st = spec["style"]
+        if st in ("center", "corner"):
+            ed.set_page_fill("gradientRadial", h(spec["c1"]), h(spec["c2"]), 0.0, ".5,.5" if st == "center" else "")
+        else:
+            ed.set_page_fill("gradient", h(spec["c1"]), h(spec["c2"]), float(st))
+    elif k == "pattern":
+        name = PATTERNS[spec["pattern"]][0]
+        ed.set_page_fill("pattern", h(spec["fg"]), h(spec["bg"]), 0.0, "", name)
+    elif k == "picture":
+        import os
+        ext = os.path.splitext(spec["path"])[1].lstrip(".").lower() or "png"
+        ext = "jpeg" if ext == "jpg" else ext
+        with open(spec["path"], "rb") as fh:
+            data = fh.read()
+        ed.set_page_fill("tile" if spec.get("tile") else "frame", "FFFFFF", "FFFFFF", 0.0, "",
+                         os.path.basename(spec["path"]), data, ext)
+    win.engine.view.after_edit()
+
+
 def dialog(win):
-    m = win.engine.model
-    if m is None:
+    native = getattr(win.engine, "native", False)
+    m = None if native else win.engine.model
+    if m is None and not native:
         return
     d = FDialog(win, "Fill Effects")
     nb = Gtk.Notebook()
@@ -196,7 +221,12 @@ def dialog(win):
                                         "bg": bg.color if bg.color is not None and
                                         bg.color >= 0 else 0xFFFFFF} if pg == 1 else \
             ({"kind": "picture", "path": path[0], "tile": tile.get_active()} if path[0] else None)
-        if spec:
+        if spec and native:
+            try:
+                _apply_native(win, spec)
+            except Exception as e:
+                win.dialogs.message("The fill couldn't be applied: %s" % e)
+        elif spec:
             um = m.getUndoManager()
             um.enterUndoContext("Page Color")
             try:

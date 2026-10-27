@@ -12,8 +12,13 @@ import urllib.parse
 
 import gi
 gi.require_version("Gtk", "3.0")
-gi.require_version("LOKDocView", "0.1")
-from gi.repository import GLib, GObject, Gtk, LOKDocView  # noqa: E402
+from gi.repository import GLib, GObject, Gtk  # noqa: E402
+try:
+    # the old engine (LibreOffice) is optional: Folio's own engine needs none of it
+    gi.require_version("LOKDocView", "0.1")
+    from gi.repository import LOKDocView  # noqa: E402
+except (ValueError, ImportError):
+    LOKDocView = None
 
 from . import bridge  # noqa: E402
 

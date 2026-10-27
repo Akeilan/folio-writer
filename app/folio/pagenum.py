@@ -285,6 +285,40 @@ def _insert_native(win, where, align, style):
         else:
             ed.insert_field("PAGE", "1")
         ed.end_group()
+    elif where == "margin":
+        # Page Margins: the number in a box in the side margin, anchored in the
+        # header so every page shows it
+        pg = ed.caret_page()
+        W, H = ed.page_size(pg)
+        top, right, bottom, left = ed.page_margins(pg)
+        size = 36.0
+        x = W - right + (right - size) / 2.0 if align == "right" else (left - size) / 2.0
+        y = H / 2.0 - size / 2.0
+        ed.begin_group("Page Number")
+        try:
+            if not ed.page_hf(pg)[0]:
+                ed.ensure_header_footer_kind(ed.page_section(pg), False, ed.page_hf_kind(pg))
+            ed.edit_header_footer(pg, False)
+            ed.move_caret("doc_end", False)
+            if ed.insert_shape("textbox", pg, x, y, size, size, "Page Number", False):
+                ed.set_align("center")
+                ed.insert_field("PAGE", "1")
+                ed.select_all()
+                if style == "accent":
+                    ed.set_color("FFFFFF")
+                    ed.toggle("w:b")
+                ed.select_story_textbox()
+                if style == "accent":
+                    ed.object_geometry("ellipse")
+                    ed.object_fill('<a:solidFill><a:srgbClr val="4472C4"/></a:solidFill>')
+                else:
+                    ed.object_fill("<a:noFill/>")
+                ed.object_outline("<a:ln><a:noFill/></a:ln>")
+                ed.leave_textbox()
+                ed.deselect_object()
+            ed.edit_header_footer(None)
+        finally:
+            ed.end_group()
     else:
         win.actions._not_yet()
         return

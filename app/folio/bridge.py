@@ -140,8 +140,43 @@ def create(name, *args):
     return smgr.createInstanceWithContext(name, ctx)
 
 
+class _Struct:
+    """A UNO struct when LibreOffice isn't installed (Folio's own engine reads
+    these as plain values)."""
+
+    def __init__(self, typename, **kw):
+        self.__dict__["typeName"] = typename
+        self.__dict__.update(kw)
+
+    def __getattr__(self, k):
+        return 0
+
+    def __eq__(self, o):
+        return isinstance(o, _Struct) and o.__dict__ == self.__dict__
+
+    def __repr__(self):
+        return "<%s %r>" % (self.typeName, {k: v for k, v in self.__dict__.items() if k != "typeName"})
+
+
+class _Enum:
+    def __init__(self, typename, value):
+        self.typeName, self.value = typename, value
+
+    def __eq__(self, o):
+        return getattr(o, "value", o) == self.value and getattr(o, "typeName", self.typeName) == self.typeName
+
+    def __hash__(self):
+        return hash((self.typeName, self.value))
+
+    def __repr__(self):
+        return "<Enum %s.%s>" % (self.typeName, self.value)
+
+
 def struct(name, **kw):
-    import uno
+    try:
+        import uno
+    except ImportError:
+        return _Struct(name, **kw)
     s = uno.createUnoStruct(name)
     for k, v in kw.items():
         setattr(s, k, v)
@@ -149,8 +184,15 @@ def struct(name, **kw):
 
 
 def enum(typ, value):
-    import uno
-    return uno.Enum(typ, value)
+    try:
+        import uno
+    except ImportError:
+        return _Enum(typ, value)
+    try:
+        return uno.Enum(typ, value)
+    except Exception:
+        # a value the old engine doesn't have (Word's bar tab): Folio's own engine takes it
+        return _Enum(typ, value)
 
 
 def prop(name, value):
