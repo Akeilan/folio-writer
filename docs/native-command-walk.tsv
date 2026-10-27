@@ -1,0 +1,1144 @@
+Home	Paste (Ctrl+V)	paste	OK
+Home	Paste (Ctrl+V) > Keep Source Formatting	menu	OK
+Home	Paste (Ctrl+V) > Keep Text Only	menu	OK
+Home	Paste (Ctrl+V) > Paste Special...	menu	NOT_YET
+Home	Paste (Ctrl+V) > Set Default Paste...	menu	OK
+Home	Cut (Ctrl+X)	cut	OK
+Home	Copy (Ctrl+C)	copy	OK
+Home	Format Painter (Ctrl+Shift+C / Ctrl+Shift+V)	.uno:FormatPaintbrush	OK
+Home	Clipboard Settings	clipboard-pane	NOT_YET
+Home	Increase Font Size (Ctrl+Shift+>)	grow-font	OK
+Home	Decrease Font Size (Ctrl+Shift+<)	shrink-font	OK
+Home	Change Case (Shift+F3) > Sentence case.	menu	OK
+Home	Change Case (Shift+F3) > lowercase	menu	OK
+Home	Change Case (Shift+F3) > UPPERCASE	menu	OK
+Home	Change Case (Shift+F3) > Capitalize Each Word	menu	OK
+Home	Change Case (Shift+F3) > tOGGLE cASE	menu	OK
+Home	Clear All Formatting	clear-all-formatting	OK
+Home	Bold (Ctrl+B)	.uno:Bold	OK
+Home	Italic (Ctrl+I)	.uno:Italic	OK
+Home	Underline (Ctrl+U)	.uno:Underline	OK
+Home	Underline (Ctrl+U) > Underline	menu	OK
+Home	Underline (Ctrl+U) > Double Underline	menu	OK
+Home	Underline (Ctrl+U) > Thick Underline	menu	OK
+Home	Underline (Ctrl+U) > Dotted Underline	menu	OK
+Home	Underline (Ctrl+U) > Dashed Underline	menu	OK
+Home	Underline (Ctrl+U) > Dot-Dash Underline	menu	OK
+Home	Underline (Ctrl+U) > Wave Underline	menu	OK
+Home	Underline (Ctrl+U) > More Underlines...	menu	OK
+Home	Strikethrough	.uno:Strikeout	OK
+Home	Subscript (Ctrl+=)	.uno:SubScript	OK
+Home	Superscript (Ctrl+Shift+=)	.uno:SuperScript	OK
+Home	Text Highlight Color	highlight	OK
+Home	Font Color	font-color	OK
+Home	Font Settings	font-dialog	OK
+Home	Bullets	bullets	OK
+Home	Bullets > •  Filled bullet	menu	OK
+Home	Bullets > ◦  Open bullet	menu	SKIP
+Home	Bullets > ▪  Square bullet	menu	OK
+Home	Bullets > None	menu	OK
+Home	Numbering	numbering	OK
+Home	Numbering > 1.  2.  3.	menu	OK
+Home	Numbering > 1)  2)  3)	menu	OK
+Home	Numbering > A.  B.  C.	menu	OK
+Home	Numbering > a)  b)  c)	menu	OK
+Home	Numbering > I.  II.  III.	menu	OK
+Home	Numbering > i.  ii.  iii.	menu	OK
+Home	Numbering > None	menu	OK
+Home	Numbering > Set Numbering Value...	menu	OK
+Home	Decrease Indent	outdent	OK
+Home	Increase Indent	indent	OK
+Home	Sort	sort-dialog	OK
+Home	Show/Hide ¶ (Ctrl+Shift+8)	.uno:ControlCodes	OK
+Home	Align Left (Ctrl+L)	.uno:LeftPara	OK
+Home	Center (Ctrl+E)	.uno:CenterPara	OK
+Home	Align Right (Ctrl+R)	.uno:RightPara	OK
+Home	Justify (Ctrl+J)	.uno:JustifyPara	OK
+Home	Line and Paragraph Spacing > 1.0	menu	OK
+Home	Line and Paragraph Spacing > 1.15	menu	OK
+Home	Line and Paragraph Spacing > 1.5	menu	OK
+Home	Line and Paragraph Spacing > 2.0	menu	OK
+Home	Line and Paragraph Spacing > 2.5	menu	OK
+Home	Line and Paragraph Spacing > 3.0	menu	OK
+Home	Line and Paragraph Spacing > Line Spacing Options...	menu	OK
+Home	Line and Paragraph Spacing > Add Space Before Paragraph	menu	OK
+Home	Line and Paragraph Spacing > Remove Space After Paragraph	menu	OK
+Home	Borders > Bottom Border	menu	OK
+Home	Borders > Top Border	menu	OK
+Home	Borders > Left Border	menu	OK
+Home	Borders > Right Border	menu	OK
+Home	Borders > No Border	menu	OK
+Home	Borders > All Borders	menu	OK
+Home	Borders > Outside Borders	menu	OK
+Home	Borders > Inside Borders	menu	OK
+Home	Borders > Inside Horizontal Border	menu	OK
+Home	Borders > Inside Vertical Border	menu	OK
+Home	Borders > Horizontal Line	menu	OK
+Home	Borders > Draw Table	menu	OK
+Home	Borders > View Gridlines	menu	OK
+Home	Borders > Borders and Shading...	menu	NOT_YET
+Home	Paragraph Settings	paragraph-dialog	OK
+Home	Styles Settings	styles-pane	NOT_YET
+Home	Find (Ctrl+F)	find-pane	OK
+Home	Find (Ctrl+F) > Find	menu	OK
+Home	Find (Ctrl+F) > Advanced Find...	menu	OK
+Home	Find (Ctrl+F) > Go To...	menu	ERROR AttributeError("'NoneType' object has no attribute 'grab_focus'")
+Home	Replace (Ctrl+H)	replace	ERROR AttributeError("'NoneType' object has no attribute 'grab_focus'")
+Home	Select > Select All	menu	OK
+Home	Select > Select Objects	menu	NOT_YET
+Home	Select > Select All Text With Similar Formatting	menu	NOT_YET
+Home	Select > Selection Pane...	menu	NOT_YET
+Insert	Blank Page	blank-page	OK
+Insert	Page Break (Ctrl+Enter)	.uno:InsertPagebreak	OK
+Insert	Pictures	insert-picture	OK
+Insert	Shapes > Line	menu	OK
+Insert	Shapes > Arrow	menu	OK
+Insert	Shapes > Connector: Elbow	menu	OK
+Insert	Shapes > Connector: Curved	menu	OK
+Insert	Shapes > Freeform: Scribble	menu	OK
+Insert	Shapes > Rectangle	menu	OK
+Insert	Shapes > Rounded Rectangle	menu	OK
+Insert	Shapes > Oval	menu	OK
+Insert	Shapes > Triangle	menu	OK
+Insert	Shapes > Right Triangle	menu	OK
+Insert	Shapes > Parallelogram	menu	OK
+Insert	Shapes > Trapezoid	menu	OK
+Insert	Shapes > Diamond	menu	OK
+Insert	Shapes > Pentagon	menu	OK
+Insert	Shapes > Hexagon	menu	OK
+Insert	Shapes > Octagon	menu	OK
+Insert	Shapes > Frame	menu	OK
+Insert	Shapes > Donut	menu	OK
+Insert	Shapes > Cube	menu	OK
+Insert	Shapes > Can	menu	OK
+Insert	Shapes > Heart	menu	OK
+Insert	Shapes > Lightning Bolt	menu	OK
+Insert	Shapes > Sun	menu	OK
+Insert	Shapes > Moon	menu	OK
+Insert	Shapes > Smiley Face	menu	OK
+Insert	Shapes > Cloud	menu	OK
+Insert	Shapes > Right Arrow	menu	OK
+Insert	Shapes > Left Arrow	menu	OK
+Insert	Shapes > Up Arrow	menu	OK
+Insert	Shapes > Down Arrow	menu	OK
+Insert	Shapes > Left-Right Arrow	menu	OK
+Insert	Shapes > Up-Down Arrow	menu	OK
+Insert	Shapes > Notched Right Arrow	menu	OK
+Insert	Shapes > Chevron	menu	OK
+Insert	Shapes > Circular Arrow	menu	OK
+Insert	Shapes > Process	menu	OK
+Insert	Shapes > Decision	menu	OK
+Insert	Shapes > Terminator	menu	OK
+Insert	Shapes > Document	menu	OK
+Insert	Shapes > Data	menu	OK
+Insert	Shapes > Connector	menu	OK
+Insert	Shapes > Star: 4 Points	menu	OK
+Insert	Shapes > Star: 5 Points	menu	OK
+Insert	Shapes > Star: 6 Points	menu	OK
+Insert	Shapes > Star: 8 Points	menu	OK
+Insert	Shapes > Star: 24 Points	menu	OK
+Insert	Shapes > Scroll: Horizontal	menu	OK
+Insert	Shapes > Speech Bubble: Rectangle	menu	OK
+Insert	Shapes > Speech Bubble: Rounded Rectangle	menu	OK
+Insert	Shapes > Speech Bubble: Oval	menu	OK
+Insert	Shapes > Thought Bubble: Cloud	menu	OK
+Insert	Shapes > Text Box	menu	OK
+Insert	Icons	<function build_ribbon.<locals>.<lambda> at 0x7f1010c77eb0>	OK
+Insert	SmartArt	<function build_ribbon.<locals>.<lambda> at 0x7f1010c77f40>	OK
+Insert	Chart	<function build_ribbon.<locals>.<lambda> at 0x7f1010c84040>	OK
+Insert	Screenshot > Screen Clipping	menu	OK
+Insert	Screenshot > Full Screen	menu	OK
+Insert	Insert Link (Ctrl+K)	hyperlink	OK
+Insert	Bookmark	bookmark	OK
+Insert	Cross-reference	cross-reference	OK
+Insert	New Comment (Ctrl+Alt+M)	comment	OK
+Insert	Text Box > Simple Text Box	menu	ERROR r.graphic.GraphicProvider") |   File "/tmp/fw/app/folio/bridge.py", line 137, in create |     smgr = ctx.getServiceManager() | AttributeError: 'NoneType' object has no attribute 'getServiceManager' | 
+Insert	Text Box > Sidebar	menu	OK
+Insert	Text Box > Quote	menu	OK
+Insert	Text Box > Banded	menu	OK
+Insert	Text Box > Draw Text Box	menu	OK
+Insert	Date & Time	date-time	OK
+Insert	Field	field-dialog	OK
+Insert	Drop Cap > None	menu	OK
+Insert	Drop Cap > Dropped	menu	OK
+Insert	Drop Cap > In margin	menu	OK
+Insert	Drop Cap > Drop Cap Options...	menu	OK
+Insert	Signature Line > Signature Line...	menu	OK
+Insert	Object > Object...	menu	OK
+Insert	Object > Text from File...	menu	NOT_YET
+Insert	Equation (Alt+=)	equation	OK
+Draw	Select	<function build_ribbon.<locals>.<lambda> at 0x7f1010c86320>	OK
+Draw	Eraser	<function build_ribbon.<locals>.<lambda> at 0x7f1010c863b0>	OK
+Draw	Pen	<function build_ribbon.<locals>.<lambda> at 0x7f1010c864d0>	OK
+Draw	Pen > Black	menu	OK
+Draw	Pen > Red	menu	OK
+Draw	Pen > Blue	menu	OK
+Draw	Pen > Green	menu	OK
+Draw	Pen > Yellow	menu	OK
+Draw	Pen > Orange	menu	OK
+Draw	Pen > Purple	menu	OK
+Draw	Pen > Pink	menu	OK
+Draw	Pen > Gray	menu	OK
+Draw	Pen > 0.25 mm	menu	OK
+Draw	Pen > 0.5 mm	menu	OK
+Draw	Pen > 1 mm	menu	OK
+Draw	Pen > 2 mm	menu	OK
+Draw	Pen > 3.5 mm	menu	OK
+Draw	Pen > 5 mm	menu	OK
+Draw	Pen > 8 mm	menu	OK
+Draw	Pen	<function build_ribbon.<locals>.<lambda> at 0x7f1010c86ef0>	OK
+Draw	Pen > Black	menu	OK
+Draw	Pen > Red	menu	OK
+Draw	Pen > Blue	menu	OK
+Draw	Pen > Green	menu	OK
+Draw	Pen > Yellow	menu	OK
+Draw	Pen > Orange	menu	OK
+Draw	Pen > Purple	menu	OK
+Draw	Pen > Pink	menu	OK
+Draw	Pen > Gray	menu	OK
+Draw	Pen > 0.25 mm	menu	OK
+Draw	Pen > 0.5 mm	menu	OK
+Draw	Pen > 1 mm	menu	OK
+Draw	Pen > 2 mm	menu	OK
+Draw	Pen > 3.5 mm	menu	OK
+Draw	Pen > 5 mm	menu	OK
+Draw	Pen > 8 mm	menu	OK
+Draw	Highlighter	<function build_ribbon.<locals>.<lambda> at 0x7f1010c87910>	OK
+Draw	Highlighter > Black	menu	OK
+Draw	Highlighter > Red	menu	OK
+Draw	Highlighter > Blue	menu	OK
+Draw	Highlighter > Green	menu	OK
+Draw	Highlighter > Yellow	menu	OK
+Draw	Highlighter > Orange	menu	OK
+Draw	Highlighter > Purple	menu	OK
+Draw	Highlighter > Pink	menu	OK
+Draw	Highlighter > Gray	menu	OK
+Draw	Highlighter > 0.25 mm	menu	OK
+Draw	Highlighter > 0.5 mm	menu	OK
+Draw	Highlighter > 1 mm	menu	OK
+Draw	Highlighter > 2 mm	menu	OK
+Draw	Highlighter > 3.5 mm	menu	OK
+Draw	Highlighter > 5 mm	menu	OK
+Draw	Highlighter > 8 mm	menu	OK
+Draw	Ink to Math	ink-equation	NOT_YET
+Design	Themes > Default	menu	OK
+Design	Themes > Default 2023	menu	OK
+Design	Themes > Classic	menu	OK
+Design	Themes > Slate	menu	OK
+Design	Themes > Meadow	menu	OK
+Design	Themes > Ember	menu	OK
+Design	Themes > Lagoon	menu	OK
+Design	Themes > Royal	menu	OK
+Design	Themes > Harbor	menu	OK
+Design	Themes > Paperback	menu	OK
+Design	Themes > Marquee	menu	OK
+Design	Themes > Slipstream	menu	OK
+Design	Themes > Reset to Theme from Template	menu	OK
+Design	Colors > Standard	menu	OK
+Design	Colors > Standard 2023	menu	OK
+Design	Colors > Standard 2007	menu	OK
+Design	Colors > Grayscale	menu	OK
+Design	Colors > Blue Warm	menu	OK
+Design	Colors > Blue	menu	OK
+Design	Colors > Blue II	menu	OK
+Design	Colors > Blue Green	menu	OK
+Design	Colors > Green	menu	OK
+Design	Colors > Green Yellow	menu	OK
+Design	Colors > Yellow	menu	OK
+Design	Colors > Yellow Orange	menu	OK
+Design	Colors > Orange	menu	OK
+Design	Colors > Orange Red	menu	OK
+Design	Colors > Red Orange	menu	OK
+Design	Colors > Red	menu	OK
+Design	Colors > Red Violet	menu	OK
+Design	Colors > Violet	menu	OK
+Design	Colors > Violet II	menu	OK
+Design	Colors > Median	menu	OK
+Design	Colors > Paper	menu	OK
+Design	Colors > Marquee	menu	OK
+Design	Colors > Slipstream	menu	OK
+Design	Colors > Aspect	menu	OK
+Design	Fonts > Standard  (Calibri Light / Calibri)	menu	OK
+Design	Fonts > Standard 2023  (Aptos Display / Aptos)	menu	OK
+Design	Fonts > Standard 2007  (Cambria / Calibri)	menu	OK
+Design	Fonts > Calibri  (Calibri / Calibri)	menu	OK
+Design	Fonts > Arial  (Arial / Arial)	menu	OK
+Design	Fonts > Cambria  (Cambria / Cambria)	menu	OK
+Design	Fonts > Georgia  (Georgia / Georgia)	menu	OK
+Design	Fonts > Times New Roman  (Times New Roman / Times New Roman)	menu	OK
+Design	Fonts > Calibri-Cambria  (Calibri / Cambria)	menu	OK
+Design	Fonts > Arial-Times New Roman  (Arial / Times New Roman)	menu	OK
+Design	Fonts > Candara  (Candara / Candara)	menu	OK
+Design	Fonts > Constantia  (Constantia / Constantia)	menu	OK
+Design	Fonts > Liberation Sans  (Liberation Sans / Liberation Sans)	menu	OK
+Design	Fonts > Liberation Serif  (Liberation Serif / Liberation Serif)	menu	OK
+Design	Fonts > DejaVu  (DejaVu Sans / DejaVu Serif)	menu	OK
+Design	Paragraph Spacing > Default	menu	OK
+Design	Paragraph Spacing > No Paragraph Space	menu	OK
+Design	Paragraph Spacing > Compact	menu	OK
+Design	Paragraph Spacing > Tight	menu	OK
+Design	Paragraph Spacing > Open	menu	SKIP
+Design	Paragraph Spacing > Relaxed	menu	OK
+Design	Paragraph Spacing > Double	menu	OK
+Design	Paragraph Spacing > Custom Paragraph Spacing...	menu	OK
+Design	Set as Default	set-as-default	OK
+Design	Watermark > CONFIDENTIAL	menu	OK
+Design	Watermark > DO NOT COPY	menu	OK
+Design	Watermark > DRAFT	menu	OK
+Design	Watermark > SAMPLE	menu	OK
+Design	Watermark > URGENT	menu	OK
+Design	Watermark > Custom Watermark...	menu	OK
+Design	Watermark > Remove Watermark	menu	OK
+Design	Page Borders	page-borders	OK
+Layout	Margins > Normal  (Top 1", Bottom 1", Left 1", Right 1")	menu	OK
+Layout	Margins > Narrow  (0.5" all sides)	menu	OK
+Layout	Margins > Moderate  (Top 1", Bottom 1", Left 0.75", Right 0.75")	menu	OK
+Layout	Margins > Wide  (Top 1", Bottom 1", Left 2", Right 2")	menu	OK
+Layout	Margins > Mirrored  (Top 1", Bottom 1", Inside 1.25", Outside 1")	menu	OK
+Layout	Margins > Office 2003 Default  (Top 1", Bottom 1", Left 1.25", Right 1.25")	menu	OK
+Layout	Margins > Custom Margins...	menu	NOT_YET
+Layout	Orientation > Portrait	menu	OK
+Layout	Orientation > Landscape	menu	OK
+Layout	Size > Letter  8.5" x 11"	menu	OK
+Layout	Size > Legal  8.5" x 14"	menu	OK
+Layout	Size > A4  8.27" x 11.69"	menu	OK
+Layout	Size > A5  5.83" x 8.27"	menu	OK
+Layout	Size > Executive  7.25" x 10.5"	menu	OK
+Layout	Size > More Paper Sizes...	menu	NOT_YET
+Layout	Columns > One	menu	OK
+Layout	Columns > Two	menu	OK
+Layout	Columns > Three	menu	OK
+Layout	Columns > More Columns...	menu	OK
+Layout	Breaks > Page	menu	OK
+Layout	Breaks > Column	menu	OK
+Layout	Breaks > Text Wrapping	menu	OK
+Layout	Breaks > Next Page	menu	OK
+Layout	Breaks > Continuous	menu	OK
+Layout	Breaks > Even Page	menu	OK
+Layout	Breaks > Odd Page	menu	OK
+Layout	Line Numbers > None	menu	OK
+Layout	Line Numbers > Continuous	menu	OK
+Layout	Line Numbers > Restart Each Page	menu	OK
+Layout	Line Numbers > Restart Each Section	menu	OK
+Layout	Line Numbers > Suppress for Current Paragraph	menu	OK
+Layout	Line Numbers > Line Numbering Options...	menu	OK
+Layout	Hyphenation > None	menu	OK
+Layout	Hyphenation > Automatic	menu	OK
+Layout	Hyphenation > Manual...	menu	OK
+Layout	Hyphenation > Hyphenation Options...	menu	OK
+Layout	Page Setup Settings	page-setup	NOT_YET
+Layout	Paragraph Settings	paragraph-dialog	OK
+Layout	Wrap Text > In Line with Text	menu	OK
+Layout	Wrap Text > Square	menu	NOT_YET
+Layout	Wrap Text > Tight	menu	NOT_YET
+Layout	Wrap Text > Behind Text	menu	NOT_YET
+Layout	Bring Forward	.uno:BringToFront	NOT_YET
+Layout	Send Backward	.uno:SendToBack	NOT_YET
+Layout	Selection Pane	selection-pane	NOT_YET
+Layout	Align > Align Left	menu	OK
+Layout	Align > Align Center	menu	OK
+Layout	Align > Align Right	menu	OK
+Layout	Align > Align Top	menu	OK
+Layout	Align > Align Middle	menu	OK
+Layout	Align > Align Bottom	menu	OK
+Layout	Align > Distribute Horizontally	menu	OK
+Layout	Align > Distribute Vertically	menu	OK
+Layout	Align > Align to Page	menu	OK
+Layout	Align > Align to Margin	menu	OK
+Layout	Align > Align Selected Objects	menu	OK
+Layout	Group > Group	menu	NOT_YET
+Layout	Group > Regroup	menu	NOT_YET
+Layout	Group > Ungroup	menu	NOT_YET
+References	Table of Contents > Automatic Table 1  (Contents)	menu	OK
+References	Table of Contents > Automatic Table 2  (Table of Contents)	menu	OK
+References	Table of Contents > Custom Table of Contents...	menu	NOT_YET
+References	Table of Contents > Remove Table of Contents	menu	OK
+References	Add Text > Do Not Show in Table of Contents	menu	OK
+References	Add Text > Level 1	menu	OK
+References	Add Text > Level 2	menu	OK
+References	Add Text > Level 3	menu	OK
+References	Update Table	update-toc	OK
+References	Insert Footnote (Ctrl+Alt+F)	.uno:InsertFootnote	OK
+References	Insert Endnote (Ctrl+Alt+D)	.uno:InsertEndnote	NOT_YET
+References	Next Footnote	<function build_ribbon.<locals>.<lambda> at 0x7f1010caf250>	NOT_YET
+References	Next Footnote > Next Footnote	menu	NOT_YET
+References	Next Footnote > Previous Footnote	menu	NOT_YET
+References	Next Footnote > Next Endnote	menu	NOT_YET
+References	Next Footnote > Previous Endnote	menu	NOT_YET
+References	Show Notes	show-notes	NOT_YET
+References	Footnotes Settings	footnote-dialog	NOT_YET
+References	Manage Sources	<function build_ribbon.<locals>.<lambda> at 0x7f1010cddc60>	OK
+References	Bibliography > Bibliography	menu	NOT_YET
+References	Bibliography > References	menu	NOT_YET
+References	Bibliography > Works Cited	menu	NOT_YET
+References	Bibliography > Insert Bibliography	menu	NOT_YET
+References	Insert Caption	caption	OK
+References	Insert Table of Figures	table-of-figures	NOT_YET
+References	Update Table	update-toc	OK
+References	Cross-reference	cross-reference	OK
+References	Mark Entry (Alt+Shift+X)	mark-entry	NOT_YET
+References	Insert Index	insert-index	NOT_YET
+References	Update Index	update-toc	OK
+References	Mark Citation (Alt+Shift+I)	mark-citation	NOT_YET
+References	Insert Table of Authorities	<function build_ribbon.<locals>.<lambda> at 0x7f1010cde0e0>	OK
+References	Update Table	<function build_ribbon.<locals>.<lambda> at 0x7f1010cde9e0>	NOT_YET
+Mailings	Envelopes	<function build_ribbon.<locals>.<lambda> at 0x7f1010cf5cf0>	OK
+Mailings	Labels	<function build_ribbon.<locals>.<lambda> at 0x7f1010cf5d80>	OK
+Mailings	Start Mail Merge > Letters	menu	OK
+Mailings	Start Mail Merge > Envelopes...	menu	OK
+Mailings	Start Mail Merge > Labels...	menu	OK
+Mailings	Start Mail Merge > Directory	menu	OK
+Mailings	Start Mail Merge > Normal Document	menu	OK
+Mailings	Select Recipients > Type a New List...	menu	OK
+Mailings	Select Recipients > Use an Existing List...	menu	OK
+Mailings	Edit Recipient List	<function build_ribbon.<locals>.<lambda> at 0x7f1010cf64d0>	OK
+Mailings	Highlight Merge Fields	highlight-merge-fields	NOT_YET
+Mailings	Address Block	<function build_ribbon.<locals>.<lambda> at 0x7f1010cf6560>	NOT_YET
+Mailings	Greeting Line	<function build_ribbon.<locals>.<lambda> at 0x7f1010cf7760>	OK
+Mailings	Rules > Ask...	menu	OK
+Mailings	Rules > Fill-in...	menu	OK
+Mailings	Rules > If...Then...Else...	menu	OK
+Mailings	Rules > Merge Record #	menu	OK
+Mailings	Rules > Merge Sequence #	menu	OK
+Mailings	Rules > Next Record	menu	OK
+Mailings	Rules > Next Record If...	menu	OK
+Mailings	Rules > Set Bookmark...	menu	OK
+Mailings	Rules > Skip Record If...	menu	OK
+Mailings	Match Fields	<function build_ribbon.<locals>.<lambda> at 0x7f1010264040>	OK
+Mailings	Update Labels	<function build_ribbon.<locals>.<lambda> at 0x7f10102640d0>	NOT_YET
+Mailings	Preview Results	merge-preview	NOT_YET
+Mailings	First Record	<function build_ribbon.<locals>.<lambda> at 0x7f10102641f0>	OK
+Mailings	Previous Record	<function build_ribbon.<locals>.<lambda> at 0x7f1010264280>	OK
+Mailings	Next Record	<function build_ribbon.<locals>.<lambda> at 0x7f1010264310>	OK
+Mailings	Last Record	<function build_ribbon.<locals>.<lambda> at 0x7f10102643a0>	OK
+Mailings	Find Recipient	find-recipient	NOT_YET
+Mailings	Auto Check for Errors	<function build_ribbon.<locals>.<lambda> at 0x7f1010264430>	OK
+Mailings	Finish & Merge > Edit Individual Documents...	menu	OK
+Mailings	Finish & Merge > Print Documents...	menu	SKIP
+Review	Spelling & Grammar (F7)	spelling	NOT_YET
+Review	Thesaurus (Shift+F7)	thesaurus	NOT_YET
+Review	Word Count (Ctrl+Shift+G)	word-count	OK
+Review	Read Aloud (Ctrl+Alt+Space)	read-aloud	SKIP
+Review	Check Accessibility	<function build_ribbon.<locals>.<lambda> at 0x7f1010264790>	NOT_YET
+Review	Check Accessibility > Check Accessibility	menu	NOT_YET
+Review	Check Accessibility > Alt Text	menu	OK
+Review	Check Accessibility > Navigation Pane	menu	OK
+Review	Language > Set Proofing Language...	menu	NOT_YET
+Review	New Comment (Ctrl+Alt+M)	comment	OK
+Review	Delete	.uno:DeleteComment	OK
+Review	Delete > Delete	menu	OK
+Review	Delete > Delete All Comments Shown	menu	OK
+Review	Delete > Delete All Comments in Document	menu	OK
+Review	Previous	prev-comment	OK
+Review	Next	next-comment	OK
+Review	Show Comments	<function build_ribbon.<locals>.<lambda> at 0x7f1010264e50>	OK
+Review	Track Changes (Ctrl+Shift+E)	.uno:TrackChanges	OK
+Review	Track Changes (Ctrl+Shift+E) > For Everyone	menu	OK
+Review	Track Changes (Ctrl+Shift+E) > Lock Tracking	menu	OK
+Review	Show Markup > Comments	menu	OK
+Review	Show Markup > Insertions and Deletions	menu	OK
+Review	Show Markup > Formatting	menu	OK
+Review	Show Markup > Specific People...	menu	OK
+Review	Show Markup > Show Revisions in Balloons	menu	OK
+Review	Show Markup > Show All Revisions Inline	menu	OK
+Review	Show Markup > Show Only Comments and Formatting in Balloons	menu	OK
+Review	Reviewing Pane	manage-changes	OK
+Review	Tracking Settings	<function build_ribbon.<locals>.<lambda> at 0x7f1010265630>	OK
+Review	Accept	.uno:AcceptTrackedChange	OK
+Review	Accept > Accept This Change	menu	OK
+Review	Accept > Accept and Move to Next	menu	OK
+Review	Accept > Accept All Changes Shown	menu	OK
+Review	Accept > Accept All Changes	menu	OK
+Review	Accept > Accept All Changes and Stop Tracking	menu	OK
+Review	Reject	.uno:RejectTrackedChange	OK
+Review	Reject > Reject This Change	menu	OK
+Review	Reject > Reject and Move to Next	menu	OK
+Review	Reject > Reject All Changes Shown	menu	OK
+Review	Reject > Reject All Changes	menu	OK
+Review	Reject > Reject All Changes and Stop Tracking	menu	OK
+Review	Previous	.uno:PreviousTrackedChange	OK
+Review	Next	.uno:NextTrackedChange	OK
+Review	Compare > Compare...	menu	OK
+Review	Compare > Combine...	menu	OK
+Review	Compare > Hide Source Documents	menu	OK
+Review	Compare > Show Original	menu	OK
+Review	Compare > Show Revised	menu	OK
+Review	Compare > Show Both	menu	OK
+Review	Restrict Editing	<function build_ribbon.<locals>.<lambda> at 0x7f1010296830>	OK
+View	Read Mode	read-mode	NOT_YET
+View	Print Layout	print-layout	SKIP
+View	Web Layout	web-layout	NOT_YET
+View	Outline	outline-view	NOT_YET
+View	Draft	draft-view	NOT_YET
+View	Focus	focus-mode	OK
+View	Immersive Reader	immersive-reader	NOT_YET
+View	Vertical	<function build_ribbon.<locals>.<lambda> at 0x7f1010296950>	OK
+View	Side to Side	side-to-side	OK
+View	Ruler	toggle-ruler	OK
+View	Navigation Pane	<function build_ribbon.<locals>.<lambda> at 0x7f10102969e0>	OK
+View	Formatting Marks	.uno:ControlCodes	OK
+View	Zoom	zoom-dialog	OK
+View	100%	zoom-100	OK
+View	One Page	zoom-one-page	OK
+View	Multiple Pages	multiple-pages	OK
+View	Page Width	zoom-page-width	OK
+View	New Window	new-window	SKIP
+View	Arrange All	arrange-all	NOT_YET
+View	Split	split	NOT_YET
+View	View Side by Side	side-by-side	NOT_YET
+View	Synchronous Scrolling	sync-scrolling	NOT_YET
+View	Reset Window Position	reset-window-position	NOT_YET
+View	Macros (Alt+F8)	view-macros	SKIP
+View	Macros (Alt+F8) > View Macros	menu	SKIP
+View	Macros (Alt+F8) > Record Macro...	menu	SKIP
+View	Macros (Alt+F8) > Stop Recording	menu	SKIP
+View	Macros (Alt+F8) > Pause Recording	menu	SKIP
+Help	Help (F1)	help	SKIP
+Help	Keyboard Shortcuts	help	SKIP
+Help	About	about	OK
+Table Layout	Select > Select Cell	menu	OK
+Table Layout	Select > Select Column	menu	OK
+Table Layout	Select > Select Row	menu	OK
+Table Layout	Select > Select Table	menu	OK
+Table Layout	View Gridlines	.uno:TableBoundaries	OK
+Table Layout	Properties	table-properties	OK
+Table Layout	Draw Table	<function build_ribbon.<locals>.<lambda> at 0x7f1010297370>	OK
+Table Layout	Eraser	<function build_ribbon.<locals>.<lambda> at 0x7f1010297400>	OK
+Table Layout	Delete Table	.uno:DeleteTable	OK
+Table Layout	Insert Above	.uno:InsertRowsBefore	OK
+Table Layout	Insert Below	.uno:InsertRowsAfter	OK
+Table Layout	Delete Rows	.uno:DeleteRows	OK
+Table Layout	Insert Left	.uno:InsertColumnsBefore	OK
+Table Layout	Insert Right	.uno:InsertColumnsAfter	OK
+Table Layout	Delete Columns	.uno:DeleteColumns	OK
+Table Layout	Rows & Columns Settings	insert-cells	OK
+Table Layout	Merge Cells	.uno:MergeCells	OK
+Table Layout	Split Cells	split-cells	OK
+Table Layout	Split Table	split-table	OK
+Table Layout	AutoFit > AutoFit Contents	menu	OK
+Table Layout	AutoFit > AutoFit Window	menu	OK
+Table Layout	AutoFit > Fixed Column Width	menu	OK
+Table Layout	Distribute Rows	.uno:DistributeRows	OK
+Table Layout	Distribute Columns	.uno:DistributeColumns	OK
+Table Layout	Cell Size Settings	table-properties	OK
+Table Layout	Align Top Left	<function build_ribbon.<locals>.al.<locals>.<lambda> at 0x7f1010297d00>	OK
+Table Layout	Align Top Center	<function build_ribbon.<locals>.al.<locals>.<lambda> at 0x7f1010297d90>	OK
+Table Layout	Align Top Right	<function build_ribbon.<locals>.al.<locals>.<lambda> at 0x7f1010297e20>	OK
+Table Layout	Align Center Left	<function build_ribbon.<locals>.al.<locals>.<lambda> at 0x7f1010297eb0>	OK
+Table Layout	Align Center	<function build_ribbon.<locals>.al.<locals>.<lambda> at 0x7f1010297f40>	OK
+Table Layout	Align Center Right	<function build_ribbon.<locals>.al.<locals>.<lambda> at 0x7f10102a8040>	OK
+Table Layout	Align Bottom Left	<function build_ribbon.<locals>.al.<locals>.<lambda> at 0x7f10102a80d0>	OK
+Table Layout	Align Bottom Center	<function build_ribbon.<locals>.al.<locals>.<lambda> at 0x7f10102a8160>	OK
+Table Layout	Align Bottom Right	<function build_ribbon.<locals>.al.<locals>.<lambda> at 0x7f10102a81f0>	OK
+Table Layout	Text Direction	<function build_ribbon.<locals>.<lambda> at 0x7f10102a8280>	OK
+Table Layout	Cell Margins	<function build_ribbon.<locals>.<lambda> at 0x7f10102a8310>	OK
+Table Layout	Repeat Header Rows	<function build_ribbon.<locals>.<lambda> at 0x7f10102a83a0>	OK
+Table Layout	Sort	<function build_ribbon.<locals>.<lambda> at 0x7f10102a8430>	OK
+Table Layout	Convert to Text	<function build_ribbon.<locals>.<lambda> at 0x7f10102a84c0>	OK
+Table Layout	Formula	<function build_ribbon.<locals>.<lambda> at 0x7f10102a8550>	OK
+Table Design	Header Row	<function build_ribbon.<locals>.topt.<locals>.<lambda> at 0x7f10102a8700>	OK
+Table Design	Total Row	<function build_ribbon.<locals>.topt.<locals>.<lambda> at 0x7f10102a8790>	OK
+Table Design	Banded Rows	<function build_ribbon.<locals>.topt.<locals>.<lambda> at 0x7f10102a8820>	OK
+Table Design	First Column	<function build_ribbon.<locals>.topt.<locals>.<lambda> at 0x7f10102a88b0>	OK
+Table Design	Last Column	<function build_ribbon.<locals>.topt.<locals>.<lambda> at 0x7f10102a8940>	OK
+Table Design	Banded Columns	<function build_ribbon.<locals>.topt.<locals>.<lambda> at 0x7f10102a89d0>	OK
+Table Design	Borders > Bottom Border	menu	OK
+Table Design	Borders > Top Border	menu	OK
+Table Design	Borders > Left Border	menu	OK
+Table Design	Borders > Right Border	menu	OK
+Table Design	Borders > No Border	menu	OK
+Table Design	Borders > All Borders	menu	OK
+Table Design	Borders > Outside Borders	menu	OK
+Table Design	Borders > Inside Borders	menu	OK
+Table Design	Borders > Inside Horizontal Border	menu	OK
+Table Design	Borders > Inside Vertical Border	menu	OK
+Table Design	Borders > View Gridlines	menu	OK
+Table Design	Borders > Borders and Shading...	menu	NOT_YET
+Shape Format	Shapes > Line	menu	OK
+Shape Format	Shapes > Arrow	menu	OK
+Shape Format	Shapes > Connector: Elbow	menu	OK
+Shape Format	Shapes > Connector: Curved	menu	OK
+Shape Format	Shapes > Freeform: Scribble	menu	OK
+Shape Format	Shapes > Rectangle	menu	OK
+Shape Format	Shapes > Rounded Rectangle	menu	OK
+Shape Format	Shapes > Oval	menu	OK
+Shape Format	Shapes > Triangle	menu	OK
+Shape Format	Shapes > Right Triangle	menu	OK
+Shape Format	Shapes > Parallelogram	menu	OK
+Shape Format	Shapes > Trapezoid	menu	OK
+Shape Format	Shapes > Diamond	menu	OK
+Shape Format	Shapes > Pentagon	menu	OK
+Shape Format	Shapes > Hexagon	menu	OK
+Shape Format	Shapes > Octagon	menu	OK
+Shape Format	Shapes > Frame	menu	OK
+Shape Format	Shapes > Donut	menu	OK
+Shape Format	Shapes > Cube	menu	OK
+Shape Format	Shapes > Can	menu	OK
+Shape Format	Shapes > Heart	menu	OK
+Shape Format	Shapes > Lightning Bolt	menu	OK
+Shape Format	Shapes > Sun	menu	OK
+Shape Format	Shapes > Moon	menu	OK
+Shape Format	Shapes > Smiley Face	menu	OK
+Shape Format	Shapes > Cloud	menu	OK
+Shape Format	Shapes > Right Arrow	menu	OK
+Shape Format	Shapes > Left Arrow	menu	OK
+Shape Format	Shapes > Up Arrow	menu	OK
+Shape Format	Shapes > Down Arrow	menu	OK
+Shape Format	Shapes > Left-Right Arrow	menu	OK
+Shape Format	Shapes > Up-Down Arrow	menu	OK
+Shape Format	Shapes > Notched Right Arrow	menu	OK
+Shape Format	Shapes > Chevron	menu	OK
+Shape Format	Shapes > Circular Arrow	menu	OK
+Shape Format	Shapes > Process	menu	OK
+Shape Format	Shapes > Decision	menu	OK
+Shape Format	Shapes > Terminator	menu	OK
+Shape Format	Shapes > Document	menu	OK
+Shape Format	Shapes > Data	menu	OK
+Shape Format	Shapes > Connector	menu	OK
+Shape Format	Shapes > Star: 4 Points	menu	OK
+Shape Format	Shapes > Star: 5 Points	menu	OK
+Shape Format	Shapes > Star: 6 Points	menu	OK
+Shape Format	Shapes > Star: 8 Points	menu	OK
+Shape Format	Shapes > Star: 24 Points	menu	OK
+Shape Format	Shapes > Scroll: Horizontal	menu	OK
+Shape Format	Shapes > Speech Bubble: Rectangle	menu	OK
+Shape Format	Shapes > Speech Bubble: Rounded Rectangle	menu	OK
+Shape Format	Shapes > Speech Bubble: Oval	menu	OK
+Shape Format	Shapes > Thought Bubble: Cloud	menu	OK
+Shape Format	Shapes > Text Box	menu	OK
+Shape Format	Edit Shape > Rectangle	menu	NOT_YET
+Shape Format	Edit Shape > Rounded Rectangle	menu	NOT_YET
+Shape Format	Edit Shape > Oval	menu	NOT_YET
+Shape Format	Edit Shape > Triangle	menu	NOT_YET
+Shape Format	Edit Shape > Right Triangle	menu	NOT_YET
+Shape Format	Edit Shape > Parallelogram	menu	NOT_YET
+Shape Format	Edit Shape > Trapezoid	menu	NOT_YET
+Shape Format	Edit Shape > Diamond	menu	NOT_YET
+Shape Format	Edit Shape > Pentagon	menu	NOT_YET
+Shape Format	Edit Shape > Hexagon	menu	NOT_YET
+Shape Format	Edit Shape > Octagon	menu	NOT_YET
+Shape Format	Edit Shape > Frame	menu	NOT_YET
+Shape Format	Edit Shape > Donut	menu	NOT_YET
+Shape Format	Edit Shape > Cube	menu	NOT_YET
+Shape Format	Edit Shape > Can	menu	NOT_YET
+Shape Format	Edit Shape > Heart	menu	NOT_YET
+Shape Format	Edit Shape > Lightning Bolt	menu	NOT_YET
+Shape Format	Edit Shape > Sun	menu	NOT_YET
+Shape Format	Edit Shape > Moon	menu	NOT_YET
+Shape Format	Edit Shape > Smiley Face	menu	NOT_YET
+Shape Format	Edit Shape > Cloud	menu	NOT_YET
+Shape Format	Edit Shape > Right Arrow	menu	NOT_YET
+Shape Format	Edit Shape > Left Arrow	menu	NOT_YET
+Shape Format	Edit Shape > Up Arrow	menu	NOT_YET
+Shape Format	Edit Shape > Down Arrow	menu	NOT_YET
+Shape Format	Edit Shape > Left-Right Arrow	menu	NOT_YET
+Shape Format	Edit Shape > Up-Down Arrow	menu	NOT_YET
+Shape Format	Edit Shape > Notched Right Arrow	menu	NOT_YET
+Shape Format	Edit Shape > Chevron	menu	NOT_YET
+Shape Format	Edit Shape > Circular Arrow	menu	NOT_YET
+Shape Format	Edit Shape > Process	menu	NOT_YET
+Shape Format	Edit Shape > Decision	menu	NOT_YET
+Shape Format	Edit Shape > Terminator	menu	NOT_YET
+Shape Format	Edit Shape > Document	menu	NOT_YET
+Shape Format	Edit Shape > Data	menu	NOT_YET
+Shape Format	Edit Shape > Connector	menu	NOT_YET
+Shape Format	Edit Shape > Star: 4 Points	menu	NOT_YET
+Shape Format	Edit Shape > Star: 5 Points	menu	NOT_YET
+Shape Format	Edit Shape > Star: 6 Points	menu	NOT_YET
+Shape Format	Edit Shape > Star: 8 Points	menu	NOT_YET
+Shape Format	Edit Shape > Star: 24 Points	menu	NOT_YET
+Shape Format	Edit Shape > Scroll: Horizontal	menu	NOT_YET
+Shape Format	Edit Shape > Speech Bubble: Rectangle	menu	NOT_YET
+Shape Format	Edit Shape > Speech Bubble: Rounded Rectangle	menu	NOT_YET
+Shape Format	Edit Shape > Speech Bubble: Oval	menu	NOT_YET
+Shape Format	Edit Shape > Thought Bubble: Cloud	menu	NOT_YET
+Shape Format	Edit Shape > Edit Points	menu	OK
+Shape Format	Draw Text Box	('draw-shape', 'textbox')	OK
+Shape Format	Merge Shapes > Union	menu	OK
+Shape Format	Merge Shapes > Combine	menu	OK
+Shape Format	Merge Shapes > Fragment	menu	OK
+Shape Format	Merge Shapes > Intersect	menu	OK
+Shape Format	Merge Shapes > Subtract	menu	OK
+Shape Format	Weight > ¼ pt	menu	NOT_YET
+Shape Format	Weight > ½ pt	menu	NOT_YET
+Shape Format	Weight > ¾ pt	menu	NOT_YET
+Shape Format	Weight > 1 pt	menu	NOT_YET
+Shape Format	Weight > 1½ pt	menu	NOT_YET
+Shape Format	Weight > 2¼ pt	menu	NOT_YET
+Shape Format	Weight > 3 pt	menu	NOT_YET
+Shape Format	Weight > 4½ pt	menu	NOT_YET
+Shape Format	Weight > 6 pt	menu	NOT_YET
+Shape Format	Shape Effects > No Shadow	menu	NOT_YET
+Shape Format	Shape Effects > Offset: Bottom Right	menu	NOT_YET
+Shape Format	Shape Effects > Offset: Bottom	menu	NOT_YET
+Shape Format	Shape Effects > Offset: Bottom Left	menu	NOT_YET
+Shape Format	Shape Effects > Offset: Right	menu	NOT_YET
+Shape Format	Shape Effects > Offset: Center	menu	NOT_YET
+Shape Format	Shape Effects > Offset: Left	menu	NOT_YET
+Shape Format	Shape Effects > Offset: Top Right	menu	NOT_YET
+Shape Format	Shape Effects > Offset: Top	menu	NOT_YET
+Shape Format	Shape Effects > Offset: Top Left	menu	NOT_YET
+Shape Format	Shape Effects > Inside: Top Left	menu	NOT_YET
+Shape Format	Shape Effects > Inside: Center	menu	NOT_YET
+Shape Format	Shape Effects > Inside: Bottom Right	menu	NOT_YET
+Shape Format	Shape Effects > Perspective: Below	menu	NOT_YET
+Shape Format	Shape Effects > No Reflection	menu	NOT_YET
+Shape Format	Shape Effects > Tight Reflection: Touching	menu	NOT_YET
+Shape Format	Shape Effects > Half Reflection: Touching	menu	NOT_YET
+Shape Format	Shape Effects > Full Reflection: Touching	menu	NOT_YET
+Shape Format	Shape Effects > Tight Reflection: 4 pt Offset	menu	NOT_YET
+Shape Format	Shape Effects > Half Reflection: 4 pt Offset	menu	NOT_YET
+Shape Format	Shape Effects > Full Reflection: 4 pt Offset	menu	NOT_YET
+Shape Format	Shape Effects > No Glow	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 5 pt; Blue, Accent color 1	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 5 pt; Orange, Accent color 2	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 5 pt; Gold, Accent color 4	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 5 pt; Green, Accent color 6	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 8 pt; Blue, Accent color 1	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 8 pt; Orange, Accent color 2	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 8 pt; Gold, Accent color 4	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 8 pt; Green, Accent color 6	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 11 pt; Blue, Accent color 1	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 11 pt; Orange, Accent color 2	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 11 pt; Gold, Accent color 4	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 11 pt; Green, Accent color 6	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 18 pt; Blue, Accent color 1	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 18 pt; Orange, Accent color 2	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 18 pt; Gold, Accent color 4	menu	NOT_YET
+Shape Format	Shape Effects > Glow: 18 pt; Green, Accent color 6	menu	NOT_YET
+Shape Format	Shape Effects > No Soft Edges	menu	NOT_YET
+Shape Format	Shape Effects > 1 Point	menu	NOT_YET
+Shape Format	Shape Effects > 2.5 Point	menu	NOT_YET
+Shape Format	Shape Effects > 5 Point	menu	NOT_YET
+Shape Format	Shape Effects > 10 Point	menu	NOT_YET
+Shape Format	Shape Effects > 25 Point	menu	NOT_YET
+Shape Format	Shape Effects > 50 Point	menu	NOT_YET
+Shape Format	Shape Effects > No Bevel	menu	NOT_YET
+Shape Format	Shape Effects > Circle	menu	NOT_YET
+Shape Format	Shape Effects > Relaxed Inset	menu	NOT_YET
+Shape Format	Shape Effects > Cross	menu	NOT_YET
+Shape Format	Shape Effects > Cool Slant	menu	NOT_YET
+Shape Format	Shape Effects > Angle	menu	NOT_YET
+Shape Format	Shape Effects > Soft Round	menu	NOT_YET
+Shape Format	Shape Effects > Convex	menu	NOT_YET
+Shape Format	Shape Effects > Slope	menu	NOT_YET
+Shape Format	Shape Effects > Divot	menu	NOT_YET
+Shape Format	Shape Effects > Riblet	menu	NOT_YET
+Shape Format	Shape Effects > Hard Edge	menu	NOT_YET
+Shape Format	Shape Effects > Art Deco	menu	NOT_YET
+Shape Format	Text Effects > Arch	menu	OK
+Shape Format	Text Effects > Arch: Down	menu	OK
+Shape Format	Text Effects > Circle	menu	OK
+Shape Format	Text Effects > Square	menu	OK
+Shape Format	Text Effects > Triangle: Up	menu	OK
+Shape Format	Text Effects > Triangle: Down	menu	OK
+Shape Format	Text Effects > Chevron: Up	menu	OK
+Shape Format	Text Effects > Chevron: Down	menu	OK
+Shape Format	Text Effects > Wave: Up	menu	OK
+Shape Format	Text Effects > Inflate	menu	OK
+Shape Format	Text Effects > Deflate	menu	OK
+Shape Format	Text Effects > Slant Up	menu	OK
+Shape Format	Text Effects > Slant Down	menu	OK
+Shape Format	Text Effects > Fade: Right	menu	OK
+Shape Format	Text Effects > Fade: Left	menu	OK
+Shape Format	Text Effects > Fade: Up	menu	OK
+Shape Format	Text Effects > Fade: Down	menu	OK
+Shape Format	Text Effects > No Transform	menu	OK
+Shape Format	Text Direction > Horizontal	menu	NOT_YET
+Shape Format	Text Direction > Rotate all text 90°	menu	NOT_YET
+Shape Format	Text Direction > Rotate all text 270°	menu	NOT_YET
+Shape Format	Align Text > Top	menu	NOT_YET
+Shape Format	Align Text > Middle	menu	NOT_YET
+Shape Format	Align Text > Bottom	menu	NOT_YET
+Shape Format	Create Link	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f10102de0e0>	OK
+Shape Format	Break Link	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f10102de170>	OK
+Shape Format	Position > In Line with Text	menu	NOT_YET
+Shape Format	Position > Position in Top Left	menu	NOT_YET
+Shape Format	Position > Position in Top Center	menu	NOT_YET
+Shape Format	Position > Position in Top Right	menu	NOT_YET
+Shape Format	Position > Position in Middle Left	menu	NOT_YET
+Shape Format	Position > Position in Middle Center	menu	NOT_YET
+Shape Format	Position > Position in Middle Right	menu	NOT_YET
+Shape Format	Position > Position in Bottom Left	menu	NOT_YET
+Shape Format	Position > Position in Bottom Center	menu	NOT_YET
+Shape Format	Position > Position in Bottom Right	menu	NOT_YET
+Shape Format	Position > More Layout Options...	menu	OK
+Shape Format	Wrap Text > In Line with Text	menu	NOT_YET
+Shape Format	Wrap Text > Square	menu	NOT_YET
+Shape Format	Wrap Text > Tight	menu	NOT_YET
+Shape Format	Wrap Text > Through	menu	NOT_YET
+Shape Format	Wrap Text > Top and Bottom	menu	NOT_YET
+Shape Format	Wrap Text > Behind Text	menu	NOT_YET
+Shape Format	Wrap Text > In Front of Text	menu	NOT_YET
+Shape Format	Wrap Text > Edit Wrap Points	menu	OK
+Shape Format	Wrap Text > Move with Text	menu	NOT_YET
+Shape Format	Wrap Text > Fix Position on Page	menu	NOT_YET
+Shape Format	Wrap Text > More Layout Options...	menu	OK
+Shape Format	Bring Forward	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f10102df130>	NOT_YET
+Shape Format	Send Backward	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f10102df1c0>	NOT_YET
+Shape Format	Delete	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f10102df250>	OK
+Shape Format	Selection Pane	selection-pane	NOT_YET
+Shape Format	Align > Align Left	menu	OK
+Shape Format	Align > Align Center	menu	OK
+Shape Format	Align > Align Right	menu	OK
+Shape Format	Align > Align Top	menu	OK
+Shape Format	Align > Align Middle	menu	OK
+Shape Format	Align > Align Bottom	menu	OK
+Shape Format	Align > Distribute Horizontally	menu	OK
+Shape Format	Align > Distribute Vertically	menu	OK
+Shape Format	Align > Align to Page	menu	OK
+Shape Format	Align > Align to Margin	menu	OK
+Shape Format	Align > Align Selected Objects	menu	OK
+Shape Format	Group > Group	menu	NOT_YET
+Shape Format	Group > Regroup	menu	NOT_YET
+Shape Format	Group > Ungroup	menu	NOT_YET
+Shape Format	Rotate > Rotate Right 90°	menu	NOT_YET
+Shape Format	Rotate > Rotate Left 90°	menu	NOT_YET
+Shape Format	Rotate > Flip Vertical	menu	NOT_YET
+Shape Format	Rotate > Flip Horizontal	menu	NOT_YET
+Shape Format	Size Settings	object-size	NOT_YET
+Chart Design	Add Chart Element > Primary Horizontal	menu	OK
+Chart Design	Add Chart Element > Primary Vertical	menu	OK
+Chart Design	Add Chart Element > No Axes	menu	OK
+Chart Design	Add Chart Element > Primary Horizontal Title...	menu	OK
+Chart Design	Add Chart Element > Primary Vertical Title...	menu	OK
+Chart Design	Add Chart Element > No Axis Titles	menu	OK
+Chart Design	Add Chart Element > Above Chart...	menu	OK
+Chart Design	Add Chart Element > None	menu	OK
+Chart Design	Add Chart Element > None	menu	OK
+Chart Design	Add Chart Element > Center	menu	OK
+Chart Design	Add Chart Element > Inside End	menu	OK
+Chart Design	Add Chart Element > Inside Base	menu	OK
+Chart Design	Add Chart Element > Outside End	menu	OK
+Chart Design	Add Chart Element > None	menu	OK
+Chart Design	Add Chart Element > With Legend Keys	menu	OK
+Chart Design	Add Chart Element > Primary Major Horizontal	menu	OK
+Chart Design	Add Chart Element > Primary Major Vertical	menu	OK
+Chart Design	Add Chart Element > Primary Minor Horizontal	menu	OK
+Chart Design	Add Chart Element > Primary Minor Vertical	menu	OK
+Chart Design	Add Chart Element > None	menu	OK
+Chart Design	Add Chart Element > Right	menu	OK
+Chart Design	Add Chart Element > Top	menu	OK
+Chart Design	Add Chart Element > Left	menu	OK
+Chart Design	Add Chart Element > Bottom	menu	OK
+Chart Design	Quick Layout > Layout 1	menu	OK
+Chart Design	Quick Layout > Layout 2	menu	OK
+Chart Design	Quick Layout > Layout 3	menu	OK
+Chart Design	Quick Layout > Layout 4	menu	OK
+Chart Design	Quick Layout > Layout 5	menu	OK
+Chart Design	Quick Layout > Layout 6	menu	OK
+Chart Design	Quick Layout > Layout 7	menu	OK
+Chart Design	Quick Layout > Layout 8	menu	OK
+Chart Design	Quick Layout > Layout 9	menu	OK
+Chart Design	Quick Layout > Layout 10	menu	OK
+Chart Design	Quick Layout > Layout 11	menu	OK
+Chart Design	Change Colors > Colorful Palette 1	menu	OK
+Chart Design	Change Colors > Colorful Palette 2	menu	OK
+Chart Design	Change Colors > Colorful Palette 3	menu	OK
+Chart Design	Change Colors > Colorful Palette 4	menu	OK
+Chart Design	Change Colors > Monochromatic Palette 1	menu	OK
+Chart Design	Change Colors > Monochromatic Palette 2	menu	OK
+Chart Design	Change Colors > Monochromatic Palette 3	menu	OK
+Chart Design	Change Colors > Monochromatic Palette 4	menu	OK
+Chart Design	Change Colors > Monochromatic Palette 5	menu	OK
+Chart Design	Change Colors > Monochromatic Palette 6	menu	OK
+Chart Design	Edit Data	<function build_ribbon.<locals>.<lambda> at 0x7f101030d5a0>	OK
+Chart Design	Switch Row/ Column	<function build_ribbon.<locals>.<lambda> at 0x7f101030d630>	OK
+Chart Design	Format Pane	<function build_ribbon.<locals>.format_pane at 0x7f101030d510>	OK
+Chart Design	Change Chart Type	<function build_ribbon.<locals>.<lambda> at 0x7f101030d7e0>	OK
+Picture Format	Remove Background	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f101030e290>	OK
+Picture Format	Corrections > Brightness: -40%  Contrast: -20%	menu	NOT_YET
+Picture Format	Corrections > Brightness: -40%  Contrast: +0%	menu	NOT_YET
+Picture Format	Corrections > Brightness: -40%  Contrast: +20%	menu	NOT_YET
+Picture Format	Corrections > Brightness: -20%  Contrast: -20%	menu	NOT_YET
+Picture Format	Corrections > Brightness: -20%  Contrast: +0%	menu	NOT_YET
+Picture Format	Corrections > Brightness: -20%  Contrast: +20%	menu	NOT_YET
+Picture Format	Corrections > Brightness: +0%  Contrast: -20%	menu	NOT_YET
+Picture Format	Corrections > Brightness: +0%  Contrast: +0%  (Normal)	menu	NOT_YET
+Picture Format	Corrections > Brightness: +0%  Contrast: +20%	menu	NOT_YET
+Picture Format	Corrections > Brightness: +20%  Contrast: -20%	menu	NOT_YET
+Picture Format	Corrections > Brightness: +20%  Contrast: +0%	menu	NOT_YET
+Picture Format	Corrections > Brightness: +20%  Contrast: +20%	menu	NOT_YET
+Picture Format	Corrections > Brightness: +40%  Contrast: -20%	menu	NOT_YET
+Picture Format	Corrections > Brightness: +40%  Contrast: +0%	menu	NOT_YET
+Picture Format	Corrections > Brightness: +40%  Contrast: +20%	menu	NOT_YET
+Picture Format	Corrections > Picture Corrections Options...	menu	OK
+Picture Format	Color > No Recolor	menu	NOT_YET
+Picture Format	Color > Grayscale	menu	NOT_YET
+Picture Format	Color > Black and White	menu	NOT_YET
+Picture Format	Color > Washout	menu	NOT_YET
+Picture Format	Transparency > 0%	menu	NOT_YET
+Picture Format	Transparency > 15%	menu	NOT_YET
+Picture Format	Transparency > 30%	menu	NOT_YET
+Picture Format	Transparency > 50%	menu	NOT_YET
+Picture Format	Transparency > 65%	menu	NOT_YET
+Picture Format	Transparency > 80%	menu	NOT_YET
+Picture Format	Transparency > 95%	menu	NOT_YET
+Picture Format	Compress Pictures	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f101030edd0>	OK
+Picture Format	Change Picture	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f101030ee60>	OK
+Picture Format	Reset Picture	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f101030eef0>	NOT_YET
+Picture Format	Reset Picture > Reset Picture	menu	NOT_YET
+Picture Format	Reset Picture > Reset Picture & Size	menu	NOT_YET
+Picture Format	Weight > ¼ pt	menu	NOT_YET
+Picture Format	Weight > ½ pt	menu	NOT_YET
+Picture Format	Weight > ¾ pt	menu	NOT_YET
+Picture Format	Weight > 1 pt	menu	NOT_YET
+Picture Format	Weight > 1½ pt	menu	NOT_YET
+Picture Format	Weight > 2¼ pt	menu	NOT_YET
+Picture Format	Weight > 3 pt	menu	NOT_YET
+Picture Format	Weight > 4½ pt	menu	NOT_YET
+Picture Format	Weight > 6 pt	menu	NOT_YET
+Picture Format	Picture Effects > No Shadow	menu	NOT_YET
+Picture Format	Picture Effects > Offset: Bottom Right	menu	NOT_YET
+Picture Format	Picture Effects > Offset: Bottom	menu	NOT_YET
+Picture Format	Picture Effects > Offset: Bottom Left	menu	NOT_YET
+Picture Format	Picture Effects > Offset: Right	menu	NOT_YET
+Picture Format	Picture Effects > Offset: Center	menu	NOT_YET
+Picture Format	Picture Effects > Offset: Left	menu	NOT_YET
+Picture Format	Picture Effects > Offset: Top Right	menu	NOT_YET
+Picture Format	Picture Effects > Offset: Top	menu	NOT_YET
+Picture Format	Picture Effects > Offset: Top Left	menu	NOT_YET
+Picture Format	Picture Effects > Inside: Top Left	menu	NOT_YET
+Picture Format	Picture Effects > Inside: Center	menu	NOT_YET
+Picture Format	Picture Effects > Inside: Bottom Right	menu	NOT_YET
+Picture Format	Picture Effects > Perspective: Below	menu	NOT_YET
+Picture Format	Picture Effects > No Reflection	menu	NOT_YET
+Picture Format	Picture Effects > Tight Reflection: Touching	menu	NOT_YET
+Picture Format	Picture Effects > Half Reflection: Touching	menu	NOT_YET
+Picture Format	Picture Effects > Full Reflection: Touching	menu	NOT_YET
+Picture Format	Picture Effects > Tight Reflection: 4 pt Offset	menu	NOT_YET
+Picture Format	Picture Effects > Half Reflection: 4 pt Offset	menu	NOT_YET
+Picture Format	Picture Effects > Full Reflection: 4 pt Offset	menu	NOT_YET
+Picture Format	Picture Effects > No Glow	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 5 pt; Blue, Accent color 1	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 5 pt; Orange, Accent color 2	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 5 pt; Gold, Accent color 4	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 5 pt; Green, Accent color 6	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 8 pt; Blue, Accent color 1	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 8 pt; Orange, Accent color 2	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 8 pt; Gold, Accent color 4	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 8 pt; Green, Accent color 6	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 11 pt; Blue, Accent color 1	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 11 pt; Orange, Accent color 2	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 11 pt; Gold, Accent color 4	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 11 pt; Green, Accent color 6	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 18 pt; Blue, Accent color 1	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 18 pt; Orange, Accent color 2	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 18 pt; Gold, Accent color 4	menu	NOT_YET
+Picture Format	Picture Effects > Glow: 18 pt; Green, Accent color 6	menu	NOT_YET
+Picture Format	Picture Effects > No Soft Edges	menu	NOT_YET
+Picture Format	Picture Effects > 1 Point	menu	NOT_YET
+Picture Format	Picture Effects > 2.5 Point	menu	NOT_YET
+Picture Format	Picture Effects > 5 Point	menu	NOT_YET
+Picture Format	Picture Effects > 10 Point	menu	NOT_YET
+Picture Format	Picture Effects > 25 Point	menu	NOT_YET
+Picture Format	Picture Effects > 50 Point	menu	NOT_YET
+Picture Format	Picture Effects > No Bevel	menu	NOT_YET
+Picture Format	Picture Effects > Circle	menu	NOT_YET
+Picture Format	Picture Effects > Relaxed Inset	menu	NOT_YET
+Picture Format	Picture Effects > Cross	menu	NOT_YET
+Picture Format	Picture Effects > Cool Slant	menu	NOT_YET
+Picture Format	Picture Effects > Angle	menu	NOT_YET
+Picture Format	Picture Effects > Soft Round	menu	NOT_YET
+Picture Format	Picture Effects > Convex	menu	NOT_YET
+Picture Format	Picture Effects > Slope	menu	NOT_YET
+Picture Format	Picture Effects > Divot	menu	NOT_YET
+Picture Format	Picture Effects > Riblet	menu	NOT_YET
+Picture Format	Picture Effects > Hard Edge	menu	NOT_YET
+Picture Format	Picture Effects > Art Deco	menu	NOT_YET
+Picture Format	Alt Text	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f1010316cb0>	OK
+Picture Format	Position > In Line with Text	menu	NOT_YET
+Picture Format	Position > Position in Top Left	menu	NOT_YET
+Picture Format	Position > Position in Top Center	menu	NOT_YET
+Picture Format	Position > Position in Top Right	menu	NOT_YET
+Picture Format	Position > Position in Middle Left	menu	NOT_YET
+Picture Format	Position > Position in Middle Center	menu	NOT_YET
+Picture Format	Position > Position in Middle Right	menu	NOT_YET
+Picture Format	Position > Position in Bottom Left	menu	NOT_YET
+Picture Format	Position > Position in Bottom Center	menu	NOT_YET
+Picture Format	Position > Position in Bottom Right	menu	NOT_YET
+Picture Format	Position > More Layout Options...	menu	OK
+Picture Format	Wrap Text > In Line with Text	menu	NOT_YET
+Picture Format	Wrap Text > Square	menu	NOT_YET
+Picture Format	Wrap Text > Tight	menu	NOT_YET
+Picture Format	Wrap Text > Through	menu	NOT_YET
+Picture Format	Wrap Text > Top and Bottom	menu	NOT_YET
+Picture Format	Wrap Text > Behind Text	menu	NOT_YET
+Picture Format	Wrap Text > In Front of Text	menu	NOT_YET
+Picture Format	Wrap Text > Edit Wrap Points	menu	OK
+Picture Format	Wrap Text > Move with Text	menu	NOT_YET
+Picture Format	Wrap Text > Fix Position on Page	menu	NOT_YET
+Picture Format	Wrap Text > More Layout Options...	menu	OK
+Picture Format	Bring Forward	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f1010317c70>	NOT_YET
+Picture Format	Send Backward	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f1010317d00>	NOT_YET
+Picture Format	Delete	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f1010317d90>	OK
+Picture Format	Selection Pane	selection-pane	NOT_YET
+Picture Format	Align > Align Left	menu	OK
+Picture Format	Align > Align Center	menu	OK
+Picture Format	Align > Align Right	menu	OK
+Picture Format	Align > Align Top	menu	OK
+Picture Format	Align > Align Middle	menu	OK
+Picture Format	Align > Align Bottom	menu	OK
+Picture Format	Align > Distribute Horizontally	menu	OK
+Picture Format	Align > Distribute Vertically	menu	OK
+Picture Format	Align > Align to Page	menu	OK
+Picture Format	Align > Align to Margin	menu	OK
+Picture Format	Align > Align Selected Objects	menu	OK
+Picture Format	Group > Group	menu	NOT_YET
+Picture Format	Group > Regroup	menu	NOT_YET
+Picture Format	Group > Ungroup	menu	NOT_YET
+Picture Format	Rotate > Rotate Right 90°	menu	NOT_YET
+Picture Format	Rotate > Rotate Left 90°	menu	NOT_YET
+Picture Format	Rotate > Flip Vertical	menu	NOT_YET
+Picture Format	Rotate > Flip Horizontal	menu	NOT_YET
+Picture Format	Crop	<function build_ribbon.<locals>.object_tab.<locals>.<lambda> at 0x7f1010328d30>	OK
+Picture Format	Crop > Crop	menu	OK
+Picture Format	Crop > Crop...	menu	OK
+Picture Format	Crop > Square  1:1	menu	NOT_YET
+Picture Format	Crop > Landscape  4:3	menu	NOT_YET
+Picture Format	Crop > Landscape  3:2	menu	NOT_YET
+Picture Format	Crop > Landscape  16:9	menu	NOT_YET
+Picture Format	Crop > Portrait  3:4	menu	NOT_YET
+Picture Format	Crop > Portrait  2:3	menu	NOT_YET
+Picture Format	Crop > Rectangle	menu	OK
+Picture Format	Crop > Rounded Rectangle	menu	OK
+Picture Format	Crop > Oval	menu	OK
+Picture Format	Crop > Triangle	menu	OK
+Picture Format	Crop > Right Triangle	menu	OK
+Picture Format	Crop > Diamond	menu	OK
+Picture Format	Crop > Pentagon	menu	OK
+Picture Format	Crop > Hexagon	menu	OK
+Picture Format	Crop > Octagon	menu	OK
+Picture Format	Crop > Parallelogram	menu	OK
+Picture Format	Crop > Trapezoid	menu	OK
+Picture Format	Crop > Star: 5 Points	menu	OK
+Picture Format	Crop > Heart	menu	OK
+Picture Format	Crop > Cloud	menu	OK
+Picture Format	Crop > Arrow: Right	menu	OK
+Picture Format	Crop > Chevron	menu	OK
+Picture Format	Crop > Fill	menu	NOT_YET
+Picture Format	Crop > Fit	menu	NOT_YET
+Picture Format	Size Settings	object-size	NOT_YET
+Header & Footer	Header	header	OK
+Header & Footer	Footer	footer	OK
+Header & Footer	Date & Time	date-time	OK
+Header & Footer	Document Info > Author	menu	OK
+Header & Footer	Document Info > File Name	menu	OK
+Header & Footer	Document Info > Document Title	menu	OK
+Header & Footer	Document Info > Document Property	menu	OK
+Header & Footer	Pictures	insert-picture	OK
+Header & Footer	Go to Header	.uno:JumpToHeader	OK
+Header & Footer	Go to Footer	.uno:JumpToFooter	OK
+Header & Footer	Previous	<function build_ribbon.<locals>.<lambda> at 0x7f101032a710>	OK
+Header & Footer	Next	<function build_ribbon.<locals>.<lambda> at 0x7f101032a7a0>	OK
+Header & Footer	Link to Previous	<function build_ribbon.<locals>.<lambda> at 0x7f101032a830>	OK
+Header & Footer	Different First Page	<function build_ribbon.<locals>.hfopt.<locals>.<lambda> at 0x7f101032a950>	OK
+Header & Footer	Different Odd & Even Pages	<function build_ribbon.<locals>.hfopt.<locals>.<lambda> at 0x7f101032a9e0>	OK
+Header & Footer	Show Document Text	<function build_ribbon.<locals>.hfopt.<locals>.<lambda> at 0x7f101032aa70>	OK
+Header & Footer	Insert Alignment Tab	<function build_ribbon.<locals>.<lambda> at 0x7f101032af80>	OK
+Header & Footer	Close Header and Footer	close-header-footer	SKIP
+Outlining	Promote to Heading 1	<function build_ribbon.<locals>.<lambda> at 0x7f101032b1c0>	OK
+Outlining	Promote (Alt+Shift+Left)	<function build_ribbon.<locals>.<lambda> at 0x7f101032b250>	OK
+Outlining	Demote (Alt+Shift+Right)	<function build_ribbon.<locals>.<lambda> at 0x7f101032b2e0>	OK
+Outlining	Demote to Body Text (Ctrl+Shift+N)	<function build_ribbon.<locals>.<lambda> at 0x7f101032b370>	OK
+Outlining	Move Up (Alt+Shift+Up)	<function build_ribbon.<locals>.<lambda> at 0x7f101032b400>	OK
+Outlining	Move Down (Alt+Shift+Down)	<function build_ribbon.<locals>.<lambda> at 0x7f101032b490>	OK
+Outlining	Expand (Alt+Shift+Plus)	<function build_ribbon.<locals>.<lambda> at 0x7f101032b520>	OK
+Outlining	Collapse (Alt+Shift+Minus)	<function build_ribbon.<locals>.<lambda> at 0x7f101032b5b0>	OK
+Outlining	Show Level > Level 1	menu	OK
+Outlining	Show Level > Level 2	menu	OK
+Outlining	Show Level > Level 3	menu	OK
+Outlining	Show Level > Level 4	menu	OK
+Outlining	Show Level > Level 5	menu	OK
+Outlining	Show Level > Level 6	menu	OK
+Outlining	Show Level > Level 7	menu	OK
+Outlining	Show Level > Level 8	menu	OK
+Outlining	Show Level > Level 9	menu	OK
+Outlining	Show Level > All Levels	menu	OK
+Outlining	Show Text Formatting	<function build_ribbon.<locals>.ocheck.<locals>.go at 0x7f101032bd00>	OK
+Outlining	Show First Line Only	<function build_ribbon.<locals>.ocheck.<locals>.go at 0x7f101032bd90>	OK
+Outlining	Close Outline View	close-outline	SKIP
+SmartArt Design	Add Shape	<function build_ribbon.<locals>.<lambda> at 0x7f1010339f30>	OK
+SmartArt Design	Add Shape > Add Shape After	menu	OK
+SmartArt Design	Add Shape > Add Shape Before	menu	OK
+SmartArt Design	Add Shape > Add Shape Above	menu	OK
+SmartArt Design	Add Shape > Add Shape Below	menu	OK
+SmartArt Design	Add Bullet	<function build_ribbon.<locals>.<lambda> at 0x7f101033a320>	OK
+SmartArt Design	Text Pane	<function build_ribbon.<locals>.<lambda> at 0x7f101033a3b0>	OK
+SmartArt Design	Promote	<function build_ribbon.<locals>.<lambda> at 0x7f101033a440>	OK
+SmartArt Design	Demote	<function build_ribbon.<locals>.<lambda> at 0x7f101033a4d0>	OK
+SmartArt Design	Right to Left	<function build_ribbon.<locals>.<lambda> at 0x7f101033a560>	OK
+SmartArt Design	Move Up	<function build_ribbon.<locals>.<lambda> at 0x7f101033a5f0>	OK
+SmartArt Design	Move Down	<function build_ribbon.<locals>.<lambda> at 0x7f101033a680>	OK
+SmartArt Design	Layouts > Basic Block List	menu	OK
+SmartArt Design	Layouts > Vertical Box List	menu	OK
+SmartArt Design	Layouts > Basic Process	menu	OK
+SmartArt Design	Layouts > Basic Chevron Process	menu	OK
+SmartArt Design	Layouts > Step Up Process	menu	OK
+SmartArt Design	Layouts > Basic Cycle	menu	OK
+SmartArt Design	Layouts > Basic Radial	menu	OK
+SmartArt Design	Layouts > Organization Chart	menu	OK
+SmartArt Design	Layouts > Horizontal Hierarchy	menu	OK
+SmartArt Design	Layouts > Basic Venn	menu	OK
+SmartArt Design	Layouts > Basic Matrix	menu	OK
+SmartArt Design	Layouts > Grid Matrix	menu	OK
+SmartArt Design	Layouts > Basic Pyramid	menu	OK
+SmartArt Design	Layouts > Inverted Pyramid	menu	OK
+SmartArt Design	Layouts > Picture Caption List	menu	OK
+SmartArt Design	Layouts > More Layouts...	menu	OK
+SmartArt Design	Change Colors > Colorful - Accent Colors	menu	OK
+SmartArt Design	Change Colors > Accent 1	menu	OK
+SmartArt Design	Change Colors > Accent 2	menu	OK
+SmartArt Design	Change Colors > Accent 3	menu	OK
+SmartArt Design	Change Colors > Accent 4	menu	OK
+SmartArt Design	Change Colors > Accent 5	menu	OK
+SmartArt Design	Change Colors > Accent 6	menu	OK
+SmartArt Design	Styles > Simple Fill	menu	OK
+SmartArt Design	Styles > White Outline	menu	OK
+SmartArt Design	Styles > Subtle Effect	menu	OK
+SmartArt Design	Styles > Moderate Effect	menu	OK
+SmartArt Design	Styles > Intense Effect	menu	OK
+SmartArt Design	Reset Graphic	<function build_ribbon.<locals>.<lambda> at 0x7f101033ba30>	OK
+SmartArt Design	Convert > Convert to Text	menu	OK
+SmartArt Design	Convert > Convert to Shapes	menu	OK
+Developer	Rich Text Content Control	<function build_ribbon.<locals>.<lambda> at 0x7f101033bd90>	OK
+Developer	Plain Text Content Control	<function build_ribbon.<locals>.<lambda> at 0x7f10103544c0>	OK
+Developer	Picture Content Control	<function build_ribbon.<locals>.<lambda> at 0x7f1010354550>	OK
+Developer	Check Box Content Control	<function build_ribbon.<locals>.<lambda> at 0x7f10103545e0>	OK
+Developer	Combo Box Content Control	<function build_ribbon.<locals>.<lambda> at 0x7f1010354670>	OK
+Developer	Drop-Down List Content Control	<function build_ribbon.<locals>.<lambda> at 0x7f1010354700>	OK
+Developer	Date Picker Content Control	<function build_ribbon.<locals>.<lambda> at 0x7f1010354790>	OK
+Developer	Properties	<function build_ribbon.<locals>.<lambda> at 0x7f1010354820>	OK
+Developer	Restrict Editing	<function build_ribbon.<locals>.<lambda> at 0x7f10103548b0>	OK
+Background Removal	Mark Areas to Keep	<function build_ribbon.<locals>.<lambda> at 0x7f1010354a60>	OK
+Background Removal	Mark Areas to Remove	<function build_ribbon.<locals>.<lambda> at 0x7f1010354af0>	OK
+Background Removal	Discard All Changes	<function build_ribbon.<locals>.<lambda> at 0x7f1010354b80>	OK
+Background Removal	Keep Changes	<function build_ribbon.<locals>.<lambda> at 0x7f1010354c10>	OK
+Immersive Reader	Column Width > Very Narrow	menu	OK
+Immersive Reader	Column Width > Narrow	menu	OK
+Immersive Reader	Column Width > Moderate	menu	OK
+Immersive Reader	Column Width > Wide	menu	OK
+Immersive Reader	Page Color > None	menu	OK
+Immersive Reader	Page Color > Sepia	menu	OK
+Immersive Reader	Page Color > Inverse	menu	OK
+Immersive Reader	Page Color > Light Blue	menu	OK
+Immersive Reader	Page Color > Light Green	menu	OK
+Immersive Reader	Page Color > Lavender	menu	OK
+Immersive Reader	Page Color > Light Gray	menu	OK
+Immersive Reader	Line Focus > None	menu	OK
+Immersive Reader	Line Focus > One Line	menu	OK
+Immersive Reader	Line Focus > Three Lines	menu	OK
+Immersive Reader	Line Focus > Five Lines	menu	OK
+Immersive Reader	Text Spacing	<function build_ribbon.<locals>.irtoggle.<locals>.go at 0x7f1010357a30>	OK
+Immersive Reader	Syllables	<function build_ribbon.<locals>.irtoggle.<locals>.go at 0x7f1010357ac0>	OK
+Immersive Reader	Read Aloud	read-aloud	SKIP
+Immersive Reader	Close Immersive Reader	close-immersive	SKIP
+Equation	Ink Equation	<function build_ribbon.<locals>.<lambda> at 0x7f1010357e20>	OK
+Equation	Tools Settings	<function build_ribbon.<locals>.<lambda> at 0x7f1010357eb0>	OK
+Equation	Unicode	<function build_ribbon.<locals>.<lambda> at 0x7f10100181f0>	OK
+Equation	LaTeX	<function build_ribbon.<locals>.<lambda> at 0x7f1010018280>	OK
+Equation	Convert > Current - Professional	menu	OK
+Equation	Convert > Current - Linear	menu	OK
+Equation	Convert > All - Professional	menu	OK
+Equation	Convert > All - Linear	menu	OK
+Equation	Normal Text	<function build_ribbon.<locals>.<lambda> at 0x7f1010018430>	OK
