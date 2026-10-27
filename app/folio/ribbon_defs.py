@@ -1162,7 +1162,8 @@ def build_ribbon(win):
             lambda: __import__("folio.insertmore", fromlist=["x"]).smartart_dialog(win),
             size="large", keytip="M"),
         btn("Chart", "cmd/lc_insertobjectchart",
-            lambda: __import__("folio.charts", fromlist=["x"]).insert_chart_dialog(win),
+            lambda: __import__("folio.native.charts" if win.native else "folio.charts",
+                               fromlist=["x"]).insert_chart_dialog(win),
             size="large", keytip="C"),
         MenuButton(r, "Screenshot", "screenshot", [
                        ("#", "Screenshot"),
@@ -2159,6 +2160,9 @@ def build_ribbon(win):
         from . import charts
         m = win.engine.model
         obj = charts.selected_chart(m) if m is not None else None
+        if win.native:
+            from .native import charts
+            obj = charts.selected(win)
         if obj is None:
             return
         if charts.is_image(obj) and fn not in ("edit", "type", "title", "set_title"):
@@ -2262,6 +2266,11 @@ def build_ribbon(win):
         from . import charts
         m = win.engine.model
         obj = charts.selected_chart(m) if m is not None else None
+        if win.native:
+            from .native import charts as NC
+            obj = NC.selected(win)
+            if obj is not None and not NC.special(obj):
+                return charts.filter_popover_for(win, obj, NC)
         if obj is None or charts.is_image(obj) or charts.special(obj):
             pop = Gtk.Popover()
             lab = Gtk.Label(label="Filters work on column, bar, line, area and pie charts.",
@@ -2423,6 +2432,9 @@ def build_ribbon(win):
     t = r.building(Tab("SmartArt Design", "JS", contextual=True))
 
     def smart_group():
+        if win.native:
+            from .native import smartart as NS
+            return NS.selected(win)
         from . import drawing
         m = win.engine.model
         return IM.smartart_of(m, drawing.selected_shape(m)) if m is not None else None
@@ -2431,6 +2443,13 @@ def build_ribbon(win):
         m = win.engine.model
         g = smart_group()
         if g is None:
+            return
+        if win.native:
+            from .native import smartart as NS
+            {"text": lambda: NS.text_pane(win, g), "edit": lambda: NS.edit_graphic(win, g, *a),
+             "reset": lambda: NS.reset_graphic(win, g), "to-text": lambda: NS.convert_to_text(win, g),
+             "to-shapes": lambda: NS.convert_to_shapes(win, g)}.get(
+                fn, lambda: NS.change_layout(win, g, *a, **kw))()
             return
         if fn == "text":
             IM.text_pane(win, g)
@@ -2457,7 +2476,8 @@ def build_ribbon(win):
          btn("Demote", "cmd/sc_outlineright" if icons.exists("cmd/sc_outlineright") else
              "cmd/sc_incrementindent", lambda: sa("edit", "demote"), keytip="D"),
          btn("Right to Left", "cmd/sc_pararighttoleft",
-             lambda: sa("layout", rtl=not (IM.smartart_info(win.engine.model, smart_group())
+             lambda: sa("layout", rtl=not ((__import__("folio.native.smartart", fromlist=["x"]).info(win)
+                                            if win.native else IM.smartart_info(win.engine.model, smart_group()))
                                            or {}).get("rtl", False)), keytip="R")],
         [btn("Move Up", "cmd/sc_moveup", lambda: sa("edit", "up"), keytip="U"),
          btn("Move Down", "cmd/sc_movedown", lambda: sa("edit", "down"), keytip="W")]]))

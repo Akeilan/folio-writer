@@ -29,6 +29,8 @@ struct Txn {
     after: (Pos, Pos),
     /// the theme part as it was before (theme colours and fonts changes)
     theme: Option<Box<XmlDoc>>,
+    /// package parts as they were before (charts), by name
+    parts: Vec<(String, Vec<u8>)>,
 }
 
 /// Schema order of run properties (Word rejects files with them out of
@@ -172,6 +174,10 @@ pub struct Editor {
     pub sel_obj: Option<NodeId>,
     /// more selected objects (Shift+click), with sel_obj
     pub sel_more: Vec<NodeId>,
+    /// 0 Print Layout, 1 Draft, 2 Web Layout
+    pub view_mode: u8,
+    /// Web Layout: the window's width (points)
+    pub web_width: f64,
     /// what is being edited: the body, or a page's header and footer
     pub story: Story,
     /// paragraph -> layout index for the story being edited (not the body)
@@ -189,6 +195,7 @@ pub struct Editor {
     painter: Option<tools::Painter>,
     /// the theme before a change in the open transaction
     pending_theme: Option<Box<XmlDoc>>,
+    pending_parts: Vec<(String, Vec<u8>)>,
     /// more selected stretches besides anchor..caret (Select All Text With Similar
     /// Formatting, Select All N Instances): formatting goes to each
     pub extra_sel: Vec<(Pos, Pos)>,
@@ -210,6 +217,10 @@ mod objects;
 mod hf;
 mod fields;
 mod refs;
+mod views;
+mod mail;
+mod controls;
+mod charts;
 pub use refs::{BIB_NS, TOA_CATEGORIES};
 mod review;
 mod comments;
@@ -250,6 +261,8 @@ impl Editor {
             group: None,
             sel_obj: None,
             sel_more: Vec::new(),
+            view_mode: 0,
+            web_width: 612.0,
             story: Story::Body,
             story_index: HashMap::new(),
             body_caret: None,
@@ -259,6 +272,7 @@ impl Editor {
             rev_next: 0,
             painter: None,
             pending_theme: None,
+            pending_parts: Vec::new(),
             extra_sel: Vec::new(),
         };
         e.track = e.doc.settings.track_revisions;
@@ -277,7 +291,38 @@ impl Editor {
 
     // ------------------------------------------------------------ layout
     pub fn relayout(&mut self) {
-        self.layout = layout_document_cached(&self.doc, &mut self.fonts, &mut self.cache);
+        if self.view_mode != 0 {
+            // Draft and Web Layout: the text runs on without pages; laid out in
+            // tall strips the view shows edge to edge
+            let keep = self.doc.sections.clone();
+            for (i, s) in self.doc.sections.iter_mut().enumerate() {
+                let text_w = s.text_width();
+                let w = if self.view_mode == 2 { ((self.web_width * 20.0) as i32).max(2880) } else { text_w + 720 };
+                s.page_w = w;
+                s.page_h = 15840;
+                s.left = 360;
+                s.right = 360;
+                s.gutter = 0;
+                s.top = 0;
+                s.bottom = 0;
+                s.headers = [None; 3];
+                s.footers = [None; 3];
+                s.title_pg = false;
+                s.v_align = "top".into();
+                s.pg_borders = None;
+                s.cols = 1;
+                s.col_defs.clear();
+                if i > 0 {
+                    s.start = "continuous".into();
+                }
+            }
+            crate::paginate::set_continuous(true, self.view_mode == 1);
+            self.layout = layout_document_cached(&self.doc, &mut self.fonts, &mut self.cache);
+            crate::paginate::set_continuous(false, false);
+            self.doc.sections = keep;
+        } else {
+            self.layout = layout_document_cached(&self.doc, &mut self.fonts, &mut self.cache);
+        }
         self.line_loc.clear();
         self.story_index.clear();
         if let Story::HeaderFooter(pg) | Story::Notes(pg) = self.story {
@@ -1081,7 +1126,8 @@ impl Editor {
             None => Vec::new(),
         };
         let before = self.txn_before.take().unwrap_or((self.anchor, self.caret));
-        if ops.is_empty() && num_ops.is_empty() && sty_ops.is_empty() && self.pending_theme.is_none() {
+        if ops.is_empty() && num_ops.is_empty() && sty_ops.is_empty() && self.pending_theme.is_none()
+            && self.pending_parts.is_empty() {
             return;
         }
         self.dirty_paras(&ops);
@@ -1119,7 +1165,8 @@ impl Editor {
         }
         self.relayout();
         let after = (self.anchor, self.caret);
-        if mergeable && self.typing && num_ops.is_empty() && sty_ops.is_empty() && self.pending_theme.is_none() {
+        if mergeable && self.typing && num_ops.is_empty() && sty_ops.is_empty() && self.pending_theme.is_none()
+            && self.pending_parts.is_empty() {
             if let Some(last) = self.undo.last_mut() {
                 if last.name == name {
                     last.ops.extend(ops);
@@ -1131,7 +1178,8 @@ impl Editor {
             }
         }
         let theme = self.pending_theme.take();
-        self.undo.push(Txn { name: name.into(), ops, num_ops, sty_ops, before, after, theme });
+        let parts = std::mem::take(&mut self.pending_parts);
+        self.undo.push(Txn { name: name.into(), ops, num_ops, sty_ops, before, after, theme, parts });
         if self.undo.len() > 500 {
             self.undo.remove(0);
         }
@@ -1162,6 +1210,7 @@ impl Editor {
         let mut num_ops = Vec::new();
         let mut sty_ops = Vec::new();
         let mut theme = None;
+        let mut pparts: Vec<(String, Vec<u8>)> = Vec::new();
         for t in parts {
             ops.extend(t.ops);
             num_ops.extend(t.num_ops);
@@ -1169,8 +1218,13 @@ impl Editor {
             if theme.is_none() {
                 theme = t.theme;
             }
+            for (n, b) in t.parts {
+                if !pparts.iter().any(|(m, _)| *m == n) {
+                    pparts.push((n, b));
+                }
+            }
         }
-        self.undo.push(Txn { name, ops, num_ops, sty_ops, before, after, theme });
+        self.undo.push(Txn { name, ops, num_ops, sty_ops, before, after, theme, parts: pparts });
         self.typing = false;
     }
 
@@ -1219,6 +1273,7 @@ impl Editor {
         let redo_num = self.revert_num(&t.num_ops);
         let redo_sty = self.revert_sty(&t.sty_ops);
         let redo_theme = t.theme.map(|th| Box::new(self.swap_theme(*th)));
+        let redo_parts = self.swap_parts(t.parts);
         self.dirty_paras(&t.ops);
         self.dirty_paras(&redo_ops);
         self.doc.scan();
@@ -1226,7 +1281,7 @@ impl Editor {
         self.anchor = t.before.0;
         self.caret = t.before.1;
         self.redo.push(Txn { name: t.name, ops: redo_ops, num_ops: redo_num, sty_ops: redo_sty, before: t.before, after: t.after,
-                             theme: redo_theme });
+                             theme: redo_theme, parts: redo_parts });
         self.typing = false;
         self.modified = true;
     }
@@ -1238,6 +1293,7 @@ impl Editor {
         let undo_num = self.revert_num(&t.num_ops);
         let undo_sty = self.revert_sty(&t.sty_ops);
         let undo_theme = t.theme.map(|th| Box::new(self.swap_theme(*th)));
+        let undo_parts = self.swap_parts(t.parts);
         self.dirty_paras(&t.ops);
         self.dirty_paras(&undo_ops);
         self.doc.scan();
@@ -1245,9 +1301,49 @@ impl Editor {
         self.anchor = t.after.0;
         self.caret = t.after.1;
         self.undo.push(Txn { name: t.name, ops: undo_ops, num_ops: undo_num, sty_ops: undo_sty, before: t.before, after: t.after,
-                             theme: undo_theme });
+                             theme: undo_theme, parts: undo_parts });
         self.typing = false;
         self.modified = true;
+    }
+
+    /// Put parts back as they were; returns them as they are now.
+    fn swap_parts(&mut self, parts: Vec<(String, Vec<u8>)>) -> Vec<(String, Vec<u8>)> {
+        let mut now = Vec::new();
+        for (name, bytes) in parts {
+            let cur = self.part_bytes(&name);
+            self.put_part_bytes(&name, bytes);
+            now.push((name, cur));
+        }
+        if !now.is_empty() {
+            self.cache.clear();
+        }
+        now
+    }
+
+    /// A part's bytes as they'd be saved.
+    pub(crate) fn part_bytes(&mut self, name: &str) -> Vec<u8> {
+        if let Ok(x) = self.doc.pkg.xml(name) {
+            return x.serialize().into_bytes();
+        }
+        self.doc.pkg.raw(name).map(|b| b.to_vec()).unwrap_or_default()
+    }
+
+    /// Write a part's bytes (and what draws from it: charts).
+    pub(crate) fn put_part_bytes(&mut self, name: &str, bytes: Vec<u8>) {
+        let arc = std::sync::Arc::new(bytes.clone());
+        self.doc.pkg.put_raw(name, bytes);
+        for img in self.doc.images.values_mut() {
+            if img.part == name {
+                img.bytes = arc.clone();
+            }
+        }
+        for sp in self.doc.parts.iter_mut() {
+            for img in sp.images.values_mut() {
+                if img.part == name {
+                    img.bytes = arc.clone();
+                }
+            }
+        }
     }
 
     // ----------------------------------------------------- DOM utilities
@@ -1888,6 +1984,13 @@ impl Editor {
             self.commit("Numbering", false);
             return;
         }
+        if self.content_locked_here() {
+            return;
+        }
+        if self.type_into_placeholder(text) {
+            self.typing = false;
+            return;
+        }
         self.begin();
         self.delete_selection();
         let mut first = true;
@@ -1921,6 +2024,9 @@ impl Editor {
             self.commit("Numbering", false);
             return;
         }
+        if self.content_locked_here() {
+            return;
+        }
         self.begin();
         let had_sel = self.has_selection();
         if !self.has_selection() {
@@ -1941,6 +2047,10 @@ impl Editor {
                 self.caret = to;
                 self.anchor = to;
             }
+        }
+        let p = self.caret.para;
+        if self.doc.dom.parent(p).is_some() {
+            self.refill_empty_controls(p);
         }
         self.commit(if forward { "Delete" } else { "Backspace" }, false);
     }

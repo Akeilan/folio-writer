@@ -785,6 +785,16 @@ impl Renderer {
     /// The picture's content in its own box (0, 0, w, h).
     fn draw_content(&mut self, cr: &cairo::Context, pic: &crate::pictures::Pic) {
         let (w, h) = (pic.w, pic.h);
+        if pic.kind == "chart" {
+            if let (Some(img), Some(theme)) = (&pic.image, &pic.chart_theme) {
+                cr.save().ok();
+                let ok = crate::chart::draw(cr, &img.bytes, w, h, theme, "Calibri");
+                cr.restore().ok();
+                if ok {
+                    return;
+                }
+            }
+        }
         if let Some((text, family, bold, italic)) = &pic.textpath {
             // text stretched to fill the shape (watermarks, WordArt)
             if text.trim().is_empty() || w <= 0.0 || h <= 0.0 {

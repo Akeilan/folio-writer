@@ -862,7 +862,61 @@ impl Editor {
         true
     }
 
-    fn next_docpr_id(&self) -> u32 {
+    /// Insert a floating drawing given as a w:r (its wp:anchor at page
+    /// position x, y points; {ID} and {Z} in it become a fresh docPr id
+    /// and the front-most z order). It ends up selected.
+    pub fn insert_anchor_xml(&mut self, run_xml: &str, pg: usize, x: f64, y: f64) -> bool {
+        if self.story != super::Story::Body {
+            self.edit_header_footer(None, false);
+        }
+        let Some(page) = self.layout.pages.get(pg) else { return false };
+        let (pw, ph) = (page.width, page.height);
+        let Some(at) = self.hit(pg, x.clamp(0.0, pw), y.clamp(0.0, ph)) else { return false };
+        let p = match self.cell_of(at.para) {
+            Some(_) => self.caret.para,
+            None => at.para,
+        };
+        fn max_height(dom: &XmlDoc, n: NodeId, m: &mut i64) {
+            for c in dom.elements(n) {
+                if dom.is(c, "wp:anchor") {
+                    if let Some(v) = dom.attr(c, "relativeHeight").and_then(|v| v.parse::<i64>().ok()) {
+                        *m = (*m).max(v);
+                    }
+                }
+                max_height(dom, c, m);
+            }
+        }
+        let mut z = 251659264i64;
+        max_height(&self.doc.dom, self.doc.body, &mut z);
+        let mut id = self.next_docpr_id();
+        let mut xml = run_xml.replace("{Z}", &(z + 1024).to_string());
+        while xml.contains("{ID}") {
+            xml = xml.replacen("{ID}", &id.to_string(), 1);
+            id += 1;
+        }
+        let xml = xml.replace("{X}", &emu(x)).replace("{Y}", &emu(y));
+        let Ok(tmp) = XmlDoc::parse(xml.as_bytes()) else { return false };
+        self.begin();
+        let r = self.doc.dom.import_node(&tmp, tmp.root);
+        for k in ["xmlns:w"] {
+            self.doc.dom.remove_attr(r, k);
+        }
+        let dom = &self.doc.dom;
+        let idx = dom.child(p, "w:pPr").and_then(|pp| dom.index_in_parent(pp)).map(|i| i + 1).unwrap_or(0);
+        self.doc.dom.insert(p, idx, r);
+        self.commit("Insert", false);
+        self.sel_obj = self.doc.dom.child(r, "w:drawing");
+        true
+    }
+
+    /// The selected object's drawing as XML (its w:drawing), and its page
+    /// position (points).
+    pub fn selected_drawing_xml(&self) -> Option<String> {
+        let n = self.sel_obj?;
+        Some(self.doc.dom.serialize_node(n))
+    }
+
+    pub(super) fn next_docpr_id(&self) -> u32 {
         fn walk(dom: &XmlDoc, n: NodeId, m: &mut u32) {
             for c in dom.elements(n) {
                 if dom.is(c, "wp:docPr") || dom.is(c, "pic:cNvPr") {

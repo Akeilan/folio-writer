@@ -4,7 +4,26 @@ import os
 
 from gi.repository import GLib, Gtk
 
-from . import mailings as M
+from . import mailings as _mailings
+
+
+def _native(win):
+    return getattr(win.engine, "native", False)
+
+
+def _M(win):
+    if _native(win):
+        from .native import mailmerge
+        return mailmerge
+    return _mailings
+
+
+def _m(win):
+    """What the mailings functions work on: the window (new engine, once its
+    document is open) or the old engine's document."""
+    if _native(win):
+        return win if win.engine.ed is not None else None
+    return _m(win)
 from .widgets import FDialog, Preview, combo, grid, heading
 
 NEW_LIST_COLUMNS = ["Title", "First Name", "Last Name", "Company Name", "Address Line 1",
@@ -29,7 +48,9 @@ def _get(tv):
 
 
 def _selected_text(win):
-    m = win.engine.model
+    if _native(win):
+        return win.engine.ed.selected_text() if win.engine.ed is not None else ""
+    m = _m(win)
     if m is None:
         return ""
     try:
@@ -41,7 +62,7 @@ def _selected_text(win):
 
 # ------------------------------------------------------------------ envelopes
 def envelopes(win):
-    m = win.engine.model
+    m = _m(win)
     if m is None:
         return
     st = win.app.settings
@@ -57,14 +78,14 @@ def envelopes(win):
     d.add(rsw)
     omit = Gtk.CheckButton.new_with_mnemonic("_Omit")
     d.add(omit)
-    size = combo([e[0] for e in M.ENVELOPES], st.get("envelope_size", 0))
+    size = combo([e[0] for e in _M(win).ENVELOPES], st.get("envelope_size", 0))
     d.add(grid([["Envelope _size:", size]]))
     # preview and feed, as in the original
     pf = Gtk.Box(spacing=16)
 
     def draw_env(cr, W, H):
         idx = max(0, size.get_active())
-        _n, ew, eh = M.ENVELOPES[idx]
+        _n, ew, eh = _M(win).ENVELOPES[idx]
         ew, eh = max(ew, eh), min(ew, eh)
         s_ = min((W - 10) / ew, (H - 10) / eh)
         x0, y0 = (W - ew * s_) / 2, (H - eh * s_) / 2
@@ -126,14 +147,14 @@ def envelopes(win):
         delivery, ret, idx, om = _get(dtv), _get(rtv), max(0, size.get_active()), omit.get_active()
         eopts = dict(st.get("envelope_opts") or {})
         if r == 1:
-            win.engine.sync(lambda: M.envelope(m, delivery, ret, idx, om, eopts))
+            win.engine.sync(lambda: _M(win).envelope(m, delivery, ret, idx, om, eopts))
         else:
             w = win.app.new_window()
 
             def fill():
-                if w.engine.model is None:
+                if _m(w) is None:
                     return True
-                M.envelope(w.engine.model, delivery, ret, idx, om, eopts)
+                _M(win).envelope(_m(w), delivery, ret, idx, om, eopts)
                 GLib.timeout_add(600, lambda: (w.run("backstage-print"), False)[1])
                 return False
             GLib.timeout_add(800, fill)
@@ -150,7 +171,7 @@ def envelope_options(parent, st, size_combo=None):
     d.add(nb)
     p1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
     p1.set_border_width(10)
-    size = combo([e[0] for e in M.ENVELOPES],
+    size = combo([e[0] for e in _M(win).ENVELOPES],
                  size_combo.get_active() if size_combo is not None else
                  st.get("envelope_size", 0))
     p1.pack_start(grid([["Envelope _size:", size]]), False, False, 0)
@@ -209,13 +230,13 @@ def envelope_options(parent, st, size_combo=None):
 # ------------------------------------------------------------------ labels
 def label_options(win, current=0):
     d = FDialog(win, "Label Options")
-    lst = combo([l[0] for l in M.LABELS], current)
+    lst = combo([l[0] for l in _M(win).LABELS], current)
     d.add(grid([["_Product:", lst]]))
     info = Gtk.Label(xalign=0)
     info.get_style_context().add_class("dim-label")
 
     def upd(*_):
-        l = M.LABELS[max(0, lst.get_active())]
+        l = _M(win).LABELS[max(0, lst.get_active())]
         info.set_text("Label size: %.2f x %.2f cm   Page: %.1f x %.1f cm   %d x %d" % (
             l[3] / 1000, l[4] / 1000, l[1] / 1000, l[2] / 1000, l[5], l[6]))
     lst.connect("changed", upd)
@@ -228,7 +249,7 @@ def label_options(win, current=0):
 
 
 def labels(win):
-    m = win.engine.model
+    m = _m(win)
     if m is None:
         return
     st = win.app.settings
@@ -254,14 +275,14 @@ def labels(win):
     d.add(sb)
     choice = [st.get("label_kind", 0)]
     lab = Gtk.Label(xalign=0)
-    lab.set_text("Label: " + M.LABELS[choice[0]][0])
+    lab.set_text("Label: " + _M(win).LABELS[choice[0]][0])
     opts = Gtk.Button(label="_Options...", use_underline=True)
 
     def pick(*_):
         v = label_options(win, choice[0])
         if v is not None:
             choice[0] = v
-            lab.set_text("Label: " + M.LABELS[v][0])
+            lab.set_text("Label: " + _M(win).LABELS[v][0])
     opts.connect("clicked", pick)
     ob = Gtk.Box(spacing=8)
     ob.pack_start(lab, True, True, 0)
@@ -275,9 +296,9 @@ def labels(win):
         w = win.app.new_window()
 
         def fill():
-            if w.engine.model is None:
+            if _m(w) is None:
                 return True
-            M.labels_document(w.engine.model, address, choice[0], fullp, r_, c_)
+            _M(win).labels_document(_m(w), address, choice[0], fullp, r_, c_)
             return False
         GLib.timeout_add(800, fill)
     d.done()
@@ -285,7 +306,7 @@ def labels(win):
 
 # ------------------------------------------------------------------ recipients
 def type_new_list(win):
-    m = win.engine.model
+    m = _m(win)
     if m is None:
         return
     d = FDialog(win, "New Address List",
@@ -344,15 +365,15 @@ def type_new_list(win):
                 w.writerow(cols)
                 for r in rows:
                     w.writerow([r.get(c, "") for c in cols])
-            M.set_recipients(m, cols, rows, path)
+            _M(win).set_recipients(m, cols, rows, path)
         else:
-            M.set_recipients(m, cols, rows)
+            _M(win).set_recipients(m, cols, rows)
         _started(win)
     d.done()
 
 
 def use_existing_list(win):
-    m = win.engine.model
+    m = _m(win)
     if m is None:
         return
     path = win.dialogs.pick_file("Select Data Source", ["*.csv", "*.txt", "*.tsv"],
@@ -360,27 +381,27 @@ def use_existing_list(win):
     if not path:
         return
     try:
-        cols, rows = M.read_csv(path)
+        cols, rows = _M(win).read_csv(path)
     except Exception as e:
         win.dialogs.message("This data source couldn't be read. (%s)" % e, kind="error")
         return
     if not cols:
         win.dialogs.message("The data source is empty.")
         return
-    M.set_recipients(m, cols, rows, path)
+    _M(win).set_recipients(m, cols, rows, path)
     _started(win)
 
 
 def _started(win):
-    m = win.engine.model
-    if not M.merge_type(m):
-        M.set_merge_type(m, "letters")
+    m = _m(win)
+    if not _M(win).merge_type(m):
+        _M(win).set_merge_type(m, "letters")
     win.refresh_mailings()
 
 
 def edit_recipients(win):
-    m = win.engine.model
-    cols, rows, inc = M.recipients(m) if m else ([], [], [])
+    m = _m(win)
+    cols, rows, inc = _M(win).recipients(m) if m else ([], [], [])
     if not rows:
         win.dialogs.message("Select a recipient list first (Select Recipients).")
         return
@@ -410,20 +431,20 @@ def edit_recipients(win):
         new = [True] * len(rows)
         for r in store:
             new[r[1]] = r[0]
-        M.set_included(m, new)
+        _M(win).set_included(m, new)
     d.done()
 
 
 # ------------------------------------------------------------------ fields
 def field_menu(win):
     from .ribbon import menu_popover
-    m = win.engine.model
-    cols = M.recipients(m)[0] if m else []
+    m = _m(win)
+    cols = _M(win).recipients(m)[0] if m else []
     if not cols:
         return menu_popover(None, [("#", "Select recipients first")])
     from . import mailrules
     items = [(c, (lambda c=c: win.engine.sync(
-        lambda: (M.insert_field(win.engine.model, c), win.refresh_mailings())))) for c in cols]
+        lambda: (_M(win).insert_field(_m(win), c), win.refresh_mailings())))) for c in cols]
     marks = mailrules.bookmark_names(m)
     if marks:
         items += [None, ("#", "Bookmarks")] + [
@@ -433,7 +454,7 @@ def field_menu(win):
 
 
 def greeting(win):
-    m = win.engine.model
+    m = _m(win)
     if m is None:
         return
     d = FDialog(win, "Insert Greeting Line")
@@ -443,17 +464,17 @@ def greeting(win):
     if d.ask() == Gtk.ResponseType.OK:
         p = punct.get_active_text()
         s = sal.get_active_text()
-        win.engine.sync(lambda: M.insert_greeting(m, s, "" if p == "(none)" else p))
+        win.engine.sync(lambda: _M(win).insert_greeting(m, s, "" if p == "(none)" else p))
     d.done()
 
 
 def check_errors(win):
-    m = win.engine.model
-    cols, rows, inc = M.recipients(m)
+    m = _m(win)
+    cols, rows, inc = _M(win).recipients(m)
     if not rows:
         win.dialogs.message("There is no recipient list for this document.")
         return
-    used = M.merge_masters(m)
+    used = _M(win).merge_masters(m)
     missing = [c for c in used if c not in cols]
     if missing:
         win.dialogs.message("These merge fields don't match a column of the recipient list:"
@@ -465,10 +486,10 @@ def check_errors(win):
 
 # ------------------------------------------------------------------ finish
 def finish(win, print_after=False):
-    m = win.engine.model
+    m = _m(win)
     if m is None:
         return
-    cols, rows, inc = M.recipients(m)
+    cols, rows, inc = _M(win).recipients(m)
     if not rows:
         win.dialogs.message("Select a recipient list first (Select Recipients).")
         return
@@ -503,12 +524,12 @@ def finish(win, print_after=False):
 
         def go():
             try:
-                path = M.merge(m, which, a, b, answers)
+                path = _M(win).merge(m, which, a, b, answers)
             except Exception as e:
                 win.dialogs.message(str(e), kind="error")
                 return
             if preview is not None:
-                M.show_record(m, preview)
+                _M(win).show_record(m, preview)
             w = win.app.new_window(template=path)
             if print_after:
                 GLib.timeout_add(2500, lambda: (w.run("backstage-print"), False)[1])
@@ -518,7 +539,7 @@ def finish(win, print_after=False):
 
 
 def start_mail_merge(win, kind):
-    m = win.engine.model
+    m = _m(win)
     if m is None:
         return
     li, ei = 0, 0
@@ -529,11 +550,11 @@ def start_mail_merge(win, kind):
         li = v
     elif kind == "envelopes":
         d = FDialog(win, "Envelope Options")
-        size = combo([e[0] for e in M.ENVELOPES], win.app.settings.get("envelope_size", 0))
+        size = combo([e[0] for e in _M(win).ENVELOPES], win.app.settings.get("envelope_size", 0))
         d.add(grid([["Envelope _size:", size]]))
         r = d.ask()
         ei = max(0, size.get_active())
         d.done()
         if r != Gtk.ResponseType.OK:
             return
-    win.engine.sync(lambda: (M.start(m, kind, li, ei), win.refresh_mailings()))
+    win.engine.sync(lambda: (_M(win).start(m, kind, li, ei), win.refresh_mailings()))

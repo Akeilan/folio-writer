@@ -1304,8 +1304,15 @@ class DataSheet(Gtk.Window):
 
 # ---------------------------------------------------------------- format pane
 def filter_popover(win, obj):
-    d = get_data(obj)
-    f = filters(obj)
+    return filter_popover_for(win, obj, None)
+
+
+def filter_popover_for(win, obj, mod):
+    """Chart Filters (mod: the module that answers for the chart)."""
+    import sys
+    mod = mod or sys.modules[__name__]
+    d = mod.get_data(obj)
+    f = mod.filters(obj)
     pop = Gtk.Popover()
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin=10)
     checks = {"series": {}, "cats": {}}
@@ -1325,8 +1332,8 @@ def filter_popover(win, obj):
         hs = [n for n, cb in checks["series"].items() if not cb.get_active()]
         hc = [n for n, cb in checks["cats"].items() if not cb.get_active()]
         pop.popdown()
-        set_filter(obj, hs, hc)
-        refresh(obj)
+        mod.set_filter(obj, hs, hc)
+        mod.refresh(obj)
     apply.connect("clicked", go)
     box.pack_start(apply, False, False, 4)
     box.show_all()

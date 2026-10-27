@@ -63,6 +63,11 @@ def command(eng, cmd, args=None):
     view = eng.view
     changed = True
     if cmd == ".uno:TrackChanges":
+        win = getattr(eng, "win", None)
+        if ed.track_changes() and getattr(win, "track_locked", False):
+            _message(eng, "Track Changes is locked: this document only allows tracked "
+                          "changes. (Review > Track Changes > Lock Tracking)")
+            return True
         ed.set_track_changes(not ed.track_changes())
         eng._schedule_state()
         changed = False

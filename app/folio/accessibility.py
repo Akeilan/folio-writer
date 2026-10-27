@@ -4,7 +4,7 @@ import re
 
 from gi.repository import GLib, Gtk, Pango
 
-from . import docapi
+from ._lazy import docapi
 from .panes import Pane
 
 WHY = {
@@ -251,11 +251,20 @@ class AccessibilityPane(Pane):
     def on_shown(self):
         self.refresh()
 
+    def _native(self):
+        return getattr(self.win.engine, "native", False)
+
     def refresh(self):
-        m = self.model
-        if m is None:
-            return
-        issues = check(m)
+        if self._native():
+            ed = self.win.engine.ed
+            if ed is None:
+                return
+            issues = ed.accessibility_issues()
+        else:
+            m = self.model
+            if m is None:
+                return
+            issues = check(m)
         self.store.clear()
         groups = {}
         for kind in ("Errors", "Warnings"):
@@ -288,6 +297,16 @@ class AccessibilityPane(Pane):
             self.why.set_markup("<b>Why Fix:</b>\n%s\n\n<b>How To Fix:</b>\n%s" % (
                 GLib.markup_escape_text(w[0]), GLib.markup_escape_text(w[1])))
         if target is None:
+            return
+        if self._native():
+            ed = self.win.engine.ed
+            v = self.win.engine.view
+            if cat in ("Missing alternative text", "Object not inline") and ed.select_object_node(target):
+                v.objs.refresh()
+                v.after_move()
+            elif ed.goto_node(target):
+                v.after_move()
+            v.scroll_to_caret()
             return
         m = self.model
         try:

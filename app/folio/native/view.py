@@ -124,6 +124,9 @@ class NativeView(Gtk.DrawingArea):
         self._relayout_pages()
         self.queue_draw()
 
+    # Draft / Web Layout: the strips the engine lays the text out in, edge to edge
+    continuous = False
+
     def _relayout_pages(self):
         if self.ed is None:
             return
@@ -131,6 +134,20 @@ class NativeView(Gtk.DrawingArea):
         sizes = [self.ed.page_size(i) for i in range(n)]
         s = self.ppp
         self._origins = []
+        if self.continuous:
+            if self.ed.view_mode() == 2:
+                want = max(144.0, self.get_allocated_width() / s)
+                if abs(want - (sizes[0][0] if sizes else want)) > 2 and self.get_allocated_width() > 50:
+                    GLib.idle_add(self._web_width, want)
+            y = 0.0
+            x = 0.0 if self.ed.view_mode() == 2 else PAGE_GAP
+            wmax = 0.0
+            for w, h in sizes:
+                self._origins.append((x, y))
+                y += h * s
+                wmax = max(wmax, w * s)
+            self.set_size_request(int(wmax + x), int(y))
+            return
         if self.side:
             # one row: page 1 alone on the right of the first spread, as the
             # original's book view, then pairs
@@ -158,6 +175,12 @@ class NativeView(Gtk.DrawingArea):
             rowh = max(rowh, h * s)
         y += rowh + PAGE_GAP
         self.set_size_request(int(width), int(y))
+
+    def _web_width(self, want):
+        if self.ed is not None and self.continuous and self.ed.view_mode() == 2:
+            self.ed.set_view_mode(2, want)
+            self.document_changed()
+        return False
 
     def page_at(self, x, y):
         """(page, x pt, y pt) under a widget point (the nearest page)."""
@@ -227,7 +250,7 @@ class NativeView(Gtk.DrawingArea):
         return surf
 
     def _draw(self, widget, cr):
-        cr.set_source_rgb(*BG)
+        cr.set_source_rgb(*((1, 1, 1) if self.continuous else BG))
         cr.paint()
         if self.ed is None:
             return False
@@ -248,9 +271,10 @@ class NativeView(Gtk.DrawingArea):
             if oy > y2 or oy + ph * s < y1 or ox > x2 or ox + pw * s < x1:
                 continue
             # the page's shadow
-            cr.set_source_rgba(0, 0, 0, 0.16)
-            cr.rectangle(ox + 1, oy + 1, pw * s + 1, ph * s + 1)
-            cr.fill()
+            if not self.continuous:
+                cr.set_source_rgba(0, 0, 0, 0.16)
+                cr.rectangle(ox + 1, oy + 1, pw * s + 1, ph * s + 1)
+                cr.fill()
             surf = self._page_surface(i)
             cr.set_source_surface(surf, ox, oy)
             cr.paint()
@@ -263,6 +287,23 @@ class NativeView(Gtk.DrawingArea):
                 cr.set_operator(cairo.OPERATOR_MULTIPLY)
                 cr.set_source_rgb(1.0, 1.0, 0.0)
                 for (x, y, w, h) in hl[i]:
+                    cr.rectangle(ox + x * s, oy + y * s, w * s, h * s)
+                cr.fill()
+                cr.restore()
+            for (x, y, w, h) in self._control_frame().get(i, ()):
+                # the content control the caret is in: a frame, as Word draws it
+                cr.save()
+                cr.set_source_rgb(0.55, 0.55, 0.55)
+                cr.set_line_width(1)
+                cr.rectangle(round(ox + x * s) - 1.5, round(oy + y * s) - 0.5, round(w * s) + 3, round(h * s) + 1)
+                cr.stroke()
+                cr.restore()
+            shade = [r for r in getattr(self, "merge_shading", ()) if r[0] == i]
+            if shade:
+                cr.save()
+                cr.set_operator(cairo.OPERATOR_MULTIPLY)
+                cr.set_source_rgb(0.82, 0.82, 0.82)
+                for (_p, x, y, w, h) in shade:
                     cr.rectangle(ox + x * s, oy + y * s, w * s, h * s)
                 cr.fill()
                 cr.restore()
@@ -684,6 +725,27 @@ class NativeView(Gtk.DrawingArea):
             win.set_cursor(Gdk.Cursor.new_for_display(self.get_display(), Gdk.CursorType.XTERM))
             self._ibeam = True
         return False
+
+    def _control_frame(self):
+        ed = self.ed
+        if ed is None:
+            return {}
+        key = (ed.version, ed.caret_pos())
+        if getattr(self, "_cc_key", None) == key:
+            return self._cc_frame
+        frame = {}
+        try:
+            cid = ed.control_at_caret() if ed.content_controls() else None
+            if cid is not None:
+                r = ed.control_range(cid)
+                if r and r[2] != 2 ** 64 - 1 and r[2] < 10 ** 9:
+                    p, a, b = r
+                    for (pg, x, y, w, h) in ed.range_rects(p, a, p, b) or ():
+                        frame.setdefault(pg, []).append((x, y, max(w, 2.0), h))
+        except Exception as e:
+            print("control frame:", e)
+        self._cc_key, self._cc_frame = key, frame
+        return frame
 
     def _release(self, widget, event):
         self._dragging = False

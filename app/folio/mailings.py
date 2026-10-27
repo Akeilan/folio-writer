@@ -12,7 +12,7 @@ import tempfile
 
 from gi.repository import GLib, Gtk
 
-from . import bridge, docapi
+from ._lazy import bridge, docapi
 from .widgets import FDialog, LengthSpin, combo, grid, heading
 
 PREFIX = "com.sun.star.text.fieldmaster.User."

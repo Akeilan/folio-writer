@@ -427,6 +427,26 @@ class StatusBar(Gtk.Box):
 
     def _check_proof(self):
         self._proof_timer = None
+        if getattr(self.win.engine, "native", False):
+            ed = self.win.engine.ed
+            if ed is None:
+                return False
+            sp = getattr(self.win.engine.view, "speller", None)
+            if sp is not None and sp.enabled():
+                from .native import docops
+                bad = False
+                for para, text, langs in docops.paragraphs(ed)[:3000]:
+                    if sp.para_marks(para, text, langs):
+                        bad = True
+                        break
+                self.set_proof(bad)
+            if self.enabled().get("a11y"):
+                try:
+                    issues = ed.accessibility_issues()
+                    self.set_a11y(not [c for c, _l, _t in issues if c != "Missing document title"])
+                except Exception as e:
+                    print("a11y:", e)
+            return False
         m = self.win.engine.model
         if m is None:
             return False

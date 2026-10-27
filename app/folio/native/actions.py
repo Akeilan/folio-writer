@@ -22,7 +22,9 @@ WINDOW = {
     "tabs-dialog", "new-style", "modify-style", "date-time", "field-dialog", "caption", "hyperlink", "bookmark", "cross-reference",
     "page-borders", "margins", "paper", "orientation", "columns", "equation", "comment", "prev-comment", "next-comment", "delete-all-comments", "manage-changes",
     "find-pane", "page-setup", "language-dialog", "text-from-file", "selection-pane", "styles-pane", "spelling", "thesaurus", "clipboard-pane", "arrange-all",
-    "side-by-side", "sync-scrolling", "reset-window-position", "paragraph-borders", "zoom-one-page", "zoom-page-width", "toggle-ruler", "drop-cap", "watermark-dialog", "draw-shape",
+    "side-by-side", "sync-scrolling", "reset-window-position", "draft-view", "web-layout", "print-layout",
+    "outline-view", "close-outline", "read-mode", "immersive-reader", "close-immersive", "split", "new-window",
+    "read-aloud", "check-accessibility", "merge-preview", "find-recipient", "highlight-merge-fields", "paragraph-borders", "zoom-one-page", "zoom-page-width", "toggle-ruler", "drop-cap", "watermark-dialog", "draw-shape",
 }
 
 SECTION_BREAKS = {"next-page": "nextPage", "continuous": "continuous", "even": "evenPage",

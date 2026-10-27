@@ -5,7 +5,7 @@ import json
 
 from gi.repository import Gtk
 
-from . import docapi
+from ._lazy import docapi
 from .widgets import FDialog, combo, grid
 
 PREFIX = "com.sun.star.text.fieldmaster.User."
@@ -33,6 +33,9 @@ GUESS = {"Courtesy Title": ("Title", "Salutation"),
 
 # ------------------------------------------------------------ storage
 def rules(m):
+    if not hasattr(m, "getTextFields") and hasattr(m, "engine"):
+        from .native import mailmerge
+        return mailmerge.rules(m)
     try:
         r = json.loads(docapi._doc_setting(m, "MergeRules", "") or "{}")
         return r if isinstance(r, dict) else {}
@@ -45,6 +48,13 @@ def _save(m, r):
 
 
 def matches(m):
+    if not hasattr(m, "getTextFields") and hasattr(m, "engine"):
+        from .native import mailmerge
+        try:
+            v = json.loads(mailmerge._docvar(m, "FolioMergeMatch") or "{}")
+            return v if isinstance(v, dict) else {}
+        except ValueError:
+            return {}
     try:
         v = json.loads(docapi._doc_setting(m, "MergeMatch", "") or "{}")
         return v if isinstance(v, dict) else {}
@@ -246,6 +256,9 @@ def unlink(doc, rule_defs, records, ptr, seq, answers, master_name_of):
 
 def ask_answers(win, m, per_record=None):
     """Prompt for Fill-in and Ask rules (those asked once, or for a record)."""
+    if getattr(win.engine, "native", False):
+        from .native import mailmerge
+        return mailmerge.ask_answers(win, per_record)
     r = rules(m)
     answers = {}
     for rid, rule in r.items():
@@ -271,14 +284,31 @@ def _cond_rows(cols, rule=None):
     return field, op, target
 
 
+def _native(win):
+    return getattr(win.engine, "native", False)
+
+
+def _insert(win, m, rule):
+    if _native(win):
+        from .native import mailmerge
+        mailmerge.insert_rule(win, rule)
+        win.refresh_mailings()
+    else:
+        win.engine.sync(lambda: (insert_rule(m, rule), win.refresh_mailings()))
+
+
 def rule_dialog(win, kind):
     from . import mailings as M
-    m = win.engine.model
+    if _native(win):
+        from .native import mailmerge as M
+        m = win
+    else:
+        m = win.engine.model
     if m is None:
         return
     cols = M.recipients(m)[0]
     if kind in ("record", "seq", "next"):
-        win.engine.sync(lambda: (insert_rule(m, {"kind": kind}), win.refresh_mailings()))
+        _insert(win, m, {"kind": kind})
         return
     titles = {"if": "Insert Word Field: IF", "fillin": "Insert Word Field: Fill-in",
               "ask": "Insert Word Field: Ask", "set": "Insert Word Field: Set",
@@ -341,15 +371,21 @@ def rule_dialog(win, kind):
                                  rule.get("default", ""))
         if a is not None:
             rule["default"] = a
-    win.engine.sync(lambda: (insert_rule(m, rule), win.refresh_mailings()))
+    _insert(win, m, rule)
 
 
 def bookmark_names(m):
+    if not hasattr(m, "getTextFields") and hasattr(m, "engine"):
+        from .native import mailmerge
+        return mailmerge.bookmark_names(m)
     return sorted({rule["name"] for rule in rules(m).values()
                    if rule["kind"] in ("ask", "set") and rule.get("name")})
 
 
 def insert_ref(win, name):
+    if _native(win):
+        _insert(win, win, {"kind": "ref", "name": name})
+        return
     m = win.engine.model
     win.engine.sync(lambda: (insert_rule(m, {"kind": "ref", "name": name}),
                              win.refresh_mailings()))
@@ -358,6 +394,9 @@ def insert_ref(win, name):
 def match_fields_dialog(win):
     from . import mailings as M
     m = win.engine.model
+    if _native(win):
+        from .native import mailmerge as M
+        m = win
     if m is None:
         return
     cols = M.recipients(m)[0]
@@ -390,7 +429,11 @@ def match_fields_dialog(win):
     if d.ask() == Gtk.ResponseType.OK:
         mm = {wf: (w.get_active_text() if w.get_active() > 0 else "")
               for wf, w in widgets.items()}
-        docapi._set_doc_setting(m, "MergeMatch", json.dumps(mm))
+        if _native(win):
+            from .native import mailmerge
+            mailmerge._set_docvar(win, "FolioMergeMatch", json.dumps(mm))
+        else:
+            docapi._set_doc_setting(m, "MergeMatch", json.dumps(mm))
     d.done()
 
 
@@ -399,6 +442,8 @@ def auto_check_dialog(win):
     from . import mailings as M
     from .dlg_mail import finish
     m = win.engine.model
+    if _native(win):
+        m = win
     if m is None:
         return
     d = FDialog(win, "Checking and Reporting Errors")
@@ -442,6 +487,8 @@ def auto_check_dialog(win):
 
 def find_errors(m):
     from . import mailings as M
+    if not hasattr(m, "getTextFields") and hasattr(m, "engine"):
+        from .native import mailmerge as M
     cols, rows, inc = M.recipients(m)
     out = []
     if not rows:

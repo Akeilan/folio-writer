@@ -427,7 +427,7 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
         mark_change: {
             let dom = &doc.dom;
             dom.child(p, "w:pPr").map_or(false, |pp| {
-                dom.child(pp, "w:pPrChange").is_some()
+                (doc.show_fmt_changes && dom.child(pp, "w:pPrChange").is_some())
                     || dom.child(pp, "w:rPr").map_or(false, |r| dom.child(r, "w:ins").is_some() || dom.child(r, "w:del").is_some())
             })
         },

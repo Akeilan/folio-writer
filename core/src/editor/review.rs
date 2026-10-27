@@ -115,6 +115,14 @@ impl Editor {
         self.typing = false;
     }
 
+    pub fn set_show_fmt_changes(&mut self, on: bool) {
+        if self.doc.show_fmt_changes != on {
+            self.doc.show_fmt_changes = on;
+            self.cache.retain(|_, _| false);
+            self.relayout();
+        }
+    }
+
     pub fn set_markup(&mut self, m: Markup) {
         if self.doc.markup != m {
             self.doc.markup = m;

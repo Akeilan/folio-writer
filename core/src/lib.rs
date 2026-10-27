@@ -11,6 +11,7 @@ pub mod metafile;
 pub mod math;
 pub mod effects;
 pub mod art;
+pub mod chart;
 pub mod hyph;
 pub mod document;
 pub mod text;

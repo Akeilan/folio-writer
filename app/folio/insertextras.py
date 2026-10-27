@@ -223,7 +223,7 @@ def organizer(win):
 # ------------------------------------------------------------ signature line
 def signature_dialog(win):
     m = win.engine.model
-    if m is None:
+    if m is None and not getattr(win.engine, "native", False):
         return
     d = FDialog(win, "Signature Setup")
     signer = Gtk.Entry()
@@ -237,8 +237,44 @@ def signature_dialog(win):
     d.add(date)
     if d.ask() == Gtk.ResponseType.OK:
         vals = (signer.get_text(), title.get_text(), email.get_text(), date.get_active())
-        win.engine.sync(lambda: insert_signature_line(m, *vals))
+        if getattr(win.engine, "native", False):
+            native_signature_line(win, *vals)
+        else:
+            win.engine.sync(lambda: insert_signature_line(m, *vals))
     d.done()
+
+
+def native_signature_line(win, signer, title, email, with_date):
+    """The signature block (an X on a line, the signer's details under it)."""
+    ed = win.engine.ed
+    p, off = ed.caret_pos()
+    lines = [s for s in (signer, title, email) if s]
+    if with_date:
+        lines.append("Date: " + __import__("datetime").date.today().strftime("%-m/%-d/%Y"))
+    entries = [("X", True)] + [(s, False) for s in lines]
+    ed.begin_group("Signature Line")
+    try:
+        if off > 0:
+            ed.type_text("\n")
+        ed.type_text("\n")
+        ed.move_caret("left", False)
+        line = [("w:val", "single"), ("w:sz", "12"), ("w:space", "1"), ("w:color", "000000")]
+        for i, (txt, is_line) in enumerate(entries):
+            if i:
+                ed.type_text("\n")
+            ed.set_borders("paras", [(s, None) for s in ("top", "left", "right", "between")] +
+                           [("bottom", line if is_line else None)])
+            ed.apply_para([("w:spacing", [("w:before", "360" if is_line else "0"), ("w:after", "0")]),
+                           ("w:ind", [("w:right", "4320" if is_line else "0")])], "Signature Line")
+            q, start = ed.caret_pos()
+            ed.type_text(txt)
+            q2, end = ed.caret_pos()
+            ed.select_nodes(q, start, q2, end)
+            ed.apply_run([("w:sz", [("w:val", "40" if is_line else "22")])], "Signature Line")
+            ed.select_nodes(q2, end, q2, end)
+    finally:
+        ed.end_group()
+    win.engine.view.after_edit()
 
 
 def insert_signature_line(m, signer, title, email, with_date):
@@ -349,7 +385,7 @@ def insert_textbox(m, kind):
 # ------------------------------------------------------------ object
 def object_dialog(win):
     m = win.engine.model
-    if m is None:
+    if m is None and not getattr(win.engine, "native", False):
         return
     d = FDialog(win, "Object")
     nb = Gtk.Notebook()
@@ -383,8 +419,9 @@ def object_dialog(win):
             row = new_list.get_selected_row()
             kind = kinds[row.get_index() if row else 0][1]
             if kind == "chart":
-                GLib.idle_add(lambda: (__import__("folio.charts", fromlist=["x"])
-                                       .insert_chart_dialog(win), False)[1])
+                GLib.idle_add(lambda: (__import__(
+                    "folio.native.charts" if getattr(win.engine, "native", False) else "folio.charts",
+                    fromlist=["x"]).insert_chart_dialog(win), False)[1])
             elif kind == "equation":
                 win.run("equation")
             else:

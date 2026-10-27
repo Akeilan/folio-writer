@@ -333,6 +333,8 @@ pub struct Document {
     pub markup: Markup,
     /// deletions shown in balloons in the margin (All Markup), not inline
     pub balloons: bool,
+    /// formatting changes marked (Show Markup > Formatting)
+    pub show_fmt_changes: bool,
 }
 
 /// Display for Review.
@@ -493,7 +495,7 @@ impl Document {
             }
         }
         let mut d = Document { numbering, num_dom, num_part, styles_dom: styles_xml, styles_part, theme_dom: theme, pkg, main, dom, styles, settings, sections: Vec::new(), blocks: Vec::new(), body, images, parts, hf_by_rid, notes, show_codes: false,
-                               markup: Markup::Simple, balloons: false };
+                               markup: Markup::Simple, balloons: false, show_fmt_changes: true };
         d.scan();
         Ok(d)
     }
@@ -502,7 +504,8 @@ impl Document {
     pub fn image_rels(pkg: &mut Package, part: &str) -> std::collections::HashMap<String, crate::pictures::ImageData> {
         let mut out = std::collections::HashMap::new();
         for r in pkg.rels(part) {
-            if r.external || !r.kind.ends_with("/image") {
+            // charts too: their part, drawn from its cached values
+            if r.external || !(r.kind.ends_with("/image") || r.kind.ends_with("/chart")) {
                 continue;
             }
             let name = Package::resolve(part, &r.target);
@@ -892,7 +895,8 @@ impl Document {
         let direct = dom.child(r, "w:rPr").map(|n| RunProps::parse(dom, n)).unwrap_or_default();
         let rpr = self.styles.run(base, &direct);
         let codes = self.show_codes;
-        let fmt_change = dom.child(r, "w:rPr").map_or(false, |rp| dom.child(rp, "w:rPrChange").is_some());
+        let fmt_change = self.show_fmt_changes
+            && dom.child(r, "w:rPr").map_or(false, |rp| dom.child(rp, "w:rPrChange").is_some());
         let hidden_code = if codes { st.in_result() } else { st.in_code() };
         let field = if codes { None } else { st.result_kind() };
         let push = |item: Item, node: NodeId, out: &mut Vec<Piece>| {
@@ -1227,6 +1231,19 @@ fn set_settings_val(x: &mut XmlDoc, name: &str, v: Option<i32>) {
     if let (Some(v), Some(t)) = (v, x.child(x.root, name)) {
         x.set_attr(t, "w:val", &v.to_string());
     }
+}
+
+/// Where a settings element goes (schema order).
+pub fn settings_index(x: &XmlDoc, name: &str) -> usize {
+    let root = x.root;
+    let me = SETTINGS_ORDER.iter().position(|n| *n == name).unwrap_or(SETTINGS_ORDER.len());
+    let mut idx = 0;
+    for (i, &k) in x.children(root).iter().enumerate() {
+        if SETTINGS_ORDER.iter().position(|n| *n == x.name(k)).map_or(false, |r| r < me) {
+            idx = i + 1;
+        }
+    }
+    idx
 }
 
 fn set_settings_flag(x: &mut XmlDoc, name: &str, on: bool) {

@@ -14,7 +14,16 @@ PLACEHOLDER = {"rich": "Click or tap here to enter text.",
                "date": "Click or tap to enter a date.", "picture": "", "checkbox": ""}
 
 
+def _native(win):
+    if getattr(win.engine, "native", False):
+        from .native import controls
+        return controls
+    return None
+
+
 def insert(win, kind):
+    if _native(win):
+        return _native(win).insert(win, kind)
     m = win.engine.model
     if m is None:
         return
@@ -178,6 +187,8 @@ def _set_text(m, cc, value):
 def on_click(win, x, y):
     """After a click: open the list or calendar of a drop-down / date control,
     or tick a check box."""
+    if _native(win):
+        return _native(win).on_click(win, x, y)
     m = win.engine.model
     if m is None:
         return
@@ -239,6 +250,8 @@ def on_click(win, x, y):
 
 
 def properties(win):
+    if _native(win):
+        return _native(win).properties(win)
     m = win.engine.model
     if m is None:
         return

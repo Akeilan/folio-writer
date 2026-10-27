@@ -398,7 +398,7 @@ class Backstage(Gtk.Box):
     def page_info(self):
         box = self._page("Info")
         eng = self.win.engine
-        m = eng.model
+        m = self.win.docmodel
         name = self.win.doc_name()
         t = Gtk.Label(label=name, xalign=0)
         t.get_style_context().add_class("folio-bs-docname")
@@ -534,7 +534,7 @@ class Backstage(Gtk.Box):
     def _protect_menu(self):
         from .ribbon import menu_popover
         from . import docprotect
-        m = self.win.engine.model
+        m = self.win.docmodel
         final = m is not None and docprotect.is_final(m)
 
         def restrict():
@@ -803,7 +803,7 @@ class Backstage(Gtk.Box):
         r_pg = Gtk.RadioButton(label="Page(s)", group=r_all)
         n = 1
         try:
-            n = docapi.statistics(self.win.engine.model).get("PageCount", 1)
+            n = docapi.statistics(self.win.docmodel).get("PageCount", 1)
         except Exception:
             pass
         fr = Gtk.SpinButton.new_with_range(1, max(1, n), 1)
@@ -1099,6 +1099,11 @@ class Backstage(Gtk.Box):
         except FileNotFoundError:
             self.win.dialogs.message("No printing system was found on this computer.")
             return
+        if getattr(self.win.engine, "native", False):
+            import datetime
+            from .native import docprops
+            docprops.set_core(self.win.engine.ed, lastPrinted=datetime.datetime.now(
+                datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
         m = self.win.engine.model
         if m is not None:
             try:
