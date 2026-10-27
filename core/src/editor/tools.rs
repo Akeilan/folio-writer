@@ -70,7 +70,7 @@ fn recase(text: &[char], mode: &str, start_sentence: bool) -> Vec<String> {
 }
 
 impl Editor {
-    fn in_table(&self, p: NodeId) -> bool {
+    pub(super) fn in_table(&self, p: NodeId) -> bool {
         self.cell_of(p).is_some()
     }
 

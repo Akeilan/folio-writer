@@ -2,7 +2,7 @@
 numbering, conversion between footnotes and endnotes."""
 from gi.repository import Gtk
 
-from . import bridge, docapi
+from ._lazy import bridge, docapi
 from .widgets import FDialog
 
 FORMATS = [("1, 2, 3, ...", 4), ("a, b, c, ...", 1), ("A, B, C, ...", 0),
@@ -91,10 +91,53 @@ def convert(m, to_endnote=None):
     return len(jobs)
 
 
+class _Classic:
+    """The dialog's operations with the old engine."""
+
+    def __init__(self, win, m):
+        self.win, self.m = win, m
+
+    def current(self, endnote):
+        c = current(self.m, endnote)
+        c["pos"] = "docEnd" if endnote else "pageBottom"
+        return c
+
+    def apply(self, endnote, num_type, start, counting, pos):
+        apply_settings(self.m, endnote, num_type, start, counting)
+        if endnote:
+            _endnotes_at_section(self.m, pos == "sectEnd")
+
+    def insert(self, endnote, mark):
+        insert_note(self.m, endnote, mark)
+
+    def count(self, endnote):
+        return len(notes(self.m, endnote))
+
+    def convert(self, which):
+        return convert(self.m, which)
+
+    def sync(self, fn):
+        m = self.m
+
+        def go():
+            um = m.getUndoManager()
+            um.enterUndoContext("Footnote and Endnote")
+            try:
+                fn()
+            finally:
+                um.leaveUndoContext()
+        self.win.engine.sync(go)
+
+
 def dialog(win):
-    m = win.engine.model
-    if m is None:
-        return
+    if getattr(win.engine, "native", False):
+        from .native.refs import NotesBackend
+        B = NotesBackend(win)
+    else:
+        m = win.engine.model
+        if m is None:
+            return
+        B = _Classic(win, m)
     d = FDialog(win, "Footnote and Endnote", buttons=(("Insert", 10),
                                                       ("Cancel", Gtk.ResponseType.CANCEL),
                                                       ("Apply", 11)))
@@ -105,7 +148,8 @@ def dialog(win):
     rb_foot = Gtk.RadioButton(label="Footnotes:")
     rb_end = Gtk.RadioButton(label="Endnotes:", group=rb_foot)
     foot_where = Gtk.ComboBoxText()
-    foot_where.append_text("Bottom of page")
+    for t in ("Bottom of page", "Below text"):
+        foot_where.append_text(t)
     foot_where.set_active(0)
     end_where = Gtk.ComboBoxText()
     for t in ("End of document", "End of section"):
@@ -157,15 +201,16 @@ def dialog(win):
 
     def load(*_):
         endnote = rb_end.get_active()
-        cur = current(m, endnote)
-        idx = [v for _t, v in FORMATS].index(cur["type"]) if cur["type"] in \
-            [v for _t, v in FORMATS] else 0
-        fmt.set_active(idx)
+        cur = B.current(endnote)
+        codes = [v for _t, v in FORMATS]
+        fmt.set_active(codes.index(cur["type"]) if cur["type"] in codes else 0)
         start.set_value(cur["start"])
-        nidx = [v for _t, v in NUMBERING].index(cur["counting"]) if cur["counting"] in \
-            [v for _t, v in NUMBERING] else 0
-        numbering.set_active(nidx)
-        numbering.set_sensitive(not endnote)
+        ncodes = [v for _t, v in NUMBERING]
+        numbering.set_active(ncodes.index(cur["counting"]) if cur["counting"] in ncodes else 0)
+        if endnote:
+            end_where.set_active(1 if cur.get("pos") == "sectEnd" else 0)
+        else:
+            foot_where.set_active(1 if cur.get("pos") == "beneathText" else 0)
         foot_where.set_sensitive(not endnote)
         end_where.set_sensitive(endnote)
     rb_foot.connect("toggled", load)
@@ -176,7 +221,7 @@ def dialog(win):
         r1 = Gtk.RadioButton(label="Convert all footnotes to endnotes")
         r2 = Gtk.RadioButton(label="Convert all endnotes to footnotes", group=r1)
         r3 = Gtk.RadioButton(label="Swap footnotes and endnotes", group=r1)
-        nf, ne = len(notes(m, False)), len(notes(m, True))
+        nf, ne = B.count(False), B.count(True)
         r1.set_sensitive(nf > 0)
         r2.set_sensitive(ne > 0)
         r3.set_sensitive(nf > 0 and ne > 0)
@@ -188,7 +233,7 @@ def dialog(win):
         which = True if r1.get_active() else (False if r2.get_active() else None)
         sub.done()
         if res == Gtk.ResponseType.OK and (nf or ne):
-            win.engine.sync(lambda: convert(m, which))
+            B.convert(which)
     conv.connect("clicked", do_convert)
     d.add(g)
     r = d.ask()
@@ -197,23 +242,19 @@ def dialog(win):
     st = int(start.get_value())
     counting = NUMBERING[max(0, numbering.get_active())][1]
     mark = custom.get_text().strip()
-    at_section = end_where.get_active() == 1
+    if endnote:
+        pos = "sectEnd" if end_where.get_active() == 1 else "docEnd"
+    else:
+        pos = "beneathText" if foot_where.get_active() == 1 else "pageBottom"
     d.done()
     if r not in (10, 11, Gtk.ResponseType.OK):
         return
 
     def go():
-        um = m.getUndoManager()
-        um.enterUndoContext("Footnote and Endnote")
-        try:
-            apply_settings(m, endnote, num_type, st, counting)
-            if endnote:
-                _endnotes_at_section(m, at_section)
-            if r in (10, Gtk.ResponseType.OK):
-                insert_note(m, endnote, mark)
-        finally:
-            um.leaveUndoContext()
-    win.engine.sync(go)
+        B.apply(endnote, num_type, st, counting, pos)
+        if r in (10, Gtk.ResponseType.OK):
+            B.insert(endnote, mark)
+    B.sync(go)
 
 
 def _endnotes_at_section(m, on):

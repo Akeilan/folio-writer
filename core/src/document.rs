@@ -274,6 +274,14 @@ pub struct Notes {
     pub en_fmt: String,
     pub fn_start: i32,
     pub en_start: i32,
+    /// numRestart: "continuous", "eachSect", "eachPage"
+    pub fn_restart: String,
+    pub en_restart: String,
+    /// pos: footnotes "pageBottom" / "beneathText", endnotes "docEnd" / "sectEnd"
+    pub fn_pos: String,
+    pub en_pos: String,
+    /// the note settings changed: write them back
+    pub pr_dirty: bool,
 }
 
 pub struct Settings {
@@ -474,6 +482,12 @@ impl Document {
                         if let Some(v) = sx.child(pr, "w:numStart").and_then(|n| int_attr(sx, n, "w:val")) {
                             if en { notes.en_start = v } else { notes.fn_start = v }
                         }
+                        if let Some(v) = sx.child(pr, "w:numRestart").and_then(|n| sx.attr(n, "w:val")) {
+                            if en { notes.en_restart = v.to_string() } else { notes.fn_restart = v.to_string() }
+                        }
+                        if let Some(v) = sx.child(pr, "w:pos").and_then(|n| sx.attr(n, "w:val")) {
+                            if en { notes.en_pos = v.to_string() } else { notes.fn_pos = v.to_string() }
+                        }
                     }
                 }
             }
@@ -541,6 +555,35 @@ impl Document {
         let limit = self.settings.hyphen_limit;
         set_settings_val(x, "w:hyphenationZone", if zone != 360 { Some(zone) } else { None });
         set_settings_val(x, "w:consecutiveHyphenLimit", if limit > 0 { Some(limit) } else { None });
+        if self.notes.pr_dirty {
+            let n = &self.notes;
+            let want = [("w:footnotePr", n.fn_pos.as_str(), "pageBottom", n.fn_fmt.as_str(), "decimal", n.fn_start, n.fn_restart.as_str()),
+                        ("w:endnotePr", n.en_pos.as_str(), "docEnd", n.en_fmt.as_str(), "lowerRoman", n.en_start, n.en_restart.as_str())];
+            for (tag, pos, pos0, fmt, fmt0, start, restart) in want {
+                let el = match x.child(x.root, tag) {
+                    Some(e) => e,
+                    None => {
+                        set_settings_flag(x, tag, true);
+                        x.child(x.root, tag).unwrap()
+                    }
+                };
+                for k in x.children(el).to_vec() {
+                    if matches!(x.name(k), "w:pos" | "w:numFmt" | "w:numStart" | "w:numRestart") {
+                        x.detach(k);
+                    }
+                }
+                let mut i = 0;
+                let mut put = |x: &mut XmlDoc, name: &str, v: &str| {
+                    let e = x.new_element(name, &[("w:val", v)]);
+                    x.insert(el, i, e);
+                    i += 1;
+                };
+                if !pos.is_empty() && pos != pos0 { put(x, "w:pos", pos); }
+                if fmt != fmt0 { put(x, "w:numFmt", fmt); }
+                if start != 1 { put(x, "w:numStart", &start.to_string()); }
+                if !restart.is_empty() && restart != "continuous" { put(x, "w:numRestart", restart); }
+            }
+        }
     }
 
     pub fn save(&mut self, path: &str) -> Result<(), DocError> {
@@ -602,11 +645,38 @@ impl Document {
                     out.push(c);
                 } else {
                     walk(dom, c, out);
+                    // a section ends with this paragraph
+                    if dom.is(c, "w:p") {
+                        if let Some(sp) = dom.child(c, "w:pPr").and_then(|pp| dom.child(pp, "w:sectPr")) {
+                            out.push(sp);
+                        }
+                    }
                 }
             }
         }
         let mut refs = Vec::new();
         walk(&self.dom, self.body, &mut refs);
+        // the notes as the parts have them now (after undo, convert...)
+        let mut fns = std::collections::HashMap::new();
+        let mut ens = std::collections::HashMap::new();
+        for p in &self.parts {
+            if p.kind != "footnotes" && p.kind != "endnotes" {
+                continue;
+            }
+            for k in self.dom.elements(p.root) {
+                let nm = self.dom.name(k);
+                if nm != "w:footnote" && nm != "w:endnote" {
+                    continue;
+                }
+                if matches!(self.dom.attr(k, "w:type"), Some("separator") | Some("continuationSeparator") | Some("continuationNotice")) {
+                    continue;
+                }
+                let id = self.dom.attr(k, "w:id").unwrap_or("").to_string();
+                if nm == "w:endnote" { ens.insert(id, k); } else { fns.insert(id, k); }
+            }
+        }
+        self.notes.footnotes = fns;
+        self.notes.endnotes = ens;
         let n = &mut self.notes;
         n.numbers.clear();
         n.marks.clear();
@@ -615,6 +685,11 @@ impl Document {
         let (mut fi, mut ei) = (n.fn_start, n.en_start);
         for r in refs {
             let dom = &self.dom;
+            if dom.is(r, "w:sectPr") {
+                if n.fn_restart == "eachSect" { fi = n.fn_start; }
+                if n.en_restart == "eachSect" { ei = n.en_start; }
+                continue;
+            }
             let en = dom.is(r, "w:endnoteReference");
             let id = dom.attr(r, "w:id").unwrap_or("");
             let note = if en { n.endnotes.get(id) } else { n.footnotes.get(id) }.copied();
@@ -1135,7 +1210,16 @@ const SETTINGS_ORDER: &[&str] = &["w:writeProtection", "w:view", "w:zoom", "w:re
     "w:doNotTrackFormatting", "w:documentProtection", "w:autoFormatOverride", "w:styleLockTheme",
     "w:styleLockQFSet", "w:defaultTabStop", "w:autoHyphenation", "w:consecutiveHyphenLimit",
     "w:hyphenationZone", "w:doNotHyphenateCaps", "w:showEnvelope", "w:summaryLength",
-    "w:clickAndTypeStyle", "w:defaultTableStyle", "w:evenAndOddHeaders"];
+    "w:clickAndTypeStyle", "w:defaultTableStyle", "w:evenAndOddHeaders", "w:bookFoldRevPrinting",
+    "w:bookFoldPrinting", "w:bookFoldPrintingSheets", "w:drawingGridHorizontalSpacing", "w:drawingGridVerticalSpacing",
+    "w:displayHorizontalDrawingGridEvery", "w:displayVerticalDrawingGridEvery", "w:doNotUseMarginsForDrawingGridOrigin",
+    "w:drawingGridHorizontalOrigin", "w:drawingGridVerticalOrigin", "w:doNotShadeFormData", "w:noPunctuationKerning",
+    "w:characterSpacingControl", "w:printTwoOnOne", "w:strictFirstAndLastChars", "w:noLineBreaksAfter",
+    "w:noLineBreaksBefore", "w:savePreviewPicture", "w:doNotValidateAgainstSchema", "w:saveInvalidXml",
+    "w:ignoreMixedContent", "w:alwaysShowPlaceholderText", "w:doNotDemarcateInvalidXml", "w:saveXmlDataOnly",
+    "w:useXSLTWhenSaving", "w:saveThroughXslt", "w:showXMLTags", "w:alwaysMergeEmptyNamespace", "w:updateFields",
+    "w:hdrShapeDefaults", "w:footnotePr", "w:endnotePr", "w:compat", "w:docVars", "w:rsids", "m:mathPr",
+    "w:attachedSchema", "w:themeFontLang", "w:clrSchemeMapping"];
 
 /// Turn an on/off setting on (present) or off (absent).
 fn set_settings_val(x: &mut XmlDoc, name: &str, v: Option<i32>) {

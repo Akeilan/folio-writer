@@ -207,6 +207,8 @@ pub enum Story {
 mod objects;
 mod hf;
 mod fields;
+mod refs;
+pub use refs::{BIB_NS, TOA_CATEGORIES};
 mod review;
 mod comments;
 mod math;
@@ -362,7 +364,7 @@ impl Editor {
         };
         for op in ops {
             match op {
-                Op::Attrs { id, .. } | Op::Text { id, .. } => up(*id, &mut dirty),
+                Op::Attrs { id, .. } | Op::Text { id, .. } | Op::Renamed { id, .. } => up(*id, &mut dirty),
                 Op::Inserted { node } => up(*node, &mut dirty),
                 Op::Detached { node, parent, .. } => {
                     up(*parent, &mut dirty);

@@ -1453,6 +1453,10 @@ def build_ribbon(win):
     from . import dlg_cite
 
     def cite_style(v):
+        if getattr(win.engine, "native", False):
+            from .native import refs as _refs
+            _refs.cites().set_style(win, v)
+            return
         m = win.engine.model
         if m is not None:
             win.engine.sync(lambda: __import__("folio.citations", fromlist=["x"]).set_style(
@@ -1493,9 +1497,11 @@ def build_ribbon(win):
             "cmd/lc_insertauthoritiesentry") else "cmd/lc_insertindexesentry",
             "mark-citation", size="large", keytip="I", tip="Mark Citation (Alt+Shift+I)"),
         [btn("Insert Table of Authorities", "toa",
-             lambda: TOA.insert_dialog(win), keytip="T"),
+             lambda: run("insert-toa") if getattr(win.engine, "native", False) else TOA.insert_dialog(win),
+             keytip="T"),
          btn("Update Table", "cmd/sc_updatecurindex",
-             lambda: win.engine.sync(lambda: TOA.update_tables(win.engine.model)),
+             lambda: run("update-toa") if getattr(win.engine, "native", False) else
+             win.engine.sync(lambda: TOA.update_tables(win.engine.model)),
              keytip="U")]]))
     r.add_tab(t)
 

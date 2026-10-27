@@ -43,6 +43,7 @@ pub enum Op {
     Text { id: NodeId, old: String },
     Inserted { node: NodeId },
     Detached { node: NodeId, parent: NodeId, index: usize },
+    Renamed { id: NodeId, old: String },
 }
 
 #[derive(Debug)]
@@ -215,6 +216,17 @@ impl XmlDoc {
         &self.nodes[id as usize]
     }
 
+    /// Give an element another name.
+    pub fn rename(&mut self, id: NodeId, new: &str) {
+        if self.recording {
+            let old = self.name(id).to_string();
+            self.journal.push(Op::Renamed { id, old });
+        }
+        if let Kind::Element { name, .. } = &mut self.nodes[id as usize].kind {
+            *name = new.to_string();
+        }
+    }
+
     pub fn name(&self, id: NodeId) -> &str {
         match &self.node(id).kind {
             Kind::Element { name, .. } => name,
@@ -310,6 +322,7 @@ impl XmlDoc {
                     self.detach(*node);
                 }
                 Op::Detached { node, parent, index } => self.insert(*parent, *index, *node),
+                Op::Renamed { id, old } => self.rename(*id, old),
             }
         }
         let redo = self.journal.split_off(mark);

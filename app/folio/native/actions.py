@@ -129,6 +129,8 @@ class NativeActions(Actions):
     # ------------------------------------------------------------ fields
     def do_update_fields(self):
         n = self.ed.update_fields(False)
+        from . import refs
+        refs.refresh_citations(self.win)
         self.eng.view.after_edit()
         if n == 0:
             self.win.status.flash("Nothing to update.") if hasattr(self.win, "status") else None
@@ -149,9 +151,67 @@ class NativeActions(Actions):
         self.eng.view.after_edit()
 
     def do_update_toc(self):
-        if not self.ed.update_toc():
+        from . import refs
+        if not refs.update_tables(self.win) and not refs.fields(self.win, "BIBLIOGRAPHY"):
             self.win.dialogs.message("This document doesn't have a table of contents.")
         self.eng.view.after_edit()
+
+    # ------------------------------------------------------------ references
+    def do_toc_dialog(self):
+        from . import refs
+        refs.toc_dialog(self.win)
+
+    def do_table_of_figures(self):
+        from . import refs
+        labels = ["Equation", "Figure", "Table"] + list(self.win.app.settings.get("caption_labels", []))
+        refs.figures_dialog(self.win, labels)
+
+    def do_insert_index(self):
+        from . import refs
+        refs.index_dialog(self.win)
+
+    def do_mark_entry(self):
+        from . import refs
+        refs.mark_entry(self.win)
+
+    def do_mark_citation(self):
+        from . import refs
+        refs.mark_citation(self.win)
+
+    def do_insert_toa(self):
+        from . import refs
+        refs.toa_dialog(self.win)
+
+    def do_update_toa(self):
+        self.do_update_toc()
+
+    def do_footnote_dialog(self):
+        from .. import notes
+        notes.dialog(self.win)
+
+    def do_show_notes(self):
+        from . import refs
+        refs.show_notes(self.win)
+
+    def do_next_footnote(self):
+        from . import refs
+        refs.goto_note(self.win, False, True)
+
+    def do_prev_footnote(self):
+        from . import refs
+        refs.goto_note(self.win, False, False)
+
+    def do_next_endnote(self):
+        from . import refs
+        refs.goto_note(self.win, True, True)
+
+    def do_prev_endnote(self):
+        from . import refs
+        refs.goto_note(self.win, True, False)
+
+    def do_manage_sources(self):
+        from .. import dlg_cite
+        dlg_cite.manage_sources(self.win)
 
     def do_remove_toc(self):
         self.ed.remove_toc()

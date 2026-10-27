@@ -266,14 +266,14 @@ fn number_picture(x: f64, pic: &str) -> String {
     out
 }
 
-fn esc(s: &str) -> String {
+pub(super) fn esc(s: &str) -> String {
     let mut o = String::new();
     crate::xml::escape_text(s, &mut o);
     o
 }
 
 /// Nodes of a subtree in document order.
-fn order(dom: &XmlDoc, root: NodeId, out: &mut Vec<NodeId>) {
+pub(super) fn order(dom: &XmlDoc, root: NodeId, out: &mut Vec<NodeId>) {
     out.push(root);
     for &c in dom.children(root) {
         if matches!(dom.node(c).kind, Kind::Element { .. }) {
@@ -282,7 +282,18 @@ fn order(dom: &XmlDoc, root: NodeId, out: &mut Vec<NodeId>) {
     }
 }
 
-fn para_of(dom: &XmlDoc, mut n: NodeId) -> Option<NodeId> {
+fn order_contains(dom: &XmlDoc, root: NodeId, n: NodeId) -> bool {
+    let mut x = Some(n);
+    while let Some(k) = x {
+        if k == root {
+            return true;
+        }
+        x = dom.parent(k);
+    }
+    false
+}
+
+pub(super) fn para_of(dom: &XmlDoc, mut n: NodeId) -> Option<NodeId> {
     loop {
         if dom.is(n, "w:p") {
             return Some(n);
@@ -304,7 +315,7 @@ fn run_of(dom: &XmlDoc, mut n: NodeId) -> Option<NodeId> {
 }
 
 /// The text of a paragraph as a heading shows in a table of contents.
-fn heading_text(s: &str) -> String {
+pub(super) fn heading_text(s: &str) -> String {
     let t: String = s.chars().map(|c| match c {
         '\t' | '\n' | '\u{b}' => ' ',
         c => c,
@@ -368,7 +379,7 @@ impl Editor {
     }
 
     /// Bookmarks: name -> (start, end).
-    fn bookmarks(&self) -> HashMap<String, (NodeId, Option<NodeId>)> {
+    pub(super) fn bookmarks(&self) -> HashMap<String, (NodeId, Option<NodeId>)> {
         let dom = &self.doc.dom;
         let mut nodes = Vec::new();
         order(dom, self.doc.body, &mut nodes);
@@ -391,7 +402,7 @@ impl Editor {
     }
 
     /// The page a node of the body is on (its paragraph's first line).
-    fn page_of(&self, n: NodeId) -> Option<usize> {
+    pub(super) fn page_of(&self, n: NodeId) -> Option<usize> {
         let p = para_of(&self.doc.dom, n)?;
         let &pi = self.layout.index.get(&p)?;
         let off = {
@@ -419,7 +430,7 @@ impl Editor {
         self.layout.pages.iter().position(|page| page.lines.iter().any(|l| l.para == pi))
     }
 
-    fn page_label(&self, pg: usize) -> String {
+    pub(super) fn page_label(&self, pg: usize) -> String {
         let Some(page) = self.layout.pages.get(pg) else { return "1".into() };
         let fmt = self.doc.sections.get(page.section).map(|s| s.pg_fmt.clone()).unwrap_or_else(|| "decimal".into());
         crate::numbering::format_number(page.number, &fmt)
@@ -642,7 +653,7 @@ impl Editor {
     }
 
     /// Replace a field's result with `text`.
-    fn set_field_result(&mut self, f: &FieldInfo, text: &str) {
+    pub(super) fn set_field_result(&mut self, f: &FieldInfo, text: &str) {
         let dom_ro = &self.doc.dom;
         if f.simple {
             let fs = f.begin;
@@ -754,7 +765,7 @@ impl Editor {
         let mut n = 0;
         // tables of contents first (their page numbers come after)
         let tocs: Vec<FieldInfo> = self.fields_in(self.doc.body).into_iter()
-            .filter(|f| f.kind() == "TOC" && want("TOC") && (all || self.field_selected(f))).collect();
+            .filter(|f| matches!(f.kind().as_str(), "TOC" | "INDEX" | "TOA") && want(&f.kind()) && (all || self.field_selected(f))).collect();
         for t in tocs {
             if self.rebuild_toc(&t) {
                 n += 1;
@@ -766,7 +777,7 @@ impl Editor {
             let mut todo = Vec::new();
             for f in &fields {
                 let k = f.kind();
-                if k == "TOC" || (pass == 1 && k != "PAGEREF" && k != "PAGE" && k != "NUMPAGES") {
+                if matches!(k.as_str(), "TOC" | "INDEX" | "TOA" | "BIBLIOGRAPHY" | "XE" | "TA" | "CITATION") || (pass == 1 && k != "PAGEREF" && k != "PAGE" && k != "NUMPAGES") {
                     // still count SEQ fields so numbering stays right
                     if k == "SEQ" && pass == 0 {
                         self.evaluate_field(&f.instr, Some(f.begin), &mut seq);
@@ -815,8 +826,22 @@ impl Editor {
         }
         let (Some(sep), Some(end)) = (f.sep, f.end) else { return String::new() };
         let Some(para) = para_of(dom, sep) else { return String::new() };
+        let multi = para_of(dom, end) != Some(para);
+        let root = if multi {
+            // a table: its paragraphs share a parent (the body, a content control)
+            let mut r = dom.parent(para).unwrap_or(para);
+            while !order_contains(dom, r, end) {
+                match dom.parent(r) {
+                    Some(x) => r = x,
+                    None => break,
+                }
+            }
+            r
+        } else {
+            para
+        };
         let mut nodes = Vec::new();
-        order(dom, para, &mut nodes);
+        order(dom, root, &mut nodes);
         let mut on = false;
         let mut s = String::new();
         for n in nodes {
@@ -826,15 +851,21 @@ impl Editor {
             if n == end {
                 break;
             }
-            if on && dom.is(n, "w:t") {
-                s.push_str(&dom.text(n));
+            if !on {
+                continue;
+            }
+            match dom.name(n) {
+                "w:t" => s.push_str(&dom.text(n)),
+                "w:tab" if multi && dom.parent(n).map_or(false, |r| dom.is(r, "w:r")) => s.push('\t'),
+                "w:p" if multi => s.push('\n'),
+                _ => {}
             }
         }
         s
     }
 
     /// Does the selection (or the caret) touch the field.
-    fn field_selected(&self, f: &FieldInfo) -> bool {
+    pub(super) fn field_selected(&self, f: &FieldInfo) -> bool {
         let dom = &self.doc.dom;
         let Some(p) = para_of(dom, f.begin) else { return false };
         let (a, b) = self.selection();
@@ -861,7 +892,7 @@ impl Editor {
     }
 
     // --------------------------------------------------------- contents
-    fn ensure_toc_styles(&mut self, levels: usize) {
+    pub(super) fn ensure_toc_styles(&mut self, levels: usize) {
         let mut want: Vec<(String, String)> = Vec::new();
         if !self.doc.styles.styles.contains_key("TOCHeading") {
             let based = if self.doc.styles.styles.contains_key("Heading1") { "Heading1" } else { "Normal" };
@@ -923,7 +954,7 @@ impl Editor {
     }
 
     /// A _Toc bookmark around the heading (an existing one if it has it).
-    fn toc_bookmark(&mut self, p: NodeId, next_id: &mut i64, used: &mut Vec<String>) -> String {
+    pub(super) fn toc_bookmark(&mut self, p: NodeId, next_id: &mut i64, used: &mut Vec<String>) -> String {
         let dom = &self.doc.dom;
         if let Some(b) = dom.elements(p).find(|&c| dom.is(c, "w:bookmarkStart")
             && dom.attr(c, "w:name").map_or(false, |n| n.starts_with("_Toc"))) {
@@ -952,7 +983,7 @@ impl Editor {
         name
     }
 
-    fn max_bookmark_id(&self) -> i64 {
+    pub(super) fn max_bookmark_id(&self) -> i64 {
         let dom = &self.doc.dom;
         let mut nodes = Vec::new();
         order(dom, self.doc.body, &mut nodes);
@@ -964,50 +995,10 @@ impl Editor {
     /// The entry paragraphs of a table of contents (XML), the field's
     /// begin in the first and its end in the last.
     fn toc_paragraphs_xml(&mut self, instr: &str, skip: Option<(NodeId, NodeId)>) -> String {
-        let ins = parse_instr(instr);
-        let (from, to) = ins.switches.iter().find(|(s, _)| *s == 'o').and_then(|(_, a)| a.clone())
-            .and_then(|r| {
-                let (a, b) = r.split_once('-')?;
-                Some((a.trim().parse().ok()?, b.trim().parse().ok()?))
-            })
-            .unwrap_or((1usize, 3usize));
-        self.ensure_toc_styles(to);
-        let heads = self.toc_headings(from, to, skip);
-        let mut next_id = self.max_bookmark_id() + 1;
-        let mut used = Vec::new();
-        let sec = self.current_section();
-        let width = self.doc.sections.get(sec).map(|s| s.text_width()).unwrap_or(9360);
-        let hyper = ins.switches.iter().any(|(s, _)| *s == 'h');
-        let mut xml = String::new();
-        let begin = format!("<w:r><w:fldChar w:fldCharType=\"begin\"/></w:r><w:r><w:instrText xml:space=\"preserve\"> {} </w:instrText></w:r>\
-                             <w:r><w:fldChar w:fldCharType=\"separate\"/></w:r>", esc(instr.trim()));
-        if heads.is_empty() {
-            xml.push_str(&format!("<w:p><w:pPr><w:pStyle w:val=\"TOC1\"/></w:pPr>{begin}<w:r><w:rPr><w:b/><w:bCs/><w:noProof/></w:rPr>\
-                <w:t>No table of contents entries found.</w:t></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>"));
-            return xml;
-        }
-        for (i, (p, level, text)) in heads.iter().enumerate() {
-            let mark = self.toc_bookmark(*p, &mut next_id, &mut used);
-            let body = format!(
-                "<w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">{}</w:t></w:r>\
-                 <w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:tab/></w:r>\
-                 <w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType=\"begin\"/></w:r>\
-                 <w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space=\"preserve\"> PAGEREF {mark} \\h </w:instrText></w:r>\
-                 <w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType=\"separate\"/></w:r>\
-                 <w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>1</w:t></w:r>\
-                 <w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType=\"end\"/></w:r>",
-                esc(text));
-            let body = if hyper { format!("<w:hyperlink w:anchor=\"{mark}\" w:history=\"1\">{body}</w:hyperlink>") } else { body };
-            xml.push_str(&format!(
-                "<w:p><w:pPr><w:pStyle w:val=\"TOC{level}\"/><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"{width}\"/></w:tabs>\
-                 <w:rPr><w:noProof/></w:rPr></w:pPr>{}{body}</w:p>",
-                if i == 0 { begin.as_str() } else { "" }));
-        }
-        xml.push_str("<w:p><w:r><w:rPr><w:b/><w:bCs/><w:noProof/></w:rPr><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>");
-        xml
+        self.table_xml(instr, skip, None)
     }
 
-    fn import_paras(&mut self, xml: &str) -> Vec<NodeId> {
+    pub(super) fn import_paras(&mut self, xml: &str) -> Vec<NodeId> {
         let wrapped = format!("<w:body xmlns:w=\"{W_NS}\">{xml}</w:body>");
         let Ok(tmp) = XmlDoc::parse(wrapped.as_bytes()) else { return Vec::new() };
         let kids: Vec<NodeId> = tmp.elements(tmp.root).collect();
@@ -1053,7 +1044,7 @@ impl Editor {
     }
 
     /// Fill in the page numbers of the tables of contents.
-    fn update_toc_pages(&mut self) {
+    pub(super) fn update_toc_pages(&mut self) {
         for _ in 0..2 {
             let fields = self.fields_in(self.doc.body);
             let mut seq = HashMap::new();
@@ -1077,7 +1068,7 @@ impl Editor {
     }
 
     /// The paragraphs a field spans (begin's to end's).
-    fn field_paras(&self, f: &FieldInfo) -> Vec<NodeId> {
+    pub(super) fn field_paras(&self, f: &FieldInfo) -> Vec<NodeId> {
         let dom = &self.doc.dom;
         let (Some(a), Some(b)) = (para_of(dom, f.begin), f.end.and_then(|e| para_of(dom, e))) else { return Vec::new() };
         let pa = dom.parent(a);
@@ -1091,43 +1082,13 @@ impl Editor {
 
     /// Rebuild a table of contents from the headings now.
     fn rebuild_toc(&mut self, f: &FieldInfo) -> bool {
-        let paras = self.field_paras(f);
-        if paras.is_empty() {
-            return false;
-        }
-        let first = paras[0];
-        let last = *paras.last().unwrap();
-        self.begin();
-        let xml = self.toc_paragraphs_xml(&f.instr, Some((first, last)));
-        let nodes = self.import_paras(&xml);
-        let dom = &mut self.doc.dom;
-        let parent = dom.parent(first).unwrap();
-        let mut idx = dom.index_in_parent(first).unwrap();
-        for n in nodes {
-            dom.insert(parent, idx, n);
-            idx += 1;
-        }
-        let caret_in = paras.contains(&self.caret.para) || paras.contains(&self.anchor.para);
-        let first_new = dom.children(parent).get(dom.index_in_parent(first).unwrap_or(0).saturating_sub(0)).copied();
-        for p in &paras {
-            dom.detach(*p);
-        }
-        let _ = first_new;
-        if caret_in {
-            // the caret stays in the table (at its start)
-            if let Some(p) = dom.elements(parent).find(|&k| dom.is(k, "w:p")) {
-                self.caret = Pos { para: p, off: 0 };
-                self.anchor = self.caret;
-            }
-        }
-        self.commit("Update Table", false);
-        self.update_toc_pages();
-        true
+        self.rebuild_table(f)
     }
 
     /// Update the tables of contents only.
     pub fn update_toc(&mut self) -> bool {
-        let tocs: Vec<FieldInfo> = self.fields_in(self.doc.body).into_iter().filter(|f| f.kind() == "TOC").collect();
+        let tocs: Vec<FieldInfo> = self.fields_in(self.doc.body).into_iter()
+            .filter(|f| matches!(f.kind().as_str(), "TOC" | "INDEX" | "TOA")).collect();
         if tocs.is_empty() {
             return false;
         }
