@@ -1,0 +1,27 @@
+.TH FOLIO-WRITER 1 "October 2026" "Folio Writer 2" "User Commands"
+.SH NAME
+folio-writer, folio \- ribbon word processor
+.SH SYNOPSIS
+.B folio-writer
+[\fIFILE\fR...]
+.br
+.B folio-writer
+\-\-reset-settings | \-\-make-default | \-\-version
+.SH DESCRIPTION
+Opens a new document, or the given files, in Folio Writer. Settings, recent
+files, the Normal template and AutoRecover files live in
+\fI~/.config/folio-writer\fR.
+.SH OPTIONS
+.TP
+.B \-\-reset-settings
+Forget settings and the customised Normal template.
+.TP
+.B \-\-make-default
+Make Folio Writer the default application for .docx, .doc, .dotx and .rtf files.
+.TP
+.B \-\-version
+Print the version.
+.SH FILES
+.TP
+/usr/share/doc/folio-writer/SHORTCUTS.txt
+Keyboard shortcut reference (also under Help in the application).

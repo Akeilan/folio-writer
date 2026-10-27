@@ -1,0 +1,262 @@
+# Word-parity scenario harness: exec'd by a test script after common.py.
+# Scenarios are generators; `yield secs` waits while the app runs.
+import subprocess, time, traceback, os
+from folio import docapi
+E = win.engine
+M = lambda: E.model
+RESULTS = []
+CUR = {"name": "?"}
+
+def K(*specs):
+    for s in specs:
+        subprocess.run(["xdotool", "key", "--clearmodifiers", s], env=dict(os.environ, DISPLAY=":99"))
+        time.sleep(0.06)
+
+def T(text, delay=15):
+    parts = text.split("\n")
+    for i, part in enumerate(parts):
+        if i:
+            K("Return")
+        if part:
+            subprocess.run(["xdotool", "type", "--delay", str(delay), "--", part],
+                           env=dict(os.environ, DISPLAY=":99"))
+
+def X(*args):
+    subprocess.run(["xdotool"] + [str(a) for a in args], env=dict(os.environ, DISPLAY=":99"))
+
+def check(name, cond, detail=""):
+    tag = "PASS" if cond else "FAIL"
+    RESULTS.append((CUR["name"], name, tag, detail))
+    log("%s [%s] %s %s" % (tag, CUR["name"], name, ("| " + str(detail)) if detail else ""))
+
+def note(name, detail):
+    log("NOTE [%s] %s | %s" % (CUR["name"], name, detail))
+
+def text():
+    return M().getText().getString()
+
+def paras():
+    out = []
+    en = M().getText().createEnumeration()
+    while en.hasMoreElements():
+        p = en.nextElement()
+        if p.supportsService("com.sun.star.text.Paragraph"):
+            out.append(p)
+        else:
+            out.append(p)  # table
+    return out
+
+def para_texts():
+    return [p.getString() if hasattr(p, "getString") else "<table>" for p in paras()]
+
+def vc():
+    return docapi.controller(M()).getViewCursor()
+
+def sel():
+    try:
+        s = docapi.controller(M()).getSelection()
+        return s.getByIndex(0).getString()
+    except Exception:
+        return None
+
+def focus():
+    win.present()
+    E.view.grab_focus()
+
+def fresh():
+    """Empty document with default formatting."""
+    m = M()
+    t = m.getText()
+    # drop tables/frames
+    try:
+        ix = m.getDocumentIndexes()
+        for i in reversed(range(ix.getCount())):
+            ix.getByIndex(i).dispose()
+    except Exception:
+        pass
+    try:
+        ss = m.getTextSections()
+        for n in list(ss.getElementNames()):
+            ss.getByName(n).dispose()
+    except Exception:
+        pass
+    for coll in (m.getTextTables(), m.getTextFrames(), m.getGraphicObjects()):
+        try:
+            for n in list(coll.getElementNames()):
+                coll.getByName(n).dispose()
+        except Exception:
+            pass
+    c = t.createTextCursor()
+    c.gotoStart(False); c.gotoEnd(True)
+    c.setString("")
+    try:
+        c.ParaStyleName = "Standard"
+        c.setPropertiesToDefault(("CharWeight", "CharPosture", "CharUnderline", "CharHeight",
+                                  "ParaAdjust", "NumberingStyleName", "CharEscapement",
+                                  "CharEscapementHeight", "CharCaseMap", "CharStrikeout"))
+    except Exception:
+        pass
+    try:
+        c2 = t.createTextCursor(); c2.gotoStart(False); c2.gotoEnd(True)
+        c2.setPropertyToDefault("NumberingRules")
+        c2.setPropertyToDefault("NumberingStyleName")
+        docapi.controller(M()).getViewCursor().gotoStart(False)
+        win.actions.cmd(".uno:RemoveBullets")
+    except Exception as e:
+        log("fresh numbering", e)
+    try:
+        M().RecordChanges = False
+    except Exception:
+        pass
+    docapi.controller(M()).getViewCursor().gotoStart(False)
+    focus()
+
+def run_scenarios(*gens, outfile="/tmp/wc_results.txt"):
+    gens = list(gens)
+    state = {"g": None}
+    def nxt():
+        try:
+            if state["g"] is None:
+                if not gens:
+                    with open(outfile, "a") as f:
+                        for r in RESULTS:
+                            f.write("\t".join(str(x) for x in r) + "\n")
+                    log("ALLDONE")
+                    GLib.timeout_add(300, lambda: app.quit() or False)
+                    return False
+                fn = gens.pop(0)
+                CUR["name"] = fn.__name__
+                state["g"] = fn()
+            d = next(state["g"])
+        except StopIteration:
+            state["g"] = None
+            d = 0.3
+        except Exception:
+            log("ERROR in", CUR["name"]); log(traceback.format_exc())
+            check("scenario crashed", False, traceback.format_exc().splitlines()[-1])
+            state["g"] = None
+            d = 0.5
+        GLib.timeout_add(int(max(0.05, d or 0.05) * 1000), nxt)
+        return False
+    GLib.timeout_add(500, nxt)
+
+def find(word, nth=0):
+    sd = M().createSearchDescriptor(); sd.SearchString = word
+    r = M().findFirst(sd)
+    for _ in range(nth):
+        r = M().findNext(r.getEnd(), sd)
+    return r
+
+def screen_of_widget(widget, x, y):
+    top = widget.get_toplevel()
+    tx, ty = widget.translate_coordinates(top, int(x), int(y))
+    ox, oy = top.get_window().get_origin()[1:]
+    return ox + tx, oy + ty
+
+def doc_screen(xt, yt):
+    px, py = E.twips_to_px(xt, yt)
+    return screen_of_widget(E.view, px, py)
+
+def range_rect(rng):
+    """twips rect of the start of a text range (moves the view cursor there)"""
+    c = vc(); c.gotoRange(rng.getStart(), False)
+
+def click(x, y, button=1, n=1, mods=None):
+    X("mousemove", int(x), int(y)); time.sleep(0.08)
+    if mods:
+        X("keydown", mods)
+    X("click", "--repeat", n, "--delay", 80, button)
+    if mods:
+        X("keyup", mods)
+
+def widget_center(w):
+    a = w.get_allocation()
+    return screen_of_widget(w, a.width / 2, a.height / 2)
+
+def find_widget(root, pred):
+    out = []
+    def walk(w):
+        try:
+            if pred(w): out.append(w)
+        except Exception: pass
+        if isinstance(w, Gtk.Container):
+            for c in w.get_children(): walk(c)
+    walk(root)
+    return out
+
+def dialogs_open():
+    return [w for w in Gtk.Window.list_toplevels() if w.get_visible() and w is not win and isinstance(w, Gtk.Window) and w.get_title()]
+
+def close_dialogs():
+    for w in dialogs_open():
+        if isinstance(w, Gtk.Dialog): w.response(Gtk.ResponseType.CANCEL)
+        else:
+            try: w.hide()
+            except Exception: pass
+
+def popups():
+    return [w for w in Gtk.Window.list_toplevels() if w.get_visible() and w.get_window_type() == Gtk.WindowType.POPUP]
+
+def menu_labels():
+    out = []
+    for w in popups():
+        for mi in find_widget(w, lambda x: isinstance(x, Gtk.MenuItem)):
+            out.append(mi.get_label() or "")
+        for mb in find_widget(w, lambda x: isinstance(x, Gtk.ModelButton)):
+            out.append(mb.get_property("text") or "")
+        for b in find_widget(w, lambda x: isinstance(x, Gtk.Button) and not isinstance(x, Gtk.ModelButton)):
+            if b.get_label(): out.append(b.get_label())
+            elif b.get_tooltip_text(): out.append("tip:" + b.get_tooltip_text())
+    return out
+
+def _clean(s):
+    return (s or "").replace("\n", " ").replace("_", "").strip()
+
+def find_control(tab, label):
+    for c in win.ribbon.controls:
+        if getattr(c, "tab_name", "") != tab:
+            continue
+        lab = _clean(getattr(c, "label", "")) or _clean((getattr(c, "tooltip_text", "") or "").split(" (")[0])
+        if lab.lower() == label.lower():
+            return c
+    return None
+
+def rib(tab, label, item=None):
+    """Run a ribbon button (or one of its menu items) as a click would, later."""
+    c = find_control(tab, label)
+    if c is None:
+        check("ribbon control exists: %s > %s" % (tab, label), False)
+        return False
+    if item is None:
+        GLib.idle_add(lambda: (c.run(), False)[1])
+        return True
+    items = getattr(c, "menu", None)
+    if callable(items):
+        try:
+            items = items()
+        except TypeError:
+            items = None
+    if isinstance(items, Gtk.Popover):
+        for b in find_widget(items, lambda w: isinstance(w, Gtk.Button)):
+            labs = [l.get_text() for l in find_widget(b, lambda w: isinstance(w, Gtk.Label))]
+            if any(_clean(l).lower() == item.lower() for l in labs):
+                GLib.idle_add(lambda b=b: (b.clicked(), False)[1])
+                return True
+        items = None
+    if isinstance(items, (list, tuple)):
+        for it in items:
+            if it is not None and not isinstance(it, Gtk.Widget) and it[0] != "#" and \
+                    (_clean(it[0]).lower() == item.lower() or _clean(it[0]).lower().startswith(item.lower() + " ")) and callable(it[1]):
+                GLib.idle_add(lambda f=it[1]: (f(), False)[1])
+                return True
+    check("ribbon menu item exists: %s > %s > %s" % (tab, label, item), False,
+          [it[0] for it in items or [] if it and not isinstance(it, Gtk.Widget)][:30])
+    return False
+
+def dlg(title_part):
+    return [d for d in dialogs_open() if title_part.lower() in (d.get_title() or "").lower()]
+
+def respond(title_part, resp=Gtk.ResponseType.OK):
+    for d in dlg(title_part):
+        if isinstance(d, Gtk.Dialog):
+            d.response(resp)
