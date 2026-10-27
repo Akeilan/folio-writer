@@ -1,7 +1,22 @@
 """Dialogs for citations: Create Source, Source Manager, Insert Citation menu."""
 from gi.repository import GLib, Gtk, Pango
 
-from . import citations as C
+from . import citations as _citations
+
+
+def _native(win):
+    return getattr(win.engine, "native", False)
+
+
+def _C(win):
+    if _native(win):
+        from .native import refs
+        return refs.cites()
+    return _citations
+
+
+def _M(win):
+    return win if _native(win) else win.engine.model
 from .widgets import FDialog, combo, grid, heading
 
 
@@ -10,11 +25,11 @@ def source_dialog(win, src=None, title="Create Source"):
     src = dict(src or {"type": "Book"})
     d = FDialog(win, title if not src.get("tag") or title != "Create Source" else "Edit Source")
     d.set_default_size(520, -1)
-    types = [t for t, _c in C.TYPES]
+    types = [t for t, _c in _C(win).TYPES]
     tcombo = combo(types, src.get("type", "Book"))
     d.add(grid([["Type of _Source:", tcombo]]))
-    m = win.engine.model
-    d.add(heading("Bibliography Fields for %s" % (C.current_style(m) if m is not None
+    m = _M(win)
+    d.add(heading("Bibliography Fields for %s" % (_C(win).current_style(m) if m is not None
                                                   else "APA")))
     holder = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     d.add(holder)
@@ -28,7 +43,7 @@ def source_dialog(win, src=None, title="Create Source"):
             holder.remove(ch)
         entries.clear()
         rows = []
-        for key, label in C.FIELDS[tcombo.get_active_text() or "Book"]:
+        for key, label in _C(win).FIELDS[tcombo.get_active_text() or "Book"]:
             e = Gtk.Entry(text=values.get(key, ""))
             e.set_width_chars(40)
             if key == "author":
@@ -61,17 +76,17 @@ def source_dialog(win, src=None, title="Create Source"):
 def citation_menu(win):
     """Insert Citation drop-down: the document's sources, then Add New Source."""
     from .ribbon import menu_popover
-    m = win.engine.model
+    m = _M(win)
     items = []
     if m is not None:
-        style = C.current_style(m)
-        for s in sorted(C.doc_sources(m), key=lambda s: (s.get("author") or s.get("title") or "")):
-            label = "%s\n%s" % (C.author_list(s, style) or s.get("tag"),
+        style = _C(win).current_style(m)
+        for s in sorted(_C(win).doc_sources(m), key=lambda s: (s.get("author") or s.get("title") or "")):
+            label = "%s\n%s" % (_C(win).author_list(s, style) or s.get("tag"),
                                 (s.get("title") or "")[:60])
             items.append((label, (lambda t=s["tag"]: insert(win, t))))
         if items:
             items.append(None)
-    if m is not None and C.citation_at_cursor(m) is not None:
+    if m is not None and _C(win).citation_at_cursor(m) is not None:
         items = [("Edit Citation...", lambda: edit_citation(win)), None] + items
     items += [("Add New Source...", lambda: new_source(win, cite=True)),
               ("Add New Placeholder...", lambda: placeholder(win))]
@@ -79,44 +94,44 @@ def citation_menu(win):
 
 
 def insert(win, tag):
-    m = win.engine.model
+    m = _M(win)
     if m is not None:
-        C.insert_citation(m, tag)
+        _C(win).insert_citation(m, tag)
 
 
 def new_source(win, cite=False):
-    m = win.engine.model
+    m = _M(win)
     if m is None:
         return
     src = source_dialog(win)
     if src:
-        src = C.add_source(m, src)
+        src = _C(win).add_source(m, src)
         if cite:
-            C.insert_citation(m, src["tag"])
+            _C(win).insert_citation(m, src["tag"])
 
 
 def placeholder(win):
-    m = win.engine.model
+    m = _M(win)
     if m is None:
         return
     name = win.dialogs.ask_text("Placeholder Name", "Type the tag name of the source. You "
                                 "can add more information to this source later by "
                                 "clicking Edit in the Source Manager.",
-                                "Placeholder%d" % (len(C.doc_sources(m)) + 1))
+                                "Placeholder%d" % (len(_C(win).doc_sources(m)) + 1))
     if name:
-        src = C.add_source(m, {"tag": name.strip(), "title": name.strip(), "type": "Book",
+        src = _C(win).add_source(m, {"tag": name.strip(), "title": name.strip(), "type": "Book",
                                "author": name.strip()}, master=False)
-        C.insert_citation(m, src["tag"])
+        _C(win).insert_citation(m, src["tag"])
 
 
 def manage_sources(win):
-    m = win.engine.model
+    m = _M(win)
     if m is None:
         return
     d = FDialog(win, "Source Manager", buttons=(("Close", Gtk.ResponseType.CLOSE),))
     d.set_default_size(820, 520)
     d.set_resizable(True)
-    style = C.current_style(m)
+    style = _C(win).current_style(m)
 
     def make_list():
         store = Gtk.ListStore(str, str)      # label, tag
@@ -135,7 +150,7 @@ def manage_sources(win):
     cited_note = Gtk.Label(xalign=0)
 
     def label(s):
-        mark = "✓ " if C.is_cited(m, s.get("tag")) else "    "
+        mark = "✓ " if _C(win).is_cited(m, s.get("tag")) else "    "
         return "%s%s; %s (%s)" % (mark, s.get("author") or "", s.get("title") or "",
                                   s.get("year") or "")
 
@@ -154,10 +169,10 @@ def manage_sources(win):
     def fill(*_):
         mstore.clear()
         cstore.clear()
-        for s in order(C.master_sources()):
+        for s in order(_C(win).master_sources()):
             mstore.append(["%s; %s (%s)" % (s.get("author") or "", s.get("title") or "",
                                             s.get("year") or ""), s.get("tag")])
-        for s in order(C.doc_sources(m)):
+        for s in order(_C(win).doc_sources(m)):
             cstore.append([label(s), s.get("tag")])
     search.connect("search-changed", fill)
     sort.connect("changed", fill)
@@ -184,55 +199,55 @@ def manage_sources(win):
         if s is None:
             preview.set_text("")
             return
-        cite = C.citation_text(s, style)
+        cite = _C(win).citation_text(s, style)
         parts = "".join(("<i>%s</i>" if it else "%s") % GLib.markup_escape_text(t)
-                        for t, it in C.entry_parts(s, style))
+                        for t, it in _C(win).entry_parts(s, style))
         preview.set_markup("<b>Citation:</b>  (%s)\n\n<b>Bibliography Entry:</b>\n%s" % (
             GLib.markup_escape_text(cite), parts))
-    mtv.get_selection().connect("changed", lambda *_: show_preview(mtv, C.master_sources))
+    mtv.get_selection().connect("changed", lambda *_: show_preview(mtv, _C(win).master_sources))
     ctv.get_selection().connect("changed", lambda *_: show_preview(ctv,
-                                                                    lambda: C.doc_sources(m)))
+                                                                    lambda: _C(win).doc_sources(m)))
 
     def copy_to_doc(*_):
-        s = find(selected(mtv), C.master_sources())
+        s = find(selected(mtv), _C(win).master_sources())
         if s:
-            C.add_source(m, dict(s), master=False)
+            _C(win).add_source(m, dict(s), master=False)
             fill()
 
     def copy_to_master(*_):
-        s = find(selected(ctv), C.doc_sources(m))
+        s = find(selected(ctv), _C(win).doc_sources(m))
         if s:
-            C.add_to_master(dict(s))
+            _C(win).add_to_master(dict(s))
             fill()
 
     def delete(*_):
         tag = selected(ctv)
         if tag:
-            if C.is_cited(m, tag):
+            if _C(win).is_cited(m, tag):
                 win.dialogs.message("This source is cited in the document. Remove its "
                                     "citations first.")
                 return
-            C.delete_source(m, tag)
+            _C(win).delete_source(m, tag)
         else:
             tag = selected(mtv)
             if tag:
-                C.save_master([s for s in C.master_sources() if s.get("tag") != tag])
+                _C(win).save_master([s for s in _C(win).master_sources() if s.get("tag") != tag])
         fill()
 
     def edit(*_):
         tag = selected(ctv)
-        s = find(tag, C.doc_sources(m)) if tag else None
+        s = find(tag, _C(win).doc_sources(m)) if tag else None
         if s is None:
             return
         out = source_dialog(win, s, "Edit Source")
         if out:
-            C.add_source(m, out)
+            _C(win).add_source(m, out)
             fill()
 
     def new(*_):
         out = source_dialog(win)
         if out:
-            C.add_source(m, out)
+            _C(win).add_source(m, out)
             fill()
 
     top = Gtk.Box(spacing=8)
@@ -268,12 +283,12 @@ def manage_sources(win):
 
 
 def edit_citation(win):
-    m = win.engine.model
-    f = C.citation_at_cursor(m) if m is not None else None
+    m = _M(win)
+    f = _C(win).citation_at_cursor(m) if m is not None else None
     if f is None:
         win.dialogs.message("Put the cursor in a citation first.")
         return
-    tag, opts = C.citation_info(m, f)
+    tag, opts = _C(win).citation_info(m, f)
     d = FDialog(win, "Edit Citation")
     d.add(heading("Add"))
     pages = Gtk.Entry(text=opts.get("pages", ""))
@@ -296,5 +311,5 @@ def edit_citation(win):
         s2 = [k for k, cb in checks.items() if cb.get_active()]
         if s2:
             new["suppress"] = s2
-        win.engine.sync(lambda: C.set_citation_options(m, f, new))
+        win.engine.sync(lambda: _C(win).set_citation_options(m, f, new))
     d.done()

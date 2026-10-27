@@ -151,7 +151,7 @@ Insert	Screenshot > Full Screen		SAME
 Insert	Insert Link (Ctrl+K)	hyperlink	UI
 Insert	Bookmark	bookmark	UI
 Insert	Cross-reference	cross-reference	UI
-Insert	New Comment (Ctrl+Alt+M)	comment	UI
+Insert	New Comment (Ctrl+Alt+M)	comment	CHANGED
 Insert	Text Box > Simple Text Box		CHANGED
 Insert	Text Box > Sidebar		CHANGED
 Insert	Text Box > Quote		CHANGED
@@ -302,8 +302,8 @@ Layout	Orientation > Landscape	('orientation', True)	CHANGED
 Layout	Size > Letter  8.5" x 11"	('paper', (21590, 27940))	CHANGED
 Layout	Size > Legal  8.5" x 14"	('paper', (21590, 35560))	CHANGED
 Layout	Size > A4  8.27" x 11.69"	('paper', (21000, 29700))	CHANGED
-Layout	Size > A5  5.83" x 8.27"	('paper', (14800, 21000))	CHANGED
-Layout	Size > Executive  7.25" x 10.5"	('paper', (18415, 26670))	CHANGED
+Layout	Size > A5  5.83" x 8.27"	('paper', (14800, 21000))	CHANGED MODEL
+Layout	Size > Executive  7.25" x 10.5"	('paper', (18415, 26670))	CHANGED MODEL
 Layout	Size > More Paper Sizes...	page-setup	UI
 Layout	Columns > One	('columns', 1)	CHANGED
 Layout	Columns > Two	('columns', 2)	CHANGED
@@ -345,13 +345,13 @@ Layout	Align > Distribute Horizontally		SAME MODEL
 Layout	Align > Distribute Vertically		SAME MODEL
 Layout	Align > Align to Page		SAME
 Layout	Align > Align to Margin		SAME
-Layout	Align > Align Selected Objects		SAME
-Layout	Group > Group		NOT_YET MODEL
+Layout	Align > Align Selected Objects		SAME MODEL
+Layout	Group > Group		NOT_YET
 Layout	Group > Regroup		NOT_YET
 Layout	Group > Ungroup		NOT_YET
 References	Table of Contents > Automatic Table 1  (Contents)	insert-toc	CHANGED
 References	Table of Contents > Automatic Table 2  (Table of Contents)	insert-toc-2	CHANGED
-References	Table of Contents > Custom Table of Contents...	toc-dialog	NOT_YET
+References	Table of Contents > Custom Table of Contents...	toc-dialog	UI
 References	Table of Contents > Remove Table of Contents	remove-toc	CHANGED
 References	Add Text > Do Not Show in Table of Contents	('add-text', 0)	CHANGED
 References	Add Text > Level 1	('add-text', 1)	CHANGED
@@ -360,28 +360,28 @@ References	Add Text > Level 3	('add-text', 3)	CHANGED
 References	Update Table	update-toc	CHANGED MODEL
 References	Insert Footnote (Ctrl+Alt+F)	.uno:InsertFootnote	CHANGED
 References	Insert Endnote (Ctrl+Alt+D)	.uno:InsertEndnote	NOT_YET MODEL
-References	Next Footnote	<lambda> ; next-footnote	NOT_YET
-References	Next Footnote > Next Footnote	next-footnote	NOT_YET
-References	Next Footnote > Previous Footnote	prev-footnote	NOT_YET
-References	Next Footnote > Next Endnote	next-endnote	NOT_YET
-References	Next Footnote > Previous Endnote	prev-endnote	NOT_YET
-References	Show Notes	show-notes	NOT_YET
-References	Footnotes Settings	footnote-dialog	NOT_YET
-References	Manage Sources	<lambda>	SAME MODEL
-References	Bibliography > Bibliography		NOT_YET
-References	Bibliography > References		NOT_YET
-References	Bibliography > Works Cited		NOT_YET
-References	Bibliography > Insert Bibliography		NOT_YET
+References	Next Footnote	<lambda> ; next-footnote	SAME
+References	Next Footnote > Next Footnote	next-footnote	SAME MODEL
+References	Next Footnote > Previous Footnote	prev-footnote	SAME
+References	Next Footnote > Next Endnote	next-endnote	SAME
+References	Next Footnote > Previous Endnote	prev-endnote	SAME
+References	Show Notes	show-notes	SAME
+References	Footnotes Settings	footnote-dialog	UI MODEL
+References	Manage Sources	<lambda>	UI
+References	Bibliography > Bibliography		CHANGED
+References	Bibliography > References		SAME MODEL
+References	Bibliography > Works Cited		SAME
+References	Bibliography > Insert Bibliography		SAME
 References	Insert Caption	caption	UI MODEL
-References	Insert Table of Figures	table-of-figures	NOT_YET
+References	Insert Table of Figures	table-of-figures	UI
 References	Update Table	update-toc	CHANGED
 References	Cross-reference	cross-reference	UI MODEL
-References	Mark Entry (Alt+Shift+X)	mark-entry	NOT_YET
-References	Insert Index	insert-index	NOT_YET
+References	Mark Entry (Alt+Shift+X)	mark-entry	UI
+References	Insert Index	insert-index	UI
 References	Update Index	update-toc	CHANGED
-References	Mark Citation (Alt+Shift+I)	mark-citation	NOT_YET
-References	Insert Table of Authorities	<lambda>	SAME MODEL
-References	Update Table	<lambda>	NOT_YET MODEL
+References	Mark Citation (Alt+Shift+I)	mark-citation	UI
+References	Insert Table of Authorities	<lambda> ; insert-toa	SAME
+References	Update Table	<lambda> ; update-toa	CHANGED
 Mailings	Envelopes	<lambda>	SAME MODEL
 Mailings	Labels	<lambda>	SAME MODEL
 Mailings	Start Mail Merge > Letters		SAME MODEL
@@ -649,28 +649,28 @@ Picture Format	Alt Text	<lambda>	SAME
 Picture Format	Position > In Line with Text		SAME
 Picture Format	Position > Position in Top Left		NOT_YET MODEL
 Picture Format	Position > Position in Top Center		NOT_YET
-Picture Format	Position > Position in Top Right		NOT_YET
+Picture Format	Position > Position in Top Right		NOT_YET MODEL
 Picture Format	Position > Position in Middle Left		NOT_YET
 Picture Format	Position > Position in Middle Center		NOT_YET
 Picture Format	Position > Position in Middle Right		NOT_YET
-Picture Format	Position > Position in Bottom Left		NOT_YET MODEL
+Picture Format	Position > Position in Bottom Left		NOT_YET
 Picture Format	Position > Position in Bottom Center		NOT_YET
 Picture Format	Position > Position in Bottom Right		NOT_YET
 Picture Format	Position > More Layout Options...		SAME MODEL
-Picture Format	Wrap Text > In Line with Text		SAME
-Picture Format	Wrap Text > Square		CHANGED MODEL
-Picture Format	Wrap Text > Tight		CHANGED
-Picture Format	Wrap Text > Through		CHANGED
-Picture Format	Wrap Text > Top and Bottom		CHANGED
-Picture Format	Wrap Text > Behind Text		CHANGED
-Picture Format	Wrap Text > In Front of Text		CHANGED
+Picture Format	Wrap Text > In Line with Text		NOT_YET
+Picture Format	Wrap Text > Square		NOT_YET
+Picture Format	Wrap Text > Tight		NOT_YET
+Picture Format	Wrap Text > Through		NOT_YET
+Picture Format	Wrap Text > Top and Bottom		NOT_YET
+Picture Format	Wrap Text > Behind Text		NOT_YET
+Picture Format	Wrap Text > In Front of Text		NOT_YET
 Picture Format	Wrap Text > Edit Wrap Points		SAME MODEL
 Picture Format	Wrap Text > Move with Text		NOT_YET
 Picture Format	Wrap Text > Fix Position on Page		NOT_YET
 Picture Format	Wrap Text > More Layout Options...		SAME MODEL
-Picture Format	Bring Forward	<lambda>	SAME
-Picture Format	Send Backward	<lambda>	SAME MODEL
-Picture Format	Delete	<lambda>	CHANGED
+Picture Format	Bring Forward	<lambda>	NOT_YET
+Picture Format	Send Backward	<lambda>	NOT_YET
+Picture Format	Delete	<lambda>	SAME
 Picture Format	Selection Pane	selection-pane	SAME
 Picture Format	Align > Align Left		SAME MODEL
 Picture Format	Align > Align Center		SAME MODEL
@@ -686,10 +686,10 @@ Picture Format	Align > Align Selected Objects		SAME
 Picture Format	Group > Group		NOT_YET
 Picture Format	Group > Regroup		NOT_YET
 Picture Format	Group > Ungroup		NOT_YET
-Picture Format	Rotate > Rotate Right 90°		CHANGED
-Picture Format	Rotate > Rotate Left 90°		CHANGED
-Picture Format	Rotate > Flip Vertical		CHANGED
-Picture Format	Rotate > Flip Horizontal		CHANGED
+Picture Format	Rotate > Rotate Right 90°		NOT_YET
+Picture Format	Rotate > Rotate Left 90°		NOT_YET
+Picture Format	Rotate > Flip Vertical		NOT_YET
+Picture Format	Rotate > Flip Horizontal		NOT_YET
 Picture Format	Crop	<lambda>	SAME MODEL
 Picture Format	Crop > Crop		SAME MODEL
 Picture Format	Crop > Crop...		SAME
@@ -717,7 +717,7 @@ Picture Format	Crop > Arrow: Right		SAME MODEL
 Picture Format	Crop > Chevron		SAME MODEL
 Picture Format	Crop > Fill		NOT_YET
 Picture Format	Crop > Fit		NOT_YET
-Picture Format	Size Settings	object-size	NOT_YET MODEL
+Picture Format	Size Settings	object-size	NOT_YET
 Shape Format	Shapes > Line	('draw-shape', 'line')	SAME
 Shape Format	Shapes > Arrow	('draw-shape', 'arrow-line')	SAME
 Shape Format	Shapes > Connector: Elbow	('draw-shape', 'elbow-connector')	SAME
@@ -916,10 +916,10 @@ Shape Format	Align Text > Middle		CHANGED
 Shape Format	Align Text > Bottom		CHANGED
 Shape Format	Create Link	<lambda>	SAME MODEL
 Shape Format	Break Link	<lambda>	SAME MODEL
-Shape Format	Position > In Line with Text		CHANGED MODEL
-Shape Format	Position > Position in Top Left		CHANGED MODEL
-Shape Format	Position > Position in Top Center		CHANGED MODEL
-Shape Format	Position > Position in Top Right		CHANGED MODEL
+Shape Format	Position > In Line with Text		CHANGED
+Shape Format	Position > Position in Top Left		CHANGED
+Shape Format	Position > Position in Top Center		CHANGED
+Shape Format	Position > Position in Top Right		CHANGED
 Shape Format	Position > Position in Middle Left		CHANGED
 Shape Format	Position > Position in Middle Center		CHANGED
 Shape Format	Position > Position in Middle Right		CHANGED
@@ -927,8 +927,8 @@ Shape Format	Position > Position in Bottom Left		CHANGED
 Shape Format	Position > Position in Bottom Center		CHANGED
 Shape Format	Position > Position in Bottom Right		CHANGED
 Shape Format	Position > More Layout Options...		SAME MODEL
-Shape Format	Wrap Text > In Line with Text		CHANGED MODEL
-Shape Format	Wrap Text > Square		CHANGED MODEL
+Shape Format	Wrap Text > In Line with Text		CHANGED
+Shape Format	Wrap Text > Square		CHANGED
 Shape Format	Wrap Text > Tight		CHANGED
 Shape Format	Wrap Text > Through		CHANGED
 Shape Format	Wrap Text > Top and Bottom		CHANGED

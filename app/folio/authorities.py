@@ -4,7 +4,7 @@ import json
 
 from gi.repository import Gtk
 
-from . import bridge, docapi
+from ._lazy import bridge, docapi
 from .widgets import FDialog, combo, grid
 
 CATEGORIES = ["Cases", "Statutes", "Other Authorities", "Rules", "Treatises", "Regulations",

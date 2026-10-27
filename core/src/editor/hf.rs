@@ -443,7 +443,7 @@ impl Editor {
     }
 
     /// The footnotes (or endnotes) part, made if the document has none.
-    fn notes_root(&mut self, endnote: bool) -> NodeId {
+    pub(super) fn notes_root(&mut self, endnote: bool) -> NodeId {
         let kind = if endnote { "endnotes" } else { "footnotes" };
         if let Some(p) = self.doc.parts.iter().find(|p| p.kind == kind) {
             return p.root;

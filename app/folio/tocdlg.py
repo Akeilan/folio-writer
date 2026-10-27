@@ -1,10 +1,9 @@
 """The Table of Contents, Index and Table of Figures dialogs, as in the
 original: print and web previews, page numbers shown / right-aligned, tab
 leader, formats, the Options and Modify buttons."""
-import uno
 from gi.repository import Gtk
 
-from . import bridge, docapi
+from ._lazy import bridge, docapi, uno
 from .widgets import FDialog, Preview, combo, grid, heading
 
 LEADERS = [("(none)", ""), ("........", "."), ("--------", "-"), ("________", "_")]

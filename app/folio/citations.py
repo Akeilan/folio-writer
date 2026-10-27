@@ -9,7 +9,7 @@ import json
 import os
 import re
 
-from . import bridge, docapi
+from ._lazy import bridge, docapi
 
 STYLES = ["APA", "Chicago", "Harvard", "IEEE", "ISO 690", "MLA", "Turabian"]
 STYLE_NAMES = {s: s for s in STYLES}

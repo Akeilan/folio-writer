@@ -853,6 +853,10 @@ class DocWindow(Gtk.ApplicationWindow):
             from .native import tables
             if mod == "tablelayout" and tables.call(self, fn, *args):
                 return
+            if mod == "citations":
+                from .native import refs
+                getattr(refs.cites(), fn)(self, *args)
+                return
             if mod == "insertextras" and fn == "insert_textbox":
                 from .native import objects
                 objects.insert_builtin_textbox(self, *args)

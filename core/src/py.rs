@@ -1158,6 +1158,104 @@ impl PyEditor {
         self.touched();
     }
 
+    #[pyo3(signature = (instr, title=None, title_style=None, gallery=None, leader=None, paras=None, columns=0))]
+    fn insert_table_field(&mut self, instr: &str, title: Option<&str>, title_style: Option<&str>, gallery: Option<&str>,
+                          leader: Option<&str>, paras: Option<&str>, columns: u32) -> bool {
+        let t = title.map(|t| (t, title_style.unwrap_or("TOCHeading")));
+        let ok = self.ed.insert_table_field(instr, t, gallery, leader, paras, columns);
+        self.touched();
+        ok
+    }
+
+    #[pyo3(signature = (i, instr, leader=None))]
+    fn set_table_instr(&mut self, i: usize, instr: &str, leader: Option<&str>) -> bool {
+        let ok = self.ed.set_table_instr(i, instr, leader);
+        self.touched();
+        ok
+    }
+
+    fn set_table_result(&mut self, i: usize, paras_xml: &str) -> bool {
+        let ok = self.ed.set_table_result(i, paras_xml);
+        self.touched();
+        ok
+    }
+
+    fn set_field_instr(&mut self, i: usize, instr: &str) -> bool {
+        let ok = self.ed.set_field_instr(i, instr);
+        self.touched();
+        ok
+    }
+
+    fn set_field_text(&mut self, i: usize, text: &str) -> bool {
+        let ok = self.ed.set_field_text(i, text);
+        self.touched();
+        ok
+    }
+
+    /// Top-level body fields: (instr, result, para, start, end).
+    fn body_fields(&self) -> Vec<(String, String, u32, usize, usize)> {
+        self.ed.body_fields()
+    }
+
+    fn field_at_caret(&self, kind: &str) -> Option<usize> {
+        self.ed.field_at_caret(kind)
+    }
+
+    fn insert_code_field(&mut self, instr: &str) -> bool {
+        let ok = self.ed.insert_code_field(instr);
+        self.touched();
+        ok
+    }
+
+    #[pyo3(signature = (text, instr, match_case=false))]
+    fn mark_all(&mut self, text: &str, instr: &str, match_case: bool) -> usize {
+        let n = self.ed.mark_all(text, instr, match_case);
+        self.touched();
+        n
+    }
+
+    fn note_settings(&self, endnote: bool) -> (String, i32, String, String) {
+        self.ed.note_settings(endnote)
+    }
+
+    fn set_note_settings(&mut self, endnote: bool, fmt: &str, start: i32, restart: &str, pos: &str) {
+        self.ed.set_note_settings(endnote, fmt, start, restart, pos);
+        self.touched();
+    }
+
+    fn insert_note_mark(&mut self, endnote: bool, mark: &str) -> bool {
+        let ok = self.ed.insert_note_mark(endnote, mark);
+        self.touched();
+        ok
+    }
+
+    #[pyo3(signature = (endnote_first=false))]
+    fn show_notes(&mut self, endnote_first: bool) -> bool {
+        let ok = self.ed.show_notes(endnote_first);
+        self.touched();
+        ok
+    }
+
+    fn note_count(&self, endnote: bool) -> usize {
+        if endnote { self.ed.doc.notes.en_order.len() } else { self.ed.doc.notes.fn_order.len() }
+    }
+
+    fn convert_notes(&mut self, how: &str) -> usize {
+        let n = self.ed.convert_notes(how);
+        self.touched();
+        n
+    }
+
+    fn custom_xml(&mut self, ns: &str) -> Option<String> {
+        self.ed.custom_xml(ns)
+    }
+
+    fn set_custom_xml(&mut self, ns: &str, xml: &str) -> bool {
+        let ok = self.ed.set_custom_xml(ns, xml);
+        self.touched();
+        ok
+    }
+
     fn update_toc(&mut self) -> bool {
         let ok = self.ed.update_toc();
         self.touched();

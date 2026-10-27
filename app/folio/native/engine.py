@@ -321,6 +321,13 @@ class NativeEngine(GObject.GObject):
         toggles = {".uno:Bold": "w:b", ".uno:Italic": "w:i", ".uno:Strikeout": "w:strike"}
         from . import objects
         if cmd in (".uno:InsertFootnote", ".uno:InsertEndnote"):
+            if ed.story() != "body":
+                # as in the original: notes go in the main text only
+                try:
+                    self.win.status.flash("Notes can only be inserted in the main text.")
+                except Exception:
+                    pass
+                return True
             ok = ed.insert_note(cmd == ".uno:InsertEndnote")
             self.view.document_changed()
             self.view.scroll_to_caret()
