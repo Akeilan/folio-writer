@@ -524,6 +524,7 @@ class TableStyleGallery(Gtk.Box):
 
         def prev(m, kind=kind, accent=accent):
             self.ts.apply(m, kind, accent)
+        prev.native = lambda w, kind=kind, accent=accent: w.actions._run(("table-style2", (kind, accent)))
         livepreview.attach(self.win, b, ("table", kind, accent), prev)
         if (kind, accent) == self.current:
             b.get_style_context().add_class("current")
@@ -876,6 +877,7 @@ class PictureStyleGallery(Gtk.Box):
                 obj = _d.selected_shape(m)
                 if obj is not None:
                     _d.set_picture_style(obj, n)
+            prev.native = lambda w, n=name: w.object_call("set_picture_style", n)
             livepreview.attach(win, b, ("picstyle", name), prev)
             self.pack_start(b, False, False, 0)
 

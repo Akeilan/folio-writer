@@ -63,6 +63,8 @@ class LivePreview:
     def _start(self, key, apply_fn):
         self._timer = 0
         self.end()
+        if getattr(self.win.engine, "native", False):
+            return self._start_native(key, apply_fn)
         m = self.win.engine.model
         if m is None or self.win.read_only:
             return False
@@ -96,11 +98,48 @@ class LivePreview:
         except Exception as e:
             print("live preview undo:", e)
 
+    def _start_native(self, key, apply_fn):
+        ed = self.win.engine.ed
+        fn = getattr(apply_fn, "native", None)
+        if ed is None or fn is None or self.win.read_only:
+            return False
+        self._was_modified = ed.modified
+        ed.begin_group(TITLE)
+        try:
+            fn(self.win)
+        except Exception as e:
+            print("live preview:", e)
+        finally:
+            ed.end_group()
+        self.active = True
+        self.key = key
+        self.win.engine.view.document_changed()
+        return False
+
+    def _take_back_native(self):
+        ed = self.win.engine.ed
+        if ed is None:
+            return
+        try:
+            names = ed.undo_names()
+            if names and names[-1] == TITLE or names and names[0] == TITLE:
+                sel = ed.selection_range()
+                ed.undo()
+                ed.select_nodes(*sel)
+            if not self._was_modified and ed.modified:
+                ed.mark_saved()
+        except Exception as e:
+            print("live preview undo:", e)
+        self.win.engine.view.document_changed()
+
     def end(self):
         if not self.active:
             return
         self.active = False
         self.key = None
+        if getattr(self.win.engine, "native", False):
+            self._take_back_native()
+            return
         m = self.win.engine.model
         if m is not None:
             self._take_back(m)
@@ -133,7 +172,55 @@ def para_style(name):
             rng.CharStyleName = engine_style(name)
         else:
             vc.ParaStyleName = engine_style(name)
+
+    def native(win):
+        if name in CHAR_STYLES:
+            _native_word(win, lambda: win.actions.apply_style(name))
+        else:
+            win.actions.apply_style(name)
+    apply.native = native
     return apply
+
+
+def _native_word(win, fn):
+    """Run fn on the selection, or on the word at the caret (caret kept)."""
+    ed = win.engine.ed
+    if ed.has_selection():
+        fn()
+        return
+    from .native.units import word_bounds
+    p, off = ed.caret_pos()
+    t = ed.para_text_of(p)
+    a, b = word_bounds(t, off)
+    while b > a and t[b - 1] == " ":
+        b -= 1
+    if b <= a:
+        return
+    ed.select_nodes(p, a, p, b)
+    try:
+        fn()
+    finally:
+        ed.select_nodes(p, off, p, off)
+
+
+def _hex(c):
+    return "%06X" % (int(c) & 0xFFFFFF)
+
+
+def _native_run_edits(props):
+    out = []
+    for k, v in props.items():
+        if k == "CharColor":
+            out.append(("w:color", [("w:val", "auto" if v is None or v < 0 else _hex(v))]))
+        elif k == "CharBackColor":
+            out.append(("w:shd", None if v is None or v < 0 else
+                        [("w:val", "clear"), ("w:color", "auto"), ("w:fill", _hex(v))]))
+        elif k == "CharHeight":
+            out.append(("w:sz", [("w:val", str(int(round(float(v) * 2))))]))
+            out.append(("w:szCs", [("w:val", str(int(round(float(v) * 2))))]))
+        elif k == "CharFontName":
+            out.append(("w:rFonts", [("w:ascii", v), ("w:hAnsi", v), ("w:cs", v), ("w:eastAsia", v)]))
+    return out
 
 
 def _word_or_selection(vc):
@@ -150,4 +237,10 @@ def char_prop(**props):
         rng = _word_or_selection(docapi.view_cursor(m))
         for k, v in props.items():
             rng.setPropertyValue(k, v)
+
+    def native(win):
+        edits = _native_run_edits(props)
+        if edits:
+            _native_word(win, lambda: win.engine.ed.apply_run(edits, TITLE))
+    apply.native = native
     return apply
