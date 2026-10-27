@@ -34,8 +34,17 @@ def styles():
     # right-click on a gallery tile
     tiles = find_widget(win.ribbon, lambda w: isinstance(w, Gtk.Button) and "Heading 1" in (w.get_tooltip_text() or ""))
     if tiles:
+        from folio import stylemodify as _sm
+        _got = []
+        _orig = _sm.context_menu
+        _sm.context_menu = lambda *a, **k: (_got.append(_orig(*a, **k)), _got[-1])[1]
         x, y = widget_center(tiles[0]); X("mousemove", x, y); X("click", 3); yield 1.0
+        _sm.context_menu = _orig
         labs = []
+        for pop in _got:
+            for btn in find_widget(pop, lambda x: isinstance(x, Gtk.Button)):
+                labs.append((btn.get_label() or "").replace("_", ""))
+                for lab in find_widget(btn, lambda x: isinstance(x, Gtk.Label)): labs.append(lab.get_text().replace("_", ""))
         for w in popups():
             for mi in find_widget(w, lambda x: isinstance(x, (Gtk.MenuItem, Gtk.ModelButton, Gtk.Button))):
                 t = mi.get_label() if hasattr(mi, "get_label") else ""

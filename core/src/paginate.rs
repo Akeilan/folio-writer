@@ -1474,7 +1474,7 @@ fn place_paragraph(f: &mut Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout
     if floaty {
         p = prepare_floats(f, m, paras, &orig, pi, para_top, f.y);
     }
-    let n = p.lines.len();
+    let mut n = p.lines.len();
     let mut li = 0;
     let keep_lines = p.props.keep_lines.unwrap_or(false);
     let widow = widow_on(&p);
@@ -1558,6 +1558,9 @@ fn place_paragraph(f: &mut Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout
             f.y += top_extra;
             if floaty {
                 p = prepare_floats(f, m, paras, &orig, pi, top, f.y);
+                // wrapping round the floats on the new page can change the line count
+                n = p.lines.len();
+                li = li.min(n);
             }
             continue;
         }

@@ -557,6 +557,7 @@ impl Editor {
     /// caret). Returns false with nothing copied.
     pub fn paste_format(&mut self) -> bool {
         let Some(pt) = self.painter.take() else { return false };
+        let collapsed = !self.has_selection();
         let (a, b) = self.sel_or_word();
         self.begin();
         let paras = self.paras_between(a.para, b.para);
@@ -574,7 +575,7 @@ impl Editor {
                 }
             }
             if let Some(pp) = pt.ppr {
-                if a == b || paras.len() > 1 || (s == 0 && e >= len) {
+                if collapsed || a == b || paras.len() > 1 || (s == 0 && e >= len) {
                     self.track_ppr(*p);
                     self.replace_props(*p, "w:pPr", Some((&pt.dom, pp)), &["w:sectPr", "w:pPrChange", "w:rPr"], PPR_ORDER);
                 }

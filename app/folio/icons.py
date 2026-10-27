@@ -1,11 +1,15 @@
-"""Icons for the ribbon, from LibreOffice's open-licensed Colibre theme
-(MPL 2.0 / CC BY-SA 4.0), loaded straight from its archive."""
+"""Icons for the ribbon: Folio's own, then the open-licensed Colibre set
+(MPL 2.0 / CC BY-SA 4.0) shipped with Writer, recoloured in Writer's green."""
 import os
 import zipfile
 
 from gi.repository import GdkPixbuf, Gtk
 
+from . import SHARE
+
 ARCHIVES = [
+    (os.path.join(SHARE, "iconset", "colibre_svg.zip"), "svg"),
+    (os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "share", "iconset", "colibre_svg.zip"), "svg"),
     ("/usr/lib/libreoffice/share/config/images_colibre_svg.zip", "svg"),
     ("/usr/share/libreoffice/share/config/images_colibre_svg.zip", "svg"),
     ("/usr/lib/libreoffice/share/config/images_colibre.zip", "png"),
@@ -49,6 +53,63 @@ def _resolve(name):
     return name
 
 
+# Writer's colour: the borrowed icons' blues become hunter green (other hues — the reds,
+# oranges and yellows that mean something — are left alone).
+import colorsys
+import re as _re
+
+HUNTER_HUE = 128 / 360.0
+_HEXC = _re.compile(r"#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![0-9a-fA-F])")
+_RGB_FN = _re.compile(r"rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)")
+
+
+def green_rgb(r, g, b):
+    """A blue (0-255 channels) as the matching hunter green; anything else as it is."""
+    h, l, s = colorsys.rgb_to_hls(r / 255.0, g / 255.0, b / 255.0)
+    if s < 0.18 or not (0.47 <= h <= 0.75):
+        return r, g, b
+    # deep blues become deep green; pale blue fills stay pale
+    l2 = l * 0.82 if l < 0.7 else l
+    s2 = min(1.0, s * 0.62)
+    nr, ng, nb = colorsys.hls_to_rgb(HUNTER_HUE, l2, s2)
+    return int(round(nr * 255)), int(round(ng * 255)), int(round(nb * 255))
+
+
+def _hex_green(m):
+    h = m.group(1)
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return "#%02x%02x%02x" % green_rgb(r, g, b)
+
+
+def green_svg(svg):
+    svg = _HEXC.sub(_hex_green, svg)
+    return _RGB_FN.sub(lambda m: "rgb(%d,%d,%d)" % green_rgb(*(int(x) for x in m.groups())), svg)
+
+
+def green_pixbuf(pb):
+    if pb is None:
+        return pb
+    if not pb.get_has_alpha():
+        pb = pb.add_alpha(False, 0, 0, 0)
+    w, h, rs, n = pb.get_width(), pb.get_height(), pb.get_rowstride(), pb.get_n_channels()
+    data = bytearray(pb.get_pixels())
+    memo = {}
+    for y in range(h):
+        for x in range(w):
+            i = y * rs + x * n
+            if data[i + 3] == 0:
+                continue
+            k = (data[i], data[i + 1], data[i + 2])
+            v = memo.get(k)
+            if v is None:
+                v = memo[k] = green_rgb(*k)
+            data[i], data[i + 1], data[i + 2] = v
+    return GdkPixbuf.Pixbuf.new_from_data(bytes(data), GdkPixbuf.Colorspace.RGB, True, 8,
+                                          w, h, rs).copy()
+
+
 def pixbuf(name, size):
     """name: a command ('bold', '.uno:Bold') or a path inside the theme
     ('cmd/lc_bold'); size 16 or 32 (scaled to fit)."""
@@ -62,7 +123,13 @@ def pixbuf(name, size):
     candidates = []
     if os.path.exists(own):
         try:
-            pb = GdkPixbuf.Pixbuf.new_from_file_at_size(own, size, size)
+            with open(own, encoding="utf-8") as f:
+                svg = green_svg(f.read())
+            loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
+            loader.set_size(size, size)
+            loader.write(svg.encode())
+            loader.close()
+            pb = loader.get_pixbuf()
         except Exception:
             pb = None
     if pb is None and _zip is not None:
@@ -85,9 +152,12 @@ def pixbuf(name, size):
             try:
                 if _kind == "svg":
                     loader.set_size(size, size)
+                    data = green_svg(data.decode("utf-8", "replace")).encode()
                 loader.write(data)
                 loader.close()
                 pb = loader.get_pixbuf()
+                if _kind != "svg":
+                    pb = green_pixbuf(pb)
                 if pb is not None and (pb.get_width() != size or pb.get_height() != size):
                     w, h = pb.get_width(), pb.get_height()
                     scale = size / max(w, h)
