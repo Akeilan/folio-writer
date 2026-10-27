@@ -663,19 +663,6 @@ class NativeActions(Actions):
         ed = self.ed
         if ed is None:
             return None
-        if not ed.has_selection():
-            # the insertion point: the format of the word it's in (or the character before it)
-            from .units import word_bounds
-            p, off = ed.caret_pos()
-            t = ed.para_text_of(p)
-            a, b = word_bounds(t, max(0, off - 1) if off and (off >= len(t) or not t[off].isalnum()) else off)
-            while b > a and t[b - 1] == " ":
-                b -= 1
-            if b > a:
-                ed.select_nodes(p, a, p, b)
-                ed.copy_format()
-                ed.select_nodes(p, off, p, off)
-                return True
         ed.copy_format()
         return True
 

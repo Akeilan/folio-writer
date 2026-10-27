@@ -521,7 +521,15 @@ impl Editor {
         let (a, b) = self.selection();
         let mut dom = XmlDoc::with_root("x", &[("xmlns:w", crate::document::W_NS)]);
         // the run at the start (just inside a selection, else before the caret)
-        let off = if a == b { a.off.saturating_sub(1) } else { a.off };
+        let off = if a == b {
+            // at the start of a word: that word's format, else the character before
+            let t: Vec<char> = self.node_text(a.para).chars().collect();
+            let here = t.get(a.off).is_some_and(|c| c.is_alphanumeric());
+            let before = a.off > 0 && t.get(a.off - 1).is_some_and(|c| c.is_alphanumeric());
+            if here && !before { a.off } else { a.off.saturating_sub(1) }
+        } else {
+            a.off
+        };
         let src = &self.doc.dom;
         let run = self.pieces(a.para).into_iter()
             .find(|(pc, s, e)| pc.run.is_some() && *s <= off && (off < *e || *e == *s && *s == off))
