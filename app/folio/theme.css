@@ -362,3 +362,58 @@ button.folio-search-current { background: alpha(@theme_selected_bg_color, 0.18);
 .folio-dialog check:not(:checked):not(:indeterminate), .folio-dialog radio:not(:checked),
 .folio-pane check:not(:checked):not(:indeterminate), .folio-pane radio:not(:checked) {
   background-image: none; background-color: #ffffff; border: 1px solid #8a8a8a; }
+
+/* ---------- light chrome whatever the desktop theme ----------
+   The ribbon, status bar, galleries, menus and pop-ups are light surfaces: under a dark
+   desktop theme their text, fields, drop-down buttons, spin buttons and check boxes would
+   otherwise take the theme's light text and dark buttons. */
+.folio-ribbon, .folio-tabs, .folio-status, .folio-gallery, .folio-minibar,
+.folio-ribbon label, .folio-tabs label, .folio-status label, .folio-gallery label,
+.folio-style label, .folio-ribbon checkbutton label, .folio-ribbon radiobutton label,
+.folio-ribbon checkbutton, .folio-ribbon radiobutton { color: #262626; }
+.folio-tab.active, .folio-tab.active label { color: @accent; }
+.folio-tab.contextual, .folio-tab.contextual label { color: #8a4a00; }
+.folio-style label.name { color: @caption_fg; }
+.folio-ribbon image, .folio-tabs image, .folio-status image, .folio-gallery image { color: #444444; }
+.folio-ribbon entry, .folio-ribbon spinbutton, .folio-ribbon spinbutton entry,
+.folio-ribbon combobox entry, .folio-combo entry, .folio-minibar entry, .folio-status entry {
+  color: #1a1a1a; background-color: #ffffff; background-image: none; caret-color: #1a1a1a;
+  border: 1px solid #c8c8c8; box-shadow: none; text-shadow: none; }
+.folio-ribbon spinbutton entry, .folio-ribbon combobox entry, .folio-combo entry { border: none; }
+.folio-ribbon entry:focus, .folio-combo entry:focus { border-color: @accent; }
+.folio-ribbon entry:disabled, .folio-ribbon spinbutton:disabled { color: #8a8a8a; background-color: #f6f6f6; }
+.folio-ribbon entry selection, .folio-combo entry selection, .folio-minibar entry selection {
+  background-color: @accent; color: #ffffff; }
+.folio-ribbon combobox button, .folio-combo button, .folio-ribbon spinbutton button,
+.folio-minibar combobox button, .folio-minibar spinbutton button {
+  color: #262626; background-color: #ffffff; background-image: none; border: 1px solid #c8c8c8;
+  box-shadow: none; text-shadow: none; }
+.folio-ribbon combobox button:hover, .folio-combo button:hover, .folio-ribbon spinbutton button:hover,
+.folio-minibar combobox button:hover { background-color: @hover_bg; }
+.folio-ribbon check:not(:checked):not(:indeterminate), .folio-ribbon radio:not(:checked) {
+  background-image: none; background-color: #ffffff; border: 1px solid #8a8a8a; }
+.folio-ribbon check:checked, .folio-ribbon radio:checked {
+  background-image: none; background-color: @accent; border: 1px solid @accent_dark; color: #ffffff; }
+
+/* menus and pop-ups */
+popover, popover.background, menu, .menu, .folio-menu, .context-menu {
+  background-color: #ffffff; background-image: none; color: #262626; border-color: #c6c6c6; }
+popover > contents, popover.background > contents { background-color: #ffffff; color: #262626; }
+popover label, menu label, menuitem label, popover modelbutton, popover check, popover radio,
+popover checkbutton, popover radiobutton { color: #262626; }
+popover image, menu image { color: #444444; }
+popover button { background-image: none; text-shadow: none; box-shadow: none; }
+popover button.flat { background-color: transparent; border-color: transparent; color: #262626; }
+popover button.flat:hover, popover modelbutton:hover { background-color: #e8f1ea; }
+popover button:not(.flat):not(.folio-swatch):not(.suggested-action):not(.folio-default):not(.folio-style) {
+  color: #262626; }
+menu menuitem:hover, .menu menuitem:hover { background-color: #e8f1ea; }
+menu menuitem:hover label { color: #1a1a1a; }
+popover label:disabled, menu menuitem:disabled label, popover button:disabled label { color: #9a9a9a; }
+popover separator, menu separator { background-color: #d6d6d6; color: #d6d6d6; }
+popover entry, popover spinbutton, popover spinbutton entry, popover textview text {
+  color: #1a1a1a; background-color: #ffffff; background-image: none; border: 1px solid #c8c8c8;
+  caret-color: #1a1a1a; }
+popover entry selection { background-color: @accent; color: #ffffff; }
+popover check:not(:checked):not(:indeterminate), popover radio:not(:checked) {
+  background-image: none; background-color: #ffffff; border: 1px solid #8a8a8a; }
