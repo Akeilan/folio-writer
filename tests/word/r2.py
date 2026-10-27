@@ -69,6 +69,11 @@ def undo():
 def field():
     fresh(); yield 0.3
     K("ctrl+F9"); yield 1.2
-    check("Ctrl+F9 opens Field", bool(dlg("Field")), [d.get_title() for d in dialogs_open()])
+    if NATIVE:
+        # as in the original: empty field braces to type a code in
+        check("Ctrl+F9 opens field braces", win.engine.view.field_code.active)
+        K("Escape"); yield 0.3
+    else:
+        check("Ctrl+F9 opens Field", bool(dlg("Field")), [d.get_title() for d in dialogs_open()])
     close_dialogs(); yield 0.3
 run_scenarios(case, altx, headings, table, f8, undo, field)
