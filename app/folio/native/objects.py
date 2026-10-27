@@ -427,7 +427,12 @@ def call(win, fname, *args):
         # typing in a text box: the commands work on its shape
         tmp = ed.select_story_textbox()
     if ed.selected_object() is None:
-        return False
+        # as Word: these work on a selected picture or shape
+        try:
+            win.status.flash("Select a picture or shape first.")
+        except Exception:
+            pass
+        return True
     try:
         sel = ed.selected_objects()
         if fname in EACH and len(sel) > 1:

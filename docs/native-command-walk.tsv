@@ -73,7 +73,7 @@ Home	Borders > Outside Borders		CHANGED
 Home	Borders > Inside Borders		CHANGED
 Home	Borders > Inside Horizontal Border		CHANGED
 Home	Borders > Inside Vertical Border		SAME
-Home	Borders > Horizontal Line		SAME MODEL
+Home	Borders > Horizontal Line		CHANGED MODEL
 Home	Borders > Draw Table		SAME
 Home	Borders > View Gridlines		SAME
 Home	Borders > Borders and Shading...	paragraph-borders	UI
@@ -85,7 +85,7 @@ Home	Find (Ctrl+F) > Advanced Find...	replace	UI MODEL
 Home	Find (Ctrl+F) > Go To...	goto	UI
 Home	Replace (Ctrl+H)	replace	UI MODEL
 Home	Select > Select All		SAME
-Home	Select > Select Objects		SAME
+Home	Select > Select Objects		SAME MODEL
 Home	Select > Select All Text With Similar Formatting	select-similar	SAME
 Home	Select > Selection Pane...	selection-pane	SAME
 Insert	Blank Page	blank-page	CHANGED MODEL
@@ -112,7 +112,7 @@ Insert	Shapes > Donut	('draw-shape', 'ring')	SAME
 Insert	Shapes > Cube	('draw-shape', 'cube')	SAME
 Insert	Shapes > Can	('draw-shape', 'can')	SAME
 Insert	Shapes > Heart	('draw-shape', 'heart')	SAME
-Insert	Shapes > Lightning Bolt	('draw-shape', 'lightning')	SAME MODEL
+Insert	Shapes > Lightning Bolt	('draw-shape', 'lightning')	SAME
 Insert	Shapes > Sun	('draw-shape', 'sun')	SAME
 Insert	Shapes > Moon	('draw-shape', 'moon')	SAME
 Insert	Shapes > Smiley Face	('draw-shape', 'smiley')	SAME
@@ -145,7 +145,7 @@ Insert	Shapes > Thought Bubble: Cloud	('draw-shape', 'cloud-callout')	SAME
 Insert	Shapes > Text Box	('draw-shape', 'textbox')	SAME
 Insert	Icons	<lambda>	UI
 Insert	SmartArt	<lambda>	UI
-Insert	Chart	<lambda>	SAME MODEL
+Insert	Chart	<lambda>	UI
 Insert	Screenshot > Screen Clipping		SAME
 Insert	Screenshot > Full Screen		SAME
 Insert	Insert Link (Ctrl+K)	hyperlink	UI
@@ -163,8 +163,8 @@ Insert	Drop Cap > None		SAME
 Insert	Drop Cap > Dropped		SAME
 Insert	Drop Cap > In margin		SAME
 Insert	Drop Cap > Drop Cap Options...	drop-cap	UI
-Insert	Signature Line > Signature Line...		SAME MODEL
-Insert	Object > Object...		SAME MODEL
+Insert	Signature Line > Signature Line...		UI MODEL
+Insert	Object > Object...		UI MODEL
 Insert	Object > Text from File...	text-from-file	UI
 Insert	Equation (Alt+=)	equation	CHANGED
 Draw	Select	<lambda>	SAME
@@ -346,7 +346,7 @@ Layout	Align > Distribute Vertically		SAME
 Layout	Align > Align to Page		SAME
 Layout	Align > Align to Margin		SAME
 Layout	Align > Align Selected Objects		SAME
-Layout	Group > Group		SAME MODEL
+Layout	Group > Group		SAME
 Layout	Group > Regroup		SAME
 Layout	Group > Ungroup		SAME
 References	Table of Contents > Automatic Table 1  (Contents)	insert-toc	CHANGED
@@ -382,45 +382,45 @@ References	Update Index	update-toc	CHANGED
 References	Mark Citation (Alt+Shift+I)	mark-citation	UI
 References	Insert Table of Authorities	<lambda> ; insert-toa	SAME
 References	Update Table	<lambda> ; update-toa	CHANGED
-Mailings	Envelopes	<lambda>	SAME MODEL
-Mailings	Labels	<lambda>	SAME MODEL
-Mailings	Start Mail Merge > Letters		SAME MODEL
-Mailings	Start Mail Merge > Envelopes...		SAME MODEL
-Mailings	Start Mail Merge > Labels...		SAME MODEL
-Mailings	Start Mail Merge > Directory		SAME MODEL
-Mailings	Start Mail Merge > Normal Document		SAME MODEL
-Mailings	Select Recipients > Type a New List...		SAME MODEL
-Mailings	Select Recipients > Use an Existing List...		SAME MODEL
-Mailings	Edit Recipient List	<lambda>	SAME MODEL
-Mailings	Highlight Merge Fields	highlight-merge-fields	NOT_YET
-Mailings	Address Block	<lambda>	NOT_YET
-Mailings	Greeting Line	<lambda>	SAME MODEL
-Mailings	Rules > Ask...		SAME MODEL
-Mailings	Rules > Fill-in...		SAME MODEL
-Mailings	Rules > If...Then...Else...		SAME MODEL
+Mailings	Envelopes	<lambda>	UI
+Mailings	Labels	<lambda>	UI
+Mailings	Start Mail Merge > Letters		CHANGED MODEL
+Mailings	Start Mail Merge > Envelopes...		UI
+Mailings	Start Mail Merge > Labels...		UI
+Mailings	Start Mail Merge > Directory		CHANGED MODEL
+Mailings	Start Mail Merge > Normal Document		CHANGED MODEL
+Mailings	Select Recipients > Type a New List...		UI
+Mailings	Select Recipients > Use an Existing List...		UI
+Mailings	Edit Recipient List	<lambda>	SAME
+Mailings	Highlight Merge Fields	highlight-merge-fields	SAME
+Mailings	Address Block	<lambda>	SAME MODEL
+Mailings	Greeting Line	<lambda>	UI
+Mailings	Rules > Ask...		UI
+Mailings	Rules > Fill-in...		UI
+Mailings	Rules > If...Then...Else...		UI
 Mailings	Rules > Merge Record #	-	SKIP
-Mailings	Rules > Merge Sequence #		SAME MODEL
+Mailings	Rules > Merge Sequence #		CHANGED MODEL
 Mailings	Rules > Next Record	-	SKIP
 Mailings	Rules > Next Record If...	-	SKIP
-Mailings	Rules > Set Bookmark...		SAME MODEL
+Mailings	Rules > Set Bookmark...		UI
 Mailings	Rules > Skip Record If...	-	SKIP
 Mailings	Match Fields	<lambda>	SAME MODEL
-Mailings	Update Labels	<lambda>	NOT_YET
-Mailings	Preview Results	merge-preview	NOT_YET
+Mailings	Update Labels	<lambda>	SAME MODEL
+Mailings	Preview Results	merge-preview	SAME MODEL
 Mailings	First Record	-	SKIP
 Mailings	Previous Record	-	SKIP
 Mailings	Next Record	-	SKIP
 Mailings	Last Record	-	SKIP
-Mailings	Find Recipient	find-recipient	NOT_YET
-Mailings	Auto Check for Errors	<lambda>	SAME MODEL
-Mailings	Finish & Merge > Edit Individual Documents...		SAME MODEL
+Mailings	Find Recipient	find-recipient	SAME MODEL
+Mailings	Auto Check for Errors	<lambda>	UI MODEL
+Mailings	Finish & Merge > Edit Individual Documents...		SAME
 Mailings	Finish & Merge > Print Documents...	-	SKIP
 Review	Spelling & Grammar (F7)	spelling	UI
 Review	Thesaurus (Shift+F7)	thesaurus	SAME
 Review	Word Count (Ctrl+Shift+G)	word-count	UI
-Review	Read Aloud (Ctrl+Alt+Space)	read-aloud	NOT_YET
-Review	Check Accessibility	<lambda> ; check-accessibility	NOT_YET
-Review	Check Accessibility > Check Accessibility	check-accessibility	NOT_YET
+Review	Read Aloud (Ctrl+Alt+Space)	read-aloud	SAME
+Review	Check Accessibility	<lambda> ; check-accessibility	SAME
+Review	Check Accessibility > Check Accessibility	check-accessibility	SAME
 Review	Check Accessibility > Alt Text		SAME
 Review	Check Accessibility > Navigation Pane		UI
 Review	Language > Set Proofing Language...	language-dialog	UI
@@ -434,7 +434,7 @@ Review	Next	next-comment	SAME
 Review	Show Comments	<lambda>	SAME
 Review	Track Changes (Ctrl+Shift+E)	.uno:TrackChanges	CHANGED
 Review	Track Changes (Ctrl+Shift+E) > For Everyone		CHANGED MODEL
-Review	Track Changes (Ctrl+Shift+E) > Lock Tracking		SAME MODEL
+Review	Track Changes (Ctrl+Shift+E) > Lock Tracking		UI
 Review	Show Markup > Comments		SAME
 Review	Show Markup > Insertions and Deletions		SAME
 Review	Show Markup > Formatting		SAME MODEL
@@ -458,21 +458,21 @@ Review	Reject > Reject All Changes		SAME
 Review	Reject > Reject All Changes and Stop Tracking		SAME
 Review	Previous	.uno:PreviousTrackedChange	SAME
 Review	Next	.uno:NextTrackedChange	SAME
-Review	Compare > Compare...		UI MODEL
+Review	Compare > Compare...		UI
 Review	Compare > Combine...		UI
 Review	Compare > Hide Source Documents		SAME
 Review	Compare > Show Original		SAME
 Review	Compare > Show Revised		SAME
 Review	Compare > Show Both		SAME
 Review	Restrict Editing	<lambda>	SAME
-View	Read Mode	read-mode	NOT_YET
+View	Read Mode	read-mode	SAME
 View	Print Layout	-	SKIP
-View	Web Layout	web-layout	NOT_YET
-View	Outline	outline-view	NOT_YET
-View	Draft	draft-view	NOT_YET
-View	Focus	focus-mode	SAME
-View	Immersive Reader	immersive-reader	NOT_YET
-View	Vertical	<lambda>	SAME
+View	Web Layout	web-layout	SAME MODEL
+View	Outline	outline-view	UI MODEL
+View	Draft	draft-view	UI MODEL
+View	Focus	focus-mode	SAME MODEL
+View	Immersive Reader	immersive-reader	UI MODEL
+View	Vertical	<lambda>	SAME MODEL
 View	Side to Side	side-to-side	UI
 View	Ruler	toggle-ruler	SAME
 View	Navigation Pane	<lambda>	SAME
@@ -482,9 +482,9 @@ View	100%	zoom-100	UI
 View	One Page	zoom-one-page	UI
 View	Multiple Pages	multiple-pages	UI
 View	Page Width	zoom-page-width	UI
-View	New Window	new-window	NOT_YET
+View	New Window	new-window	UI
 View	Arrange All	arrange-all	SAME
-View	Split	split	NOT_YET
+View	Split	split	SAME
 View	View Side by Side	side-by-side	SAME
 View	Synchronous Scrolling	sync-scrolling	SAME
 View	Reset Window Position	reset-window-position	SAME
@@ -517,14 +517,14 @@ Outlining	Show Level > All Levels		SAME
 Outlining	Show Text Formatting	go	SAME
 Outlining	Show First Line Only	go	SAME
 Outlining	Close Outline View	-	SKIP
-Developer	Rich Text Content Control	<lambda>	SAME MODEL
+Developer	Rich Text Content Control	<lambda>	CHANGED
 Developer	Plain Text Content Control	<lambda>	SAME MODEL
-Developer	Picture Content Control	<lambda>	SAME MODEL
-Developer	Check Box Content Control	<lambda>	SAME MODEL
-Developer	Combo Box Content Control	<lambda>	SAME MODEL
-Developer	Drop-Down List Content Control	<lambda>	SAME MODEL
-Developer	Date Picker Content Control	<lambda>	SAME MODEL
-Developer	Properties	<lambda>	SAME MODEL
+Developer	Picture Content Control	<lambda>	SAME
+Developer	Check Box Content Control	<lambda>	SAME
+Developer	Combo Box Content Control	<lambda>	SAME
+Developer	Drop-Down List Content Control	<lambda>	SAME
+Developer	Date Picker Content Control	<lambda>	SAME
+Developer	Properties	<lambda>	UI
 Developer	Restrict Editing	<lambda>	SAME
 Immersive Reader	Column Width > Very Narrow		SAME
 Immersive Reader	Column Width > Narrow		SAME
@@ -543,7 +543,7 @@ Immersive Reader	Line Focus > Three Lines		SAME
 Immersive Reader	Line Focus > Five Lines		SAME
 Immersive Reader	Text Spacing	go	SAME
 Immersive Reader	Syllables	go	SAME
-Immersive Reader	Read Aloud	read-aloud	NOT_YET
+Immersive Reader	Read Aloud	read-aloud	SAME
 Immersive Reader	Close Immersive Reader	-	SKIP
 Picture Format	Remove Background	<lambda>	CHANGED
 Picture Format	Corrections > Brightness: -40%  Contrast: -20%		CHANGED
@@ -562,7 +562,7 @@ Picture Format	Corrections > Brightness: +40%  Contrast: -20%		CHANGED
 Picture Format	Corrections > Brightness: +40%  Contrast: +0%		CHANGED
 Picture Format	Corrections > Brightness: +40%  Contrast: +20%		CHANGED
 Picture Format	Corrections > Picture Corrections Options...		SAME
-Picture Format	Color > No Recolor		CHANGED MODEL
+Picture Format	Color > No Recolor		CHANGED
 Picture Format	Color > Grayscale		CHANGED
 Picture Format	Color > Black and White		CHANGED
 Picture Format	Color > Washout		CHANGED
@@ -590,7 +590,7 @@ Picture Format	Weight > 6 pt		CHANGED
 Picture Format	Picture Effects > No Shadow		CHANGED
 Picture Format	Picture Effects > Offset: Bottom Right		CHANGED
 Picture Format	Picture Effects > Offset: Bottom		CHANGED
-Picture Format	Picture Effects > Offset: Bottom Left		CHANGED MODEL
+Picture Format	Picture Effects > Offset: Bottom Left		CHANGED
 Picture Format	Picture Effects > Offset: Right		CHANGED
 Picture Format	Picture Effects > Offset: Center		CHANGED
 Picture Format	Picture Effects > Offset: Left		CHANGED
@@ -669,7 +669,7 @@ Picture Format	Wrap Text > Move with Text		CHANGED
 Picture Format	Wrap Text > Fix Position on Page		CHANGED
 Picture Format	Wrap Text > More Layout Options...		UI
 Picture Format	Bring Forward	<lambda>	CHANGED
-Picture Format	Send Backward	<lambda>	CHANGED MODEL
+Picture Format	Send Backward	<lambda>	CHANGED
 Picture Format	Delete	<lambda>	CHANGED
 Picture Format	Selection Pane	selection-pane	SAME
 Picture Format	Align > Align Left		CHANGED
@@ -739,7 +739,7 @@ Shape Format	Shapes > Donut	('draw-shape', 'ring')	SAME
 Shape Format	Shapes > Cube	('draw-shape', 'cube')	SAME
 Shape Format	Shapes > Can	('draw-shape', 'can')	SAME
 Shape Format	Shapes > Heart	('draw-shape', 'heart')	SAME
-Shape Format	Shapes > Lightning Bolt	('draw-shape', 'lightning')	SAME MODEL
+Shape Format	Shapes > Lightning Bolt	('draw-shape', 'lightning')	SAME
 Shape Format	Shapes > Sun	('draw-shape', 'sun')	SAME
 Shape Format	Shapes > Moon	('draw-shape', 'moon')	SAME
 Shape Format	Shapes > Smiley Face	('draw-shape', 'smiley')	SAME
