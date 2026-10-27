@@ -28,6 +28,10 @@ OPEN_PATTERNS = ["*.docx", "*.docm", "*.dotx", "*.dotm", "*.doc", "*.dot", "*.od
 
 
 class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
+    def crop(self):
+        from .native import arrange
+        arrange.crop_dialog(self.win)
+
     def __init__(self, win):
         self.win = win
         self.last_dir = os.path.expanduser("~/Documents")

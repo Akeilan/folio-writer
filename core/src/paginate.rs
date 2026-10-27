@@ -1086,25 +1086,39 @@ fn textbox_lines(f: &Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout>>, pi
     let g = std::mem::replace(&mut m.grid, 0.0);
     let mut out = Vec::new();
     let mut cy = 0.0;
-    let mut prev_after: f64 = 0.0;
+    // linked text boxes: the text runs from box to box, this one shows its share
+    let chain = pic.link.as_ref().map(|(id, seq)| (crate::pictures::txbx_chain(dom, id), *seq))
+        .filter(|(c, _)| c.len() > 1);
+    let mut boxi = 0usize;
+    let my = chain.as_ref().and_then(|(c, seq)| c.iter().position(|b| b.0 == *seq)).unwrap_or(0);
+    let room_of = |i: usize| chain.as_ref().and_then(|(c, _)| c.get(i)).map(|b| b.2 - b.3[1] - b.3[3]).unwrap_or(f64::MAX);
+    let width_of = |i: usize| chain.as_ref().and_then(|(c, _)| c.get(i)).map(|b| (b.1 - b.3[0] - b.3[2]).max(1.0)).unwrap_or(width);
+    let last_box = chain.as_ref().map(|(c, _)| c.len() - 1).unwrap_or(0);
+    let mut first_in_box = true;
     for c in dom.elements(content) {
         if !dom.is(c, "w:p") {
             continue;
         }
-        let pl = m.para(f.doc, c, width, None);
+        let pl = m.para(f.doc, c, width_of(boxi), None);
         if pl.collapsed() {
             continue;
         }
         let pi = paras.len();
         paras.push(pl.clone());
-        cy += if out.is_empty() { pl.before } else { pl.before.max(0.0) + 0.0 };
-        let _ = prev_after;
+        cy += if first_in_box { pl.before } else { pl.before.max(0.0) };
         for (k, l) in pl.lines.iter().enumerate() {
-            out.push(Placed { para: pi, line: k, x, y: cy + l.skip, frame: None });
+            if chain.is_some() && !first_in_box && cy + l.skip + l.adv > room_of(boxi) + 0.01 && boxi < last_box {
+                // on into the next box
+                boxi += 1;
+                cy = 0.0;
+            }
+            if chain.is_none() || boxi == my {
+                out.push(Placed { para: pi, line: k, x, y: cy + l.skip, frame: None });
+            }
+            first_in_box = false;
             cy += l.adv;
         }
         cy += pl.after;
-        prev_after = pl.after;
     }
     m.grid = g;
     let room = pic.h - ins[1] - ins[3];

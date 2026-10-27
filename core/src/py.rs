@@ -786,6 +786,166 @@ impl PyEditor {
 
     fn deselect_object(&mut self) {
         self.ed.sel_obj = None;
+        self.ed.sel_more.clear();
+    }
+
+    /// Shift+click on an object: add it to the selection (or take it out).
+    fn toggle_object_at(&mut self, page: usize, x: f64, y: f64) -> bool {
+        match self.ed.object_at(page, x, y) {
+            Some(n) => {
+                self.ed.toggle_selected(n);
+                true
+            }
+            None => false,
+        }
+    }
+
+    fn select_objects_in(&mut self, page: usize, x0: f64, y0: f64, x1: f64, y1: f64) -> usize {
+        let v = self.ed.objects_in(page, x0, y0, x1, y1);
+        self.ed.select_nodes_list(&v);
+        v.len()
+    }
+
+    fn select_object_nodes(&mut self, nodes: Vec<u32>) {
+        self.ed.select_nodes_list(&nodes);
+    }
+
+    /// Every selected object: (node, page, x, y, w, h, inline, kind).
+    fn selected_objects(&self) -> Vec<(u32, usize, f64, f64, f64, f64, bool, String)> {
+        self.ed.selected_nodes().into_iter().filter_map(|n| self.ed.object_info(n))
+            .map(|i| (i.node, i.page, i.x, i.y, i.w, i.h, i.inline, i.kind.to_string())).collect()
+    }
+
+    fn object_anchor_mode(&mut self, mode: &str) -> bool {
+        let ok = self.ed.object_anchor_mode(mode);
+        self.touched();
+        ok
+    }
+
+    fn object_anchor_state(&self) -> String {
+        self.ed.object_anchor_state()
+    }
+
+    /// Group the selected objects: (ok, message).
+    fn object_group(&mut self) -> (bool, String) {
+        let r = self.ed.object_group();
+        self.touched();
+        match r {
+            Ok(_) => (true, String::new()),
+            Err(m) => (false, m.to_string()),
+        }
+    }
+
+    fn object_ungroup(&mut self) -> Vec<u32> {
+        let v = self.ed.object_ungroup();
+        self.touched();
+        v
+    }
+
+    fn object_crop(&self) -> Option<(f64, f64, f64, f64)> {
+        self.ed.object_crop().map(|c| (c[0], c[1], c[2], c[3]))
+    }
+
+    #[pyo3(signature = (l, t, r, b, keep_scale=true))]
+    fn set_object_crop(&mut self, l: f64, t: f64, r: f64, b: f64, keep_scale: bool) -> bool {
+        let ok = self.ed.set_object_crop([l, t, r, b], keep_scale);
+        self.touched();
+        ok
+    }
+
+    fn crop_to_ratio(&mut self, w: f64, h: f64) -> bool {
+        let ok = self.ed.crop_to_ratio(w, h);
+        self.touched();
+        ok
+    }
+
+    fn crop_aspect(&mut self, fit: bool) -> bool {
+        let ok = self.ed.crop_aspect(fit);
+        self.touched();
+        ok
+    }
+
+    fn object_image<'py>(&self, py: Python<'py>) -> Option<(Bound<'py, pyo3::types::PyBytes>, String)> {
+        self.ed.object_image().map(|(b, n)| (pyo3::types::PyBytes::new_bound(py, &b), n))
+    }
+
+    fn object_set_image(&mut self, data: &[u8], ext: &str) -> bool {
+        let ok = self.ed.object_set_image(data, ext);
+        self.touched();
+        ok
+    }
+
+    /// Merge Shapes: (number made, message).
+    fn merge_shapes(&mut self, op: &str) -> (usize, String) {
+        let r = self.ed.merge_shapes(op);
+        self.touched();
+        match r {
+            Ok(n) => (n, String::new()),
+            Err(m) => (0, m.to_string()),
+        }
+    }
+
+    fn shape_points(&mut self) -> Vec<Vec<(f64, f64)>> {
+        self.ed.shape_points()
+    }
+
+    fn set_shape_points(&mut self, rings: Vec<Vec<(f64, f64)>>) -> bool {
+        let ok = self.ed.set_shape_points(&rings);
+        self.touched();
+        ok
+    }
+
+    fn object_layout(&self) -> Option<Vec<(String, String)>> {
+        self.ed.object_layout()
+    }
+
+    fn set_object_layout(&mut self, vals: Vec<(String, String)>) -> bool {
+        let ok = self.ed.set_object_layout(&vals);
+        self.touched();
+        ok
+    }
+
+    fn object_set_rotation(&mut self, deg: f64) -> bool {
+        let ok = self.ed.object_set_rotation(deg);
+        self.touched();
+        ok
+    }
+
+    fn textbox_link_state(&self) -> String {
+        self.ed.textbox_link_state()
+    }
+
+    /// Create Link from text box `src` to the selected one: message or "".
+    fn link_textboxes(&mut self, src: u32) -> String {
+        let r = self.ed.link_textboxes(src);
+        self.touched();
+        r.err().unwrap_or("").to_string()
+    }
+
+    fn unlink_textbox(&mut self) -> bool {
+        let ok = self.ed.unlink_textbox();
+        self.touched();
+        ok
+    }
+
+    fn object_warp(&mut self, prst: &str) -> bool {
+        let ok = self.ed.object_warp(prst);
+        self.touched();
+        ok
+    }
+
+    fn object_warp_name(&self) -> String {
+        self.ed.object_warp_name()
+    }
+
+    fn wrap_polygon(&self) -> Vec<(f64, f64)> {
+        self.ed.wrap_polygon()
+    }
+
+    fn set_wrap_polygon(&mut self, pts: Vec<(f64, f64)>) -> bool {
+        let ok = self.ed.set_wrap_polygon(&pts);
+        self.touched();
+        ok
     }
 
     fn objects_list(&self) -> Vec<(u32, String, String, bool)> {

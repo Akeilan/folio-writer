@@ -57,6 +57,8 @@ class NativeView(Gtk.DrawingArea):
         self.connect("size-allocate", lambda *_: self._relayout_pages())
         from .objects import ObjectHandles
         self.objs = ObjectHandles(self)
+        # modal tools (crop, edit points, select objects...): first say on the mouse
+        self.tools = []
         self.speller = None          # spelling as you type (set by the window)
         self.typing = False
         self._typing_id = 0
@@ -278,6 +280,9 @@ class NativeView(Gtk.DrawingArea):
                 cr.line_to(cx, oy + (y + h) * s)
                 cr.stroke()
         self.objs.draw(cr)
+        for t in self.tools:
+            if t.active:
+                t.draw(cr)
         return False
 
     def _dim(self, cr, i, ox, oy, pw, ph):
@@ -549,6 +554,10 @@ class NativeView(Gtk.DrawingArea):
         if self.press_hook is not None and self.press_hook(event):
             return True
         self.grab_focus()
+        for t in self.tools:
+            if t.active and t.press(event):
+                self.queue_draw()
+                return True
         if event.button != 1:
             return False
         hit = self.page_at(event.x, event.y)
@@ -556,6 +565,18 @@ class NativeView(Gtk.DrawingArea):
             return True
         pg, x, y = hit
         shift = bool(event.state & Gdk.ModifierType.SHIFT_MASK)
+        ctrl = bool(event.state & Gdk.ModifierType.CONTROL_MASK)
+        if event.type == Gdk.EventType.BUTTON_PRESS and (shift or ctrl) and self.ed.story() == "body" \
+                and self.ed.object_at(pg, x, y):
+            # Shift/Ctrl+click: more objects in the selection
+            if not self.objs.active() and not self.ed.selected_object():
+                self.ed.select_object_at(pg, x, y)
+            else:
+                self.ed.toggle_object_at(pg, x, y)
+            self.objs.refresh()
+            self.after_move()
+            self.queue_draw()
+            return True
         if event.type == Gdk.EventType.BUTTON_PRESS and not shift:
             # pictures and shapes: their handles, or select one
             if self.objs.active() and self.objs.press(event.x, event.y, shift):
@@ -644,6 +665,10 @@ class NativeView(Gtk.DrawingArea):
         return True
 
     def _motion(self, widget, event):
+        for t in self.tools:
+            if t.active and t.motion(event):
+                self.queue_draw()
+                return True
         if self.objs.drag is not None or self.objs.active():
             if self.objs.motion(event):
                 return True
@@ -662,6 +687,10 @@ class NativeView(Gtk.DrawingArea):
 
     def _release(self, widget, event):
         self._dragging = False
+        for t in self.tools:
+            if t.active and t.release(event):
+                self.queue_draw()
+                return True
         if self.objs.drag is not None:
             self.objs.release()
             return True

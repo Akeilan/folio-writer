@@ -72,8 +72,8 @@ Section: editors
 Priority: optional
 Architecture: $ARCH
 Installed-Size: $SIZE
-Depends: python3 (>= 3.10), libc6 (>= 2.34), libcairo2, libfreetype6, python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, gir1.2-lokdocview-0.1, gir1.2-poppler-0.18, python3-uno, python3-enchant, libreoffice-writer, libreoffice-math, libreoffice-script-provider-python, libreoffice-style-colibre, librsvg2-common, fonts-crosextra-carlito, fonts-crosextra-caladea, fonts-liberation2 | fonts-liberation
-Recommends: hunspell-en-us | hunspell-dictionary, mythes-en-us, hyphen-en-us, cups-client, xdg-utils, fonts-dejavu-extra, fonts-lmodern, libreoffice-lightproof-en, python3-pil, python3-speechd, speech-dispatcher, espeak-ng
+Depends: python3 (>= 3.10), libc6 (>= 2.34), libcairo2, libfreetype6, python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, gir1.2-lokdocview-0.1, gir1.2-poppler-0.18, python3-uno, python3-enchant, python3-pil, libreoffice-writer, libreoffice-math, libreoffice-script-provider-python, libreoffice-style-colibre, librsvg2-common, fonts-crosextra-carlito, fonts-crosextra-caladea, fonts-liberation2 | fonts-liberation
+Recommends: hunspell-en-us | hunspell-dictionary, mythes-en-us, hyphen-en-us, cups-client, xdg-utils, fonts-dejavu-extra, fonts-lmodern, libreoffice-lightproof-en, python3-speechd, speech-dispatcher, espeak-ng
 Maintainer: Ron Shillings <ron.shillings@gmail.com>
 Description: ribbon word processor
  Folio Writer is a word processor with a ribbon interface, KeyTips, a File

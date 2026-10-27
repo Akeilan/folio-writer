@@ -6,10 +6,10 @@ import math
 import os
 import tempfile
 
-import uno
 from gi.repository import Gdk, GdkPixbuf, Gtk
 
-from . import bridge, docapi, drawing
+from ._lazy import Lazy, bridge, docapi, uno
+drawing = Lazy("folio.drawing")
 from .widgets import FDialog, LengthSpin, combo, grid, heading
 
 # RelOrientation
@@ -68,7 +68,14 @@ def wrap_of(obj):
 
 
 # ================================================================ dialog
+def _native(win):
+    return getattr(win.engine, "native", False)
+
+
 def layout_dialog(win, tab=0):
+    if _native(win):
+        from .native import arrange
+        return arrange.layout_dialog(win, tab)
     m = win.engine.model
     obj = drawing.selected_shape(m) if m is not None else None
     if obj is None:
@@ -340,6 +347,9 @@ def _graphic_png(obj):
 def edit_wrap_points(win):
     """Wrap points around the picture: drag a point to change where text
     wraps; text wraps tightly along them."""
+    if _native(win):
+        from .native import arrange
+        return arrange.edit_wrap_points(win)
     m = win.engine.model
     obj = drawing.selected_shape(m) if m is not None else None
     if obj is None:
@@ -552,6 +562,9 @@ CROP_SHAPES = [("Rectangle", "rectangle"), ("Rounded Rectangle", "round-rectangl
 def crop_to_shape(win, kind):
     """Replace the picture by a shape of that kind filled with the picture
     (the same size and place)."""
+    if _native(win):
+        from .native import arrange
+        return arrange.crop_to_shape(win, kind)
     m = win.engine.model
     obj = drawing.selected_shape(m) if m is not None else None
     if obj is None or drawing.kind_of(obj) != "picture":

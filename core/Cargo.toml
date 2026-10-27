@@ -23,6 +23,7 @@ unicode-segmentation = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 quick-xml = { version = "0.36", default-features = false }
 zip = { version = "2", default-features = false, features = ["deflate"] }
+geo = { version = "0.28", default-features = false }
 regex = { version = "1.10", default-features = false, features = ["std", "unicode", "perf"] }
 pyo3 = { version = "0.22", features = ["extension-module", "abi3-py310"], optional = true }
 

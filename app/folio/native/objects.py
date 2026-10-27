@@ -399,6 +399,23 @@ DISPATCH = {"set_direction": set_direction, "set_align": set_align, "set_fill": 
             "set_outline": set_outline, "set_picture_style": set_picture_style}
 
 
+def _arr(name):
+    def f(win, *a):
+        from . import arrange
+        return getattr(arrange, name)(win, *a)
+    return f
+
+
+for _n in ("set_anchor_mode", "crop_to_ratio", "aspect_fill", "aspect_fit", "crop_to_shape"):
+    DISPATCH[_n] = _arr(_n)
+DISPATCH["crop"] = _arr("crop_mm100")
+# applied to every selected object
+EACH = {"set_wrap", "z_order", "rotate", "set_fill", "set_outline", "set_shadow", "set_reflection",
+        "set_glow", "set_soft_edges", "set_bevel", "set_shape_style", "set_text_color",
+        "set_text_outline", "set_anchor_mode", "set_transparency", "set_color_mode", "set_adjust",
+        "set_picture_style", "change_shape"}
+
+
 def call(win, fname, *args):
     """Picture Format / Shape Format commands; False for ones not done yet."""
     f = DISPATCH.get(fname)
@@ -412,7 +429,19 @@ def call(win, fname, *args):
     if ed.selected_object() is None:
         return False
     try:
-        f(win, *args)
+        sel = ed.selected_objects()
+        if fname in EACH and len(sel) > 1:
+            ed.begin_group("Format Objects")
+            try:
+                for o in sel:
+                    ed.select_object_node(o[0])
+                    f(win, *args)
+            finally:
+                ed.end_group()
+                ed.select_object_nodes([o[0] for o in sel])
+                win.engine.view.objs.refresh()
+        else:
+            f(win, *args)
     finally:
         if tmp:
             ed.deselect_object()
@@ -429,7 +458,21 @@ UNO = {".uno:WrapOff": ("set_wrap", "inline"), ".uno:WrapOn": ("set_wrap", "squa
        ".uno:AlignMiddle": ("align", "middle"), ".uno:AlignDown": ("align", "bottom")}
 
 
+UNO.update({k: None for k in (".uno:FormatGroup", ".uno:FormatUngroup", ".uno:Regroup", ".uno:SelectObject")})
+
+
 def uno_command(win, cmd):
+    if cmd in (".uno:FormatGroup", ".uno:FormatUngroup", ".uno:Regroup", ".uno:SelectObject"):
+        from . import arrange
+        if cmd == ".uno:SelectObject":
+            win.select_objects.begin()
+        elif cmd == ".uno:FormatGroup":
+            arrange.group(win)
+        elif cmd == ".uno:Regroup":
+            arrange.regroup(win)
+        else:
+            arrange.ungroup(win)
+        return True
     if cmd not in UNO:
         return False
     fname, arg = UNO[cmd]
@@ -536,10 +579,39 @@ class ObjectHandles:
             return "move"
         return None
 
+    def others(self):
+        """The other selected objects' boxes (widget pixels)."""
+        out = []
+        ed = self.ed
+        if ed is None or self.info is None:
+            return out
+        try:
+            sel = ed.selected_objects()
+        except Exception:
+            return out
+        s = self.view.ppp
+        for node, page, x, y, w, h, _inl, _k in sel[1:]:
+            px, py = self.view.to_widget(page, x, y)
+            out.append((px, py, w * s, h * s))
+        return out
+
     def draw(self, cr):
         r = self.rect()
         if r is None:
             return
+        for (x, y, w, h) in self.others():
+            cr.save()
+            cr.set_line_width(1)
+            cr.set_source_rgb(0.53, 0.53, 0.53)
+            cr.rectangle(x + 0.5, y + 0.5, w - 1, h - 1)
+            cr.stroke()
+            for px, py in self.handle_points((x, y, w, h)).values():
+                cr.arc(px, py, 4.5, 0, 2 * math.pi)
+                cr.set_source_rgb(1, 1, 1)
+                cr.fill_preserve()
+                cr.set_source_rgb(0.4, 0.4, 0.4)
+                cr.stroke()
+            cr.restore()
         d = self.drag
         if d is not None and d.get("moved"):
             nx, ny, nw, nh = d["rect"]

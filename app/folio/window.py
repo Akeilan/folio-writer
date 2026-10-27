@@ -221,6 +221,9 @@ class DocWindow(Gtk.ApplicationWindow):
         self.crop_mode = CropMode(self)
         from .objecttools import EditPoints
         self.edit_points = EditPoints(self)
+        if self.native:
+            from .native import arrange as _arrange
+            _arrange.install(self)
         from .tabledraw import TableDrawMode
         self.table_draw = TableDrawMode(self)
 
@@ -1188,6 +1191,10 @@ class DocWindow(Gtk.ApplicationWindow):
             um.leaveUndoContext()
 
     def merge_shapes(self, op):
+        if self.native:
+            from .native import arrange as _arrange
+            _arrange.merge(self, op)
+            return
         from . import arrange, pictools
         m = self.engine.model
         objs = arrange.selected_objects(m) if m is not None else []
@@ -1205,6 +1212,10 @@ class DocWindow(Gtk.ApplicationWindow):
         GLib.timeout_add(200, self.update_object_tabs)
 
     def wordart_transform(self, kind):
+        if self.native:
+            from .native import arrange as _arrange
+            _arrange.transform(self, kind)
+            return
         from . import drawing, pictools
         m = self.engine.model
         obj = drawing.selected_shape(m) if m is not None else None
@@ -1220,6 +1231,10 @@ class DocWindow(Gtk.ApplicationWindow):
     bg_state = None
 
     def bg_removal_start(self):
+        if self.native:
+            from .native import arrange as _arrange
+            _arrange.bg_start(self)
+            return
         from . import drawing, pictools
         m = self.engine.model
         obj = drawing.selected_shape(m) if m is not None else None
@@ -1266,6 +1281,10 @@ class DocWindow(Gtk.ApplicationWindow):
         return True
 
     def bg_finish(self, keep):
+        if self.native:
+            from .native import arrange as _arrange
+            _arrange.bg_finish(self, keep)
+            return
         from . import pictools
         st = self.bg_state
         self.bg_state = None
@@ -1304,6 +1323,15 @@ class DocWindow(Gtk.ApplicationWindow):
     def arrange_call(self, fn, arg):
         """Align / distribute: several selected objects line up with each
         other; one object aligns to the margins (or page)."""
+        if self.native:
+            from .native import arrange as _arrange
+            if not _arrange.selected(self):
+                self.status.flash("Select a picture or shape first.")
+            elif fn == "distribute":
+                _arrange.distribute(self, arg)
+            else:
+                _arrange.align(self, arg)
+            return
         from . import arrange, drawing
         m = self.engine.model
         if m is None:
@@ -2236,6 +2264,10 @@ class DocWindow(Gtk.ApplicationWindow):
     def object_call(self, fname, *args):
         if self.native:
             from .native import objects
+            if self.engine.ed is not None and self.engine.ed.selected_object() is None \
+                    and self.engine.ed.story() != "textbox":
+                self.status.flash("Select a picture or shape first.")
+                return
             if not objects.call(self, fname, *args):
                 self.actions._not_yet()
             return
@@ -2600,6 +2632,8 @@ class DocWindow(Gtk.ApplicationWindow):
         if self.table_draw.key(event):
             return True
         if self.crop_mode.key(event):
+            return True
+        if getattr(self, "select_objects", None) is not None and self.select_objects.key(event):
             return True
         if self.ink.key(event):
             return True

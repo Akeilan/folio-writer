@@ -209,6 +209,13 @@ class NativeActions(Actions):
         from . import refs
         refs.goto_note(self.win, True, False)
 
+    def do_object_size(self):
+        from . import arrange
+        if self.ed.selected_object() is None:
+            self.win.status.flash("Select a picture or shape first.")
+            return
+        arrange.layout_dialog(self.win, 2)
+
     def do_manage_sources(self):
         from .. import dlg_cite
         dlg_cite.manage_sources(self.win)
