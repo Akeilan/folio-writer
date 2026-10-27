@@ -134,6 +134,24 @@ impl Package {
         }
     }
 
+    /// Take a part out of the package.
+    pub fn remove(&mut self, name: &str) {
+        self.entries.retain(|e| e.name != name);
+        self.xml.remove(name);
+        self.dirty.remove(name);
+    }
+
+    /// A part's bytes as they would be saved now.
+    pub fn bytes(&self, name: &str) -> Option<Vec<u8>> {
+        let e = self.entries.iter().find(|e| e.name == name)?;
+        if self.dirty.contains(name) {
+            if let Some(d) = self.xml.get(name) {
+                return Some(d.serialize().into_bytes());
+            }
+        }
+        Some(e.raw.clone())
+    }
+
     fn load(&mut self, name: &str) -> Result<(), PkgError> {
         if self.xml.contains_key(name) {
             return Ok(());
