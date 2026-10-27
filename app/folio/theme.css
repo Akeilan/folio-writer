@@ -189,7 +189,25 @@
 .folio-comment-card { border-left: 3px solid @accent; margin: 4px 0; background: #f6faf7; }
 
 /* ---------- dialogs ---------- */
-.folio-dialog { background: #f3f3f3; }
+.folio-dialog { background: #f3f3f3; color: #262626; }
+/* our light surfaces keep dark text whatever the desktop theme's text colour */
+.folio-dialog label, .folio-dialog checkbutton, .folio-dialog radiobutton,
+.folio-dialog checkbutton label, .folio-dialog radiobutton label, .folio-dialog notebook tab label,
+.folio-dialog frame > label, .folio-dialog expander,
+.folio-pane, .folio-pane label, .folio-pane checkbutton label, .folio-pane radiobutton label,
+.folio-backstage, .folio-backstage label, .folio-eqbar, .folio-eqbar label { color: #262626; }
+.folio-dialog label:disabled, .folio-pane label:disabled, .folio-backstage label:disabled { color: #8a8a8a; }
+.folio-dialog entry, .folio-dialog spinbutton entry, .folio-dialog textview text, .folio-dialog treeview,
+.folio-pane entry, .folio-pane textview text, .folio-pane treeview { color: #1a1a1a; background-color: #ffffff; }
+.folio-dialog entry selection, .folio-pane entry selection { background-color: #2e6b3f; color: #ffffff; }
+.folio-dialog button { background-image: none; background-color: #fdfdfd; border: 1px solid #c8c8c8;
+  color: #262626; box-shadow: none; text-shadow: none; }
+.folio-dialog button:hover { background-color: #e8f1ea; border-color: #9cc3a4; }
+.folio-dialog button label { color: #262626; }
+.folio-dialog button.folio-default, .folio-dialog button.suggested-action {
+  background-color: @accent; border-color: @accent_dark; color: #ffffff; }
+.folio-dialog button.folio-default:hover, .folio-dialog button.suggested-action:hover { background-color: @accent_dark; }
+.folio-dialog .folio-default label, .folio-dialog .suggested-action label { color: #ffffff; }
 .folio-dialog notebook header { background: #f3f3f3; border-bottom-color: #d6d6d6; }
 .folio-dialog notebook tab { padding: 4px 12px; min-height: 22px; }
 .folio-dialog notebook tab:checked { box-shadow: inset 0 -2px @accent; }
@@ -340,3 +358,7 @@ tooltip * { background-color: transparent; }
 
 /* ---------- search box suggestions ---------- */
 button.folio-search-current { background: alpha(@theme_selected_bg_color, 0.18); }
+/* check boxes and radio buttons on our light dialogs and panes */
+.folio-dialog check:not(:checked):not(:indeterminate), .folio-dialog radio:not(:checked),
+.folio-pane check:not(:checked):not(:indeterminate), .folio-pane radio:not(:checked) {
+  background-image: none; background-color: #ffffff; border: 1px solid #8a8a8a; }
