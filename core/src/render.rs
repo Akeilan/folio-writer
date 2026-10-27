@@ -307,7 +307,7 @@ impl Renderer {
                     cr.set_font_matrix(cairo::Matrix::new(st.draw_size * st.scale, 0.0, 0.0, st.draw_size, 0.0, 0.0));
                     let c = if st.change != 0 { CHANGE_COLOR } else { st.color.unwrap_or(0) };
                     rgb(cr, c);
-                    cr.show_glyphs(&[cairo::Glyph::new(g.gid as u64, x, base_y - st.raise)]).ok();
+                    cr.show_glyphs(&[cairo::Glyph::new(g.gid as _, x, base_y - st.raise)]).ok();
                     cr.restore().ok();
                 }
             }
@@ -334,7 +334,7 @@ impl Renderer {
             let (g0, g1) = sh.glyph_of[u.idx as usize];
             let mut gx = x0 + line.xs[k - line.start];
             for g in &sh.glyphs[g0 as usize..g1 as usize] {
-                glyphs.push(cairo::Glyph::new(g.gid as u64, gx + g.x_offset, y - g.y_offset));
+                glyphs.push(cairo::Glyph::new(g.gid as _, gx + g.x_offset, y - g.y_offset));
                 gx += g.advance;
             }
         }
@@ -451,7 +451,7 @@ impl Renderer {
         let mut gs = Vec::new();
         let mut gx = start;
         while gx + g.advance <= x + w + 0.01 {
-            gs.push(cairo::Glyph::new(g.gid as u64, gx, base_y));
+            gs.push(cairo::Glyph::new(g.gid as _, gx, base_y));
             gx += g.advance;
         }
         if gs.is_empty() {
