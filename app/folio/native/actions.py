@@ -670,16 +670,6 @@ class NativeActions(Actions):
         ed = self.ed
         if ed is None:
             return
-        if not ed.has_selection():
-            # a click on a word: the whole word takes the format, as in the original
-            from .units import word_bounds
-            p, off = ed.caret_pos()
-            t = ed.para_text_of(p)
-            a, b = word_bounds(t, off)
-            while b > a and t[b - 1] == " ":
-                b -= 1
-            if b > a:
-                ed.select_nodes(p, a, p, b)
         if ed.paste_format():
             self.eng.view.after_edit()
 

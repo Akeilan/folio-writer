@@ -229,6 +229,7 @@ def misc_keys():
     check("alt+= inserts equation", win.eqbar.ed.active, "")
     K("Escape"); yield 0.5
     focus(); K("ctrl+alt+m"); yield 1.0
+    T("A note"); K("ctrl+Return"); yield 0.8
     check("ctrl+alt+m new comment", M().getTextFields().createEnumeration().hasMoreElements(), "")
     shot("w1_comment")
     K("Escape"); yield 0.4

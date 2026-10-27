@@ -935,6 +935,10 @@ class DocWindow(Gtk.ApplicationWindow):
             if fn_name == "insert_field" and args and args[0] in self.NATIVE_FIELDS:
                 self.engine.ed.insert_field_now(self.NATIVE_FIELDS[args[0]] + " \\* MERGEFORMAT")
                 self.engine.view.after_edit()
+            elif fn_name == "multilevel_list":
+                from . import lists as _lists
+                from .native import lists as _nl
+                _nl.apply_multilevel(self, _lists.MULTI[0][1])
             elif fn_name == "toggle_field_codes":
                 self.engine.ed.toggle_field_codes()
                 self.engine.view.after_edit()
