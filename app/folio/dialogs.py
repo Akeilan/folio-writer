@@ -394,6 +394,28 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
         def sep():
             menu.append(Gtk.SeparatorMenuItem())
 
+        native_hit = None
+        if getattr(self.eng, "native", False) and event is not None:
+            view = self.eng.view
+            sp = getattr(view, "speller", None)
+            try:
+                hit = view.page_at(event.x, event.y) if event.window == view.get_window() else None
+            except Exception:
+                hit = None
+            if sp is not None and hit is not None:
+                native_hit = sp.at(*hit)
+            misspelled = None
+        if native_hit is not None:
+            from .native import spell
+            for it in spell.menu_items(self.win, native_hit):
+                if it is None:
+                    sep()
+                elif it[1] is None:
+                    item(it[0], None, sensitive=False)
+                else:
+                    mi = item(it[0], it[1])
+                    if it[0] not in ("Ignore All", "Add to Dictionary"):
+                        mi.get_child().get_children()[1].set_markup("<b>%s</b>" % GLib.markup_escape_text(it[0]))
         if misspelled is not None:
             cur, sugg = misspelled
             for s in sugg:

@@ -1107,7 +1107,7 @@ class DocDialogs:
 
     # ============================================================ Page setup
     def page_setup(self, tab=0):
-        if self._model_or_warn() is not None:
+        if getattr(self.eng, "native", False) or self._model_or_warn() is not None:
             from . import pagesetup
             pagesetup.dialog(self.win, tab)
 

@@ -52,4 +52,31 @@ def wanted(settings):
     env = os.environ.get("FOLIO_ENGINE")
     if env:
         return env == "native"
-    return settings.get("engine") == "native"
+    # Folio's own engine is the default; "classic" keeps the old one
+    return settings.get("engine", "native") != "classic"
+
+
+def normal_docx(app):
+    """(the Normal template to start from, where the user's own copy goes)."""
+    from ..app import CONFIG, SHARE
+    tpl = os.path.basename(app.user_template_path())
+    name = os.path.splitext(tpl)[0] + ".docx"
+    user = os.path.join(CONFIG, "templates", name)
+    if os.path.exists(user):
+        return user, user
+    for base in (os.path.join(SHARE, "templates"),
+                 os.path.join(_HERE, "..", "..", "..", "share", "templates")):
+        p = os.path.join(base, name)
+        if os.path.exists(p):
+            return os.path.abspath(p), user
+    raise FileNotFoundError(name)
+
+
+def edit_normal_template(app, fn):
+    """Let fn(editor) change the Normal template; it's stored as the user's own."""
+    src, dst = normal_docx(app)
+    ed = core().Editor.open(src)
+    fn(ed)
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    ed.save(dst)
+    return True

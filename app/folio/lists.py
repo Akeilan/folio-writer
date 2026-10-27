@@ -1,7 +1,6 @@
 """Lists, as in the original: the numbered-list commands of the right-click
 menu (Restart at 1, Continue Numbering, Set Numbering Value, Adjust List
 Indents) and the Multilevel List gallery."""
-import uno
 from gi.repository import Gtk
 
 from . import bridge, docapi
@@ -26,7 +25,19 @@ def _paragraph(m):
     return en.nextElement() if en.hasMoreElements() else None
 
 
+def _native(m):
+    eng = getattr(m, "eng", None)
+    return eng is not None and getattr(eng, "native", False)
+
+
+def _nwin(m):
+    return m.eng.win
+
+
 def in_numbered_list(m):
+    if _native(m):
+        i = m.eng.ed.list_info()
+        return i is not None and not i[2]
     try:
         p = _paragraph(m)
         return p is not None and bool(getattr(p, "NumberingIsNumber", False)) and \
@@ -37,6 +48,8 @@ def in_numbered_list(m):
 
 
 def in_list(m):
+    if _native(m):
+        return m.eng.ed.list_info() is not None
     try:
         p = _paragraph(m)
         return p is not None and bool(getattr(p, "NumberingIsNumber", False))
@@ -84,6 +97,10 @@ def _undo(m, title, fn):
 
 # ---------------------------------------------------------------- numbering value
 def restart_at(m, value=1):
+    if _native(m):
+        from .native import lists as NL
+        return NL.restart_at(_nwin(m), value)
+
     def go():
         p = _paragraph(m)
         p.ParaIsNumberingRestart = True
@@ -93,6 +110,9 @@ def restart_at(m, value=1):
 
 def continue_numbering(m):
     """Join this list onto the previous list (of the same kind)."""
+    if _native(m):
+        from .native import lists as NL
+        return NL.continue_numbering(_nwin(m))
     def go():
         p = _paragraph(m)
         prev = None
@@ -135,6 +155,9 @@ def continue_numbering(m):
 
 
 def set_numbering_value(win):
+    if getattr(win.engine, "native", False):
+        from .native import lists as NL
+        return NL.set_numbering_value(win)
     m = win.engine.model
     if m is None or not in_list(m):
         return
@@ -190,11 +213,15 @@ def _set_level(p, rules, lvl, changes):
         out.append(x)
     for k, v in changes.items():
         out.append(bridge.prop(k, v))
+    import uno
     uno.invoke(rules, "replaceByIndex",
                (lvl, uno.Any("[]com.sun.star.beans.PropertyValue", tuple(out))))
 
 
 def adjust_indents(win):
+    if getattr(win.engine, "native", False):
+        from .native import lists as NL
+        return NL.adjust_indents(win)
     m = win.engine.model
     if m is None or not in_list(m):
         return
@@ -306,6 +333,10 @@ def _rules_for(m, levels, headings=False):
 
 
 def apply_multilevel(m, levels):
+    if _native(m):
+        from .native import lists as NL
+        return NL.apply_multilevel(_nwin(m), levels)
+
     def go():
         rules = _rules_for(m, levels)
         vc = docapi.view_cursor(m)
@@ -336,6 +367,10 @@ def apply_multilevel(m, levels):
 def heading_numbering(m, chapter=False):
     """Number the Heading styles: '1 Heading 1', '1.1 Heading 2' (or
     'Chapter 1')."""
+    if _native(m):
+        from .native import lists as NL
+        return NL.heading_numbering(_nwin(m), chapter)
+
     def go():
         cn = m.getChapterNumberingRules()
         for i in range(9):
@@ -404,7 +439,7 @@ def _fmt_num(kind, n):
 
 def multilevel_gallery(win):
     """The Multilevel List drop-down."""
-    m = win.engine.model
+    m = win.dialogs.model
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
     box.set_border_width(6)
     pop = Gtk.Popover()
@@ -431,11 +466,11 @@ def multilevel_gallery(win):
     add_tile("None", lambda: win.actions.cmd(".uno:RemoveBullets"),
              [_lvl(NONE, "", i) for i in range(9)])
     for name, levels in MULTI:
-        add_tile(name, (lambda lv=levels: apply_multilevel(win.engine.model, lv)), levels)
-    add_tile("1 Heading 1, 1.1 Heading 2", lambda: heading_numbering(win.engine.model),
+        add_tile(name, (lambda lv=levels: apply_multilevel(win.dialogs.model, lv)), levels)
+    add_tile("1 Heading 1, 1.1 Heading 2", lambda: heading_numbering(win.dialogs.model),
              [_lvl(ARABIC, ".".join("%%%d%%" % (k + 1) for k in range(i + 1)), i)
               for i in range(9)])
-    add_tile("Chapter 1 Heading 1", lambda: heading_numbering(win.engine.model, True),
+    add_tile("Chapter 1 Heading 1", lambda: heading_numbering(win.dialogs.model, True),
              [_lvl(ARABIC, "Ch. %1%", 0)] +
              [_lvl(ARABIC, ".".join("%%%d%%" % (k + 1) for k in range(i + 1)), i)
               for i in range(1, 9)])

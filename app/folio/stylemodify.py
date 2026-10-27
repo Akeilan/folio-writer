@@ -122,11 +122,22 @@ def instances(m, name):
 
 
 def count_instances(m, name):
+    if hasattr(m, "eng") and getattr(m.eng, "native", False):
+        sid = m.id_of(name)
+        return m.eng.ed.count_style_instances(sid) if sid else 0
     f = instances(m, name)
     return f.getCount() if f is not None else 0
 
 
 def select_all(win, name):
+    if getattr(win.engine, "native", False):
+        from .native.uno_model import NativeModel
+        sid = NativeModel(win.engine).id_of(name)
+        if sid:
+            win.engine.ed.select_style_instances(sid)
+            win.engine.view.after_move()
+        win.focus_document()
+        return
     m = _model(win)
     f = instances(m, name)
     if f is not None:

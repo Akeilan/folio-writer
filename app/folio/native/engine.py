@@ -530,6 +530,11 @@ class NativeEngine(GObject.GObject):
                 xml, token = frag
                 self._edit(self.ed.paste_fragment, xml, token == self._doc_token())
                 return
+            # another program's formatted copy (a web page, a mail)
+            if not plain and cb.wait_is_target_available(Gdk.Atom.intern("text/html", False)):
+                sel = cb.wait_for_contents(Gdk.Atom.intern("text/html", False))
+                if sel is not None and self.paste_html(bytes(sel.get_data())):
+                    return
             self.paste_data("text/plain;charset=utf-8", t)
             return
         img = cb.wait_for_image() if cb.wait_is_image_available() else None
@@ -543,9 +548,46 @@ class NativeEngine(GObject.GObject):
             finally:
                 _os.unlink(path)
 
+    def paste_html(self, data):
+        """Formatted text from HTML; False when there's nothing in it to paste."""
+        if self.ed is None:
+            return False
+        if isinstance(data, bytes):
+            if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+                data = data.decode("utf-16", "replace")
+            else:
+                data = data.decode("utf-8", "replace")
+        from . import htmlpaste
+        xml = htmlpaste.to_fragment(data, [sid for sid, _n in self.ed.paragraph_styles()])
+        if not xml:
+            return False
+        ok = self.ed.paste_fragment(xml, False)
+        self.view.after_edit()
+        return bool(ok)
+
     def paste_data(self, mime, data):
         if self.ed is None:
             return
+        if mime.startswith("text/html"):
+            if not self.paste_html(data):
+                import re as _re
+                import html as _html
+                text = _html.unescape(_re.sub(r"<[^>]+>", "", data if isinstance(data, str) else data.decode("utf-8", "replace")))
+                self._edit(self.ed.type_text, text)
+            return
+        if mime == "image/png":
+            fd, path = tempfile.mkstemp(suffix=".png", prefix="folio-paste-")
+            os.write(fd, data)
+            os.close(fd)
+            try:
+                self._edit(self.ed.insert_picture, path)
+            finally:
+                os.unlink(path)
+            return
+        if mime == "text/rtf":
+            from . import rtfpaste
+            data = rtfpaste.to_text(data)
+            mime = "text/plain"
         if isinstance(data, bytes):
             data = data.decode("utf-8", "replace")
         if mime.startswith("text/plain"):

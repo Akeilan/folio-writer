@@ -170,10 +170,21 @@ def apply_to(m, v, where):
 
 
 def dialog(win, tab=0):
-    m = win.engine.model
-    if m is None:
-        return
-    info = read(m)
+    if getattr(win.engine, "native", False):
+        from .native import pagesetup as NP
+        m = None
+        info = NP.read(win)
+        n_styles = info["section_count"]
+        do_apply = lambda v, where: NP.apply_to(win, v, where)  # noqa: E731
+        do_default = lambda v: NP.set_default(win, v)  # noqa: E731
+    else:
+        m = win.engine.model
+        if m is None:
+            return
+        info = read(m)
+        n_styles = len(used_page_styles(m))
+        do_apply = lambda v, where: apply_to(m, v, where)  # noqa: E731
+        do_default = lambda v: set_default(win, v)  # noqa: E731
     d = FDialog(win, "Page Setup")
     nb = Gtk.Notebook()
     d.add(nb)
@@ -353,7 +364,7 @@ def dialog(win, tab=0):
     prev.set_halign(Gtk.Align.CENTER)
     d.add(prev)
     apply_box = Gtk.Box(spacing=8)
-    where = combo(APPLY, 0 if len(used_page_styles(m)) <= 1 else 1)
+    where = combo(APPLY, 0 if n_styles <= 1 else 1)
     apply_box.pack_start(Gtk.Label(label="Appl_y to:", use_underline=True), False, False, 0)
     apply_box.pack_start(where, False, False, 0)
     d.add(apply_box)
@@ -385,12 +396,12 @@ def dialog(win, tab=0):
                     "This change will affect all new documents based on the Normal "
                     "template.", yes="Yes", no="No"):
                 v = values()
-                set_default(win, v)
-                apply_to(m, v, where.get_active())
+                do_default(v)
+                do_apply(v, where.get_active())
                 break
             continue
         if r == Gtk.ResponseType.OK:
-            apply_to(m, values(), where.get_active())
+            do_apply(values(), where.get_active())
         break
     d.destroy()
     win.focus_document()

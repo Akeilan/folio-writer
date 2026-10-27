@@ -187,6 +187,9 @@ pub struct Editor {
     painter: Option<tools::Painter>,
     /// the theme before a change in the open transaction
     pending_theme: Option<Box<XmlDoc>>,
+    /// more selected stretches besides anchor..caret (Select All Text With Similar
+    /// Formatting, Select All N Instances): formatting goes to each
+    pub extra_sel: Vec<(Pos, Pos)>,
 }
 
 /// The text the caret is in.
@@ -251,6 +254,7 @@ impl Editor {
             rev_next: 0,
             painter: None,
             pending_theme: None,
+            extra_sel: Vec::new(),
         };
         e.track = e.doc.settings.track_revisions;
         e.relayout();
@@ -513,7 +517,70 @@ impl Editor {
 
     /// Selection rectangles per page: (page, x, y, w, h).
     pub fn selection_rects(&self) -> Vec<(usize, f64, f64, f64, f64)> {
-        let (a, b) = self.selection();
+        let mut out = self.range_sel_rects(self.selection());
+        for &(a, b) in &self.extra_sel {
+            out.extend(self.range_sel_rects(if self.cmp(a, b) == std::cmp::Ordering::Greater { (b, a) } else { (a, b) }));
+        }
+        out
+    }
+
+    /// How many body paragraphs have this paragraph style.
+    pub fn count_style_instances(&self, id: &str) -> usize {
+        let default = self.doc.styles.default_para.clone().unwrap_or_default();
+        let dom = &self.doc.dom;
+        self.layout.paras[..self.layout.body_count.min(self.layout.paras.len())].iter().filter(|pl| {
+            dom.child(pl.node, "w:pPr").and_then(|pp| dom.child(pp, "w:pStyle"))
+                .and_then(|n| dom.attr(n, "w:val")).map(|v| v.to_string()).unwrap_or(default.clone()) == id
+        }).count()
+    }
+
+    /// Select every body paragraph with this paragraph style; how many.
+    pub fn select_style_instances(&mut self, id: &str) -> usize {
+        let default = self.doc.styles.default_para.clone().unwrap_or_default();
+        let mut ranges = Vec::new();
+        for pl in self.layout.paras[..self.layout.body_count.min(self.layout.paras.len())].to_vec() {
+            let dom = &self.doc.dom;
+            let st = dom.child(pl.node, "w:pPr").and_then(|pp| dom.child(pp, "w:pStyle"))
+                .and_then(|n| dom.attr(n, "w:val")).map(|v| v.to_string()).unwrap_or(default.clone());
+            if st == id {
+                let len = self.fresh_len(pl.node);
+                ranges.push((Pos { para: pl.node, off: 0 }, Pos { para: pl.node, off: len }));
+            }
+        }
+        let n = ranges.len();
+        self.select_ranges(&ranges);
+        n
+    }
+
+    /// Select several stretches at once (the first one is anchor..caret).
+    pub fn select_ranges(&mut self, ranges: &[(Pos, Pos)]) {
+        let Some(&(a, b)) = ranges.first() else { return };
+        self.move_to(a, false, false);
+        self.move_to(b, true, false);
+        self.extra_sel = ranges[1..].to_vec();
+    }
+
+    /// Run a formatting command on each selected stretch (one undo step).
+    fn each_range(&mut self, name: &str, f: &mut dyn FnMut(&mut Self)) -> bool {
+        if self.extra_sel.is_empty() {
+            return false;
+        }
+        let all: Vec<(Pos, Pos)> = std::iter::once((self.anchor, self.caret)).chain(self.extra_sel.drain(..)).collect();
+        self.begin_group(name);
+        for &(a, b) in &all {
+            self.anchor = a;
+            self.caret = b;
+            f(self);
+        }
+        self.end_group();
+        self.anchor = all[0].0;
+        self.caret = all[0].1;
+        self.extra_sel = all[1..].to_vec();
+        true
+    }
+
+    fn range_sel_rects(&self, sel: (Pos, Pos)) -> Vec<(usize, f64, f64, f64, f64)> {
+        let (a, b) = sel;
         let mut out = Vec::new();
         if a == b {
             return out;
@@ -957,6 +1024,7 @@ impl Editor {
 
     /// Move the caret; with `extend` the selection grows.
     pub fn move_to(&mut self, p: Pos, extend: bool, keep_goal: bool) {
+        self.extra_sel.clear();
         self.caret = p;
         if !extend {
             self.anchor = p;
@@ -969,6 +1037,7 @@ impl Editor {
     }
 
     pub fn select_all(&mut self) {
+        self.extra_sel.clear();
         self.anchor = self.doc_start();
         self.caret = self.doc_end();
         self.typing = false;
@@ -1139,6 +1208,7 @@ impl Editor {
     }
 
     pub fn undo(&mut self) {
+        self.extra_sel.clear();
         let Some(t) = self.undo.pop() else { return };
         let redo_ops = self.doc.dom.revert(&t.ops);
         let redo_num = self.revert_num(&t.num_ops);
@@ -1157,6 +1227,7 @@ impl Editor {
     }
 
     pub fn redo(&mut self) {
+        self.extra_sel.clear();
         let Some(t) = self.redo.pop() else { return };
         let undo_ops = self.doc.dom.revert(&t.ops);
         let undo_num = self.revert_num(&t.num_ops);
@@ -1791,6 +1862,7 @@ impl Editor {
     /// Type text at the caret (replacing the selection). '\n' starts a new
     /// paragraph, '\t' a tab, '\u{b}' a line break.
     pub fn type_text(&mut self, text: &str) {
+        self.extra_sel.clear();
         if text.is_empty() {
             return;
         }
@@ -1836,6 +1908,7 @@ impl Editor {
 
     /// Backspace / Delete.
     pub fn delete(&mut self, forward: bool, word: bool) {
+        self.extra_sel.clear();
         if !forward && self.at_list_item_start() {
             self.begin();
             let p = self.caret.para;
@@ -1922,6 +1995,10 @@ impl Editor {
     /// Apply run formatting to the selection (or, with none, to the word at
     /// the caret, or to what is typed next).
     pub fn format_runs(&mut self, edits: &[PropEdit], name: &str) {
+        let ed2 = edits.to_vec();
+        if self.each_range(name, &mut |e: &mut Self| e.format_runs(&ed2, name)) {
+            return;
+        }
         let (mut a, mut b) = self.selection();
         if a == b {
             let (ws, we) = self.word_at(a);
@@ -1994,6 +2071,10 @@ impl Editor {
 
     /// Apply paragraph formatting to every paragraph in the selection.
     pub fn format_paras(&mut self, edits: &[PropEdit], name: &str) {
+        let ed2 = edits.to_vec();
+        if self.each_range(name, &mut |e: &mut Self| e.format_paras(&ed2, name)) {
+            return;
+        }
         let (a, b) = self.selection();
         self.begin();
         for p in self.paras_between(a.para, b.para) {
@@ -2010,6 +2091,13 @@ impl Editor {
     /// Set attributes on a paragraph property element, keeping its other
     /// attributes (w:spacing w:after=..., w:ind w:left=...).
     pub fn format_paras_attrs(&mut self, name: &str, attrs: &[(&str, Option<&str>)], label: &str) {
+        let owned: Vec<(String, Option<String>)> = attrs.iter().map(|(k, v)| (k.to_string(), v.map(|x| x.to_string()))).collect();
+        if self.each_range(label, &mut |e: &mut Self| {
+            let a: Vec<(&str, Option<&str>)> = owned.iter().map(|(k, v)| (k.as_str(), v.as_deref())).collect();
+            e.format_paras_attrs(name, &a, label)
+        }) {
+            return;
+        }
         let (a, b) = self.selection();
         self.begin();
         for p in self.paras_between(a.para, b.para) {
@@ -2854,6 +2942,38 @@ impl Editor {
         true
     }
 
+    /// The direct borders of the first paragraph / cell / the table at the selection:
+    /// (side, attributes) of each border element, for the Borders and Shading dialog.
+    pub fn border_state(&self, target: &str) -> Vec<(String, Vec<(String, String)>)> {
+        let (pr_name, set_name, node) = match target {
+            "paras" => ("w:pPr", "w:pBdr", Some(self.selection().0.para)),
+            "table" => ("w:tblPr", "w:tblBorders", self.cell_of(self.caret.para).map(|c| c.0)),
+            _ => ("w:tcPr", "w:tcBorders", self.selected_cells().and_then(|c| c.2.first().copied())),
+        };
+        let dom = &self.doc.dom;
+        let Some(set) = node.and_then(|n| dom.child(n, pr_name)).and_then(|pr| dom.child(pr, set_name)) else { return vec![] };
+        dom.elements(set).map(|c| {
+            let name = dom.name(c).trim_start_matches("w:").to_string();
+            let attrs = match &dom.node(c).kind {
+                crate::xml::Kind::Element { attrs, .. } => attrs.clone(),
+                _ => vec![],
+            };
+            (name, attrs)
+        }).collect()
+    }
+
+    /// The fill (hex) of the first paragraph / cell's direct shading.
+    pub fn shading_state(&self, target: &str) -> Option<String> {
+        let (pr_name, node) = match target {
+            "paras" => ("w:pPr", Some(self.selection().0.para)),
+            "table" => ("w:tcPr", self.cell_of(self.caret.para).map(|c| c.1)),
+            _ => ("w:tcPr", self.selected_cells().and_then(|c| c.2.first().copied())),
+        };
+        let dom = &self.doc.dom;
+        let shd = node.and_then(|n| dom.child(n, pr_name)).and_then(|pr| dom.child(pr, "w:shd"))?;
+        dom.attr(shd, "w:fill").filter(|f| *f != "auto").map(|f| f.to_string())
+    }
+
     /// Does the first selected cell have this border (w:tcBorders side)?
     pub fn cell_border_on(&self, side: &str) -> bool {
         let Some((_, _, cells)) = self.selected_cells() else { return false };
@@ -3011,6 +3131,25 @@ impl Editor {
             }
         }
         self.commit("Modify Style", false);
+    }
+
+    /// A paragraph style's list (w:numPr): numId and level; num 0 takes it off.
+    pub fn style_set_num(&mut self, id: &str, num: i32, ilvl: i32) {
+        self.begin();
+        if let Some(ppr) = self.style_part(id, "w:pPr") {
+            let sd = self.doc.styles_dom.as_mut().unwrap();
+            set_prop_child(sd, ppr, &PropEdit::remove("w:numPr"), PPR_ORDER);
+            if num > 0 {
+                set_prop_child(sd, ppr, &PropEdit::set("w:numPr", &[]), PPR_ORDER);
+                let np = sd.child(ppr, "w:numPr").unwrap();
+                let il = sd.new_element("w:ilvl", &[("w:val", &ilvl.to_string())]);
+                let ni = sd.new_element("w:numId", &[("w:val", &num.to_string())]);
+                sd.append(np, il);
+                sd.append(np, ni);
+            }
+        }
+        self.commit("Modify Style", false);
+        self.doc.reload_styles();
     }
 
     /// Change attributes of one element of a style's paragraph formatting.
@@ -3340,6 +3479,195 @@ impl Editor {
 
     /// Backspace at the start of a list item: the number goes, the text
     /// keeps its indent (as in the original).
+    /// The list the caret's paragraph is in: (numId, level, bullet, its number's text,
+    /// the level's start value).
+    pub fn list_info(&self) -> Option<(i32, i32, bool, String, i32)> {
+        let p = self.caret.para;
+        let pp = self.doc.para_props(p).0;
+        let num = pp.num_id.filter(|n| *n > 0)?;
+        let ilvl = pp.ilvl.unwrap_or(0);
+        let pl = self.para_layout(p)?;
+        let lb = pl.label.as_ref()?;
+        let start = self.doc.numbering.level(num, ilvl.clamp(0, 8) as usize, &self.doc.styles).map(|l| l.start).unwrap_or(1);
+        let start = self.doc.numbering.nums.get(&num).and_then(|n| n.overrides.get(&(ilvl.clamp(0, 8) as usize))).and_then(|o| o.0).unwrap_or(start);
+        Some((num, ilvl, lb.bullet, lb.text.clone(), start))
+    }
+
+    /// Add a list definition (w:abstractNum's children: w:multiLevelType, w:lvl...); its numId.
+    fn create_list_definition(&mut self, levels_xml: &str) -> Option<i32> {
+        self.ensure_numbering();
+        let nd = self.doc.num_dom.as_mut().unwrap();
+        let root = nd.root;
+        let aid = nd.children_named(root, "w:abstractNum").filter_map(|a| nd.attr(a, "w:abstractNumId").and_then(|v| v.parse::<i32>().ok())).max().map(|m| m + 1).unwrap_or(0);
+        let nid = nd.children_named(root, "w:num").filter_map(|a| nd.attr(a, "w:numId").and_then(|v| v.parse::<i32>().ok())).max().unwrap_or(0) + 1;
+        let wrapped = format!("<w:numbering xmlns:w=\"{}\"><w:abstractNum w:abstractNumId=\"{}\">{}</w:abstractNum><w:num w:numId=\"{}\"><w:abstractNumId w:val=\"{}\"/></w:num></w:numbering>",
+                              crate::document::W_NS, aid, levels_xml, nid, aid);
+        let tmp = XmlDoc::parse(wrapped.as_bytes()).ok()?;
+        let parts: Vec<NodeId> = tmp.elements(tmp.root).collect();
+        let first_num = nd.children_named(root, "w:num").next();
+        let abs_at = match first_num {
+            Some(n) => nd.index_in_parent(n).unwrap(),
+            None => nd.children(root).len(),
+        };
+        let an = nd.import_node(&tmp, parts[0]);
+        nd.insert(root, abs_at, an);
+        let n = nd.import_node(&tmp, parts[1]);
+        let end = nd.children(root).len();
+        let at = nd.children(root).iter().position(|&c| nd.name(c) == "w:numIdMacAtCleanup").unwrap_or(end);
+        nd.insert(root, at, n);
+        self.doc.reload_numbering();
+        Some(nid)
+    }
+
+    /// A new list definition (not applied); its numId.
+    pub fn new_list_definition(&mut self, levels_xml: &str) -> i32 {
+        self.begin();
+        let r = self.create_list_definition(levels_xml).unwrap_or(0);
+        self.commit("List", false);
+        r
+    }
+
+    /// A list definition for the selected paragraphs: they become one list, each keeping
+    /// its level.
+    pub fn apply_list_definition(&mut self, levels_xml: &str) -> bool {
+        let (a, b) = self.selection();
+        let paras = self.paras_between(a.para, b.para);
+        self.begin();
+        let Some(nid) = self.create_list_definition(levels_xml) else {
+            self.commit("List", false);
+            return false;
+        };
+        for p in paras {
+            let pp = self.doc.para_props(p).0;
+            let lvl = if pp.num_id.unwrap_or(0) > 0 { pp.ilvl.unwrap_or(0) } else { 0 };
+            self.set_num_pr(p, Some((nid, lvl)));
+        }
+        self.commit("Multilevel List", false);
+        true
+    }
+
+    /// Body paragraphs in order, from (and including) `from`.
+    fn body_paras_from(&self, from: NodeId) -> Vec<NodeId> {
+        let n = self.layout.body_count.min(self.layout.paras.len());
+        let all: Vec<NodeId> = self.layout.paras[..n].iter().map(|pl| pl.node).collect();
+        match all.iter().position(|x| *x == from) {
+            Some(i) => all[i..].to_vec(),
+            None => vec![],
+        }
+    }
+
+    /// Restart Numbering / Set Numbering Value > Start new list: a new list from the caret's
+    /// paragraph on, its level starting at `start`.
+    pub fn restart_numbering(&mut self, start: i32) -> bool {
+        let Some((num, ilvl, _, _, _)) = self.list_info() else { return false };
+        let Some(abs) = self.doc.numbering.nums.get(&num).map(|n| n.abs.clone()) else { return false };
+        let from = self.caret.para;
+        let paras: Vec<NodeId> = self.body_paras_from(from).into_iter()
+            .filter(|p| self.doc.para_props(*p).0.num_id == Some(num)).collect();
+        self.begin();
+        let nd = self.doc.num_dom.as_mut().unwrap();
+        let root = nd.root;
+        let nid = nd.children_named(root, "w:num").filter_map(|a| nd.attr(a, "w:numId").and_then(|v| v.parse::<i32>().ok())).max().unwrap_or(0) + 1;
+        let n = nd.new_element("w:num", &[("w:numId", &nid.to_string())]);
+        let an = nd.new_element("w:abstractNumId", &[("w:val", &abs)]);
+        nd.append(n, an);
+        let ov = nd.new_element("w:lvlOverride", &[("w:ilvl", &ilvl.to_string())]);
+        let so = nd.new_element("w:startOverride", &[("w:val", &start.to_string())]);
+        nd.append(ov, so);
+        nd.append(n, ov);
+        let end = nd.children(root).len();
+        let at = nd.children(root).iter().position(|&c| nd.name(c) == "w:numIdMacAtCleanup").unwrap_or(end);
+        nd.insert(root, at, n);
+        self.doc.reload_numbering();
+        for p in paras {
+            let lvl = self.doc.para_props(p).0.ilvl.unwrap_or(0);
+            self.set_num_pr(p, Some((nid, lvl)));
+        }
+        self.commit("Restart Numbering", false);
+        true
+    }
+
+    /// Continue Numbering: the caret's list joins the numbered list before it.
+    pub fn continue_numbering(&mut self) -> bool {
+        let Some((num, _, bullet, _, _)) = self.list_info() else { return false };
+        if bullet {
+            return false;
+        }
+        let n = self.layout.body_count.min(self.layout.paras.len());
+        let all: Vec<NodeId> = self.layout.paras[..n].iter().map(|pl| pl.node).collect();
+        let Some(i) = all.iter().position(|x| *x == self.caret.para) else { return false };
+        let prev = all[..i].iter().rev().find_map(|p| {
+            let pp = self.doc.para_props(*p).0;
+            let id = pp.num_id.filter(|x| *x > 0 && *x != num)?;
+            let pl = self.para_layout(*p)?;
+            if pl.label.as_ref().is_some_and(|l| !l.bullet) { Some(id) } else { None }
+        });
+        let Some(target) = prev else { return false };
+        let paras: Vec<NodeId> = all[i..].iter().copied().filter(|p| self.doc.para_props(*p).0.num_id == Some(num)).collect();
+        self.begin();
+        for p in paras {
+            let lvl = self.doc.para_props(p).0.ilvl.unwrap_or(0);
+            self.set_num_pr(p, Some((target, lvl)));
+        }
+        self.commit("Continue Numbering", false);
+        true
+    }
+
+    /// The caret's list level: the number's position and the text indent (twips), what
+    /// follows the number ("tab", "space", "nothing"); set on the list's definition.
+    pub fn list_level_indents(&self) -> Option<(i32, i32, String)> {
+        let (num, ilvl, _, _, _) = self.list_info()?;
+        let lvl = self.doc.numbering.level(num, ilvl.clamp(0, 8) as usize, &self.doc.styles)?;
+        let left = lvl.ppr.ind_left.unwrap_or(720);
+        let first = lvl.ppr.ind_first.unwrap_or(-360);
+        Some((left + first, left, if lvl.suff.is_empty() { "tab".into() } else { lvl.suff.clone() }))
+    }
+
+    pub fn set_list_level_indents(&mut self, number_at: i32, text_at: i32, suff: &str) -> bool {
+        let Some((num, ilvl, _, _, _)) = self.list_info() else { return false };
+        let Some(abs) = self.doc.numbering.nums.get(&num).map(|n| n.abs.clone()) else { return false };
+        self.begin();
+        let nd = self.doc.num_dom.as_mut().unwrap();
+        let root = nd.root;
+        let Some(a) = nd.children_named(root, "w:abstractNum").find(|a| nd.attr(*a, "w:abstractNumId") == Some(abs.as_str())) else {
+            self.commit("Adjust List Indents", false);
+            return false;
+        };
+        let lv = nd.children_named(a, "w:lvl").find(|l| nd.attr(*l, "w:ilvl").and_then(|v| v.parse::<i32>().ok()) == Some(ilvl));
+        if let Some(lv) = lv {
+            let ppr = match nd.child(lv, "w:pPr") {
+                Some(x) => x,
+                None => {
+                    let x = nd.new_element("w:pPr", &[]);
+                    nd.append(lv, x);
+                    x
+                }
+            };
+            if let Some(old) = nd.child(ppr, "w:ind") {
+                nd.detach(old);
+            }
+            let hang = (text_at - number_at).max(0);
+            let ind = if hang > 0 {
+                nd.new_element("w:ind", &[("w:left", &text_at.to_string()), ("w:hanging", &hang.to_string())])
+            } else {
+                nd.new_element("w:ind", &[("w:left", &text_at.to_string()), ("w:firstLine", &(number_at - text_at).to_string())])
+            };
+            nd.append(ppr, ind);
+            if let Some(old) = nd.child(lv, "w:suff") {
+                nd.detach(old);
+            }
+            if suff != "tab" {
+                let s = nd.new_element("w:suff", &[("w:val", suff)]);
+                // w:suff goes after w:lvlRestart / w:pStyle / w:isLgl, before w:lvlText
+                let at = nd.child(lv, "w:lvlText").and_then(|t| nd.index_in_parent(t)).unwrap_or(0);
+                nd.insert(lv, at, s);
+            }
+        }
+        self.doc.reload_numbering();
+        self.commit("Adjust List Indents", false);
+        true
+    }
+
     fn remove_number_keep_indent(&mut self, p: NodeId) {
         let pp = self.doc.para_props(p).0;
         self.set_num_pr(p, Some((0, 0)));

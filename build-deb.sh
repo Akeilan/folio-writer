@@ -22,7 +22,7 @@ ln -s folio-writer "$ROOT/usr/bin/folio"
 ARCH=all
 CORE_SO="$HERE/core/target/release/libfolio_core.so"
 if [ "${NO_CORE:-}" != 1 ]; then
-  (cd "$HERE/core" && cargo build --release --features python >/dev/null 2>&1) || true
+  (cd "$HERE/core" && ./build-jammy.sh >/dev/null 2>&1) || true
 fi
 if [ -f "$CORE_SO" ]; then
   install -Dm644 "$CORE_SO" "$ROOT/usr/lib/folio-writer/folio_core.so"

@@ -33,7 +33,8 @@ class Pane(Gtk.Box):
 
     @property
     def model(self):
-        return self.win.engine.model
+        # the new engine answers the parts of the document interface the panes use
+        return self.win.dialogs.model
 
     def close(self):
         self.win.hide_pane(self)
@@ -641,15 +642,23 @@ class EditorPane(Pane):
         self.status.set_text("Checking the document…")
         GLib.idle_add(lambda: (self.next(False), False)[1])
 
+    @property
+    def native(self):
+        return getattr(self.win.engine, "native", False)
+
     def next(self, after=True):
         m = self.model
-        if m is None:
+        if m is None and not self.native:
             return
         for c in self.sugg.get_children():
             self.sugg.remove(c)
         w = None
         if getattr(self, "mode", "spelling") == "spelling":
-            w = docapi.next_misspelling(m, after, self.win.ignored_words)
+            if self.native:
+                from .native import docops
+                w = docops.next_misspelling(self.win, after, self.win.ignored_words)
+            else:
+                w = docapi.next_misspelling(m, after, self.win.ignored_words)
             if w is None:
                 self.mode = "grammar"
                 after = False
@@ -661,7 +670,10 @@ class EditorPane(Pane):
         self.mode = "spelling"
         self.status.set_text("Spelling")
         self.word.set_markup('<span size="large" underline="error">%s</span>' % html.escape(w))
-        sugg = docapi.suggestions(w, docapi.doc_locale(m))
+        if self.native:
+            sugg = self.win.engine.view.speller.suggestions(w)
+        else:
+            sugg = docapi.suggestions(w, docapi.doc_locale(m))
         for s in sugg:
             row = Gtk.ListBoxRow()
             row.word = s
@@ -679,7 +691,11 @@ class EditorPane(Pane):
         from . import grammar
         if not hasattr(self, "grammar_ignored"):
             self.grammar_ignored = set()
-        found = grammar.next_issue(m, after, self.grammar_ignored)
+        if self.native:
+            from .native import docops
+            found = docops.next_grammar(self.win, after, self.grammar_ignored)
+        else:
+            found = grammar.next_issue(m, after, self.grammar_ignored)
         if found is None:
             self.mode = "spelling"
             self.current = None
@@ -711,7 +727,11 @@ class EditorPane(Pane):
             return
         from . import grammar
         try:
-            st = grammar.readability(m)
+            if self.native:
+                from .native import docops
+                st = docops.readability(self.win)
+            else:
+                st = grammar.readability(m)
         except Exception as e:
             print("readability:", e)
             return
@@ -728,14 +748,23 @@ class EditorPane(Pane):
         self.sugg.show_all()
 
     def change(self, word):
-        if word is None or self.model is None:
+        if word is None or (self.model is None and not self.native):
             return
-        docapi.replace_selection_text(self.model, word)
+        if self.native:
+            from .native import docops
+            docops.replace_selection(self.win, word)
+        else:
+            docapi.replace_selection_text(self.model, word)
         self.next()
 
     def change_all(self):
         rows = self.sugg.get_children()
         if not rows or self.current is None or getattr(rows[0], "word", None) is None:
+            return
+        if self.native:
+            from .native import docops
+            docops.replace_all(self.win, self.current, rows[0].word)
+            self.next()
             return
         m = self.model
         sd = m.createReplaceDescriptor()
@@ -756,12 +785,24 @@ class EditorPane(Pane):
     def ignore_all(self):
         if self.current:
             self.win.ignored_words.add(self.current)
-            docapi.ignore_all(self.current)
+            if self.native:
+                sp = self.win.engine.view.speller
+                sp.cache.clear()
+                sp.invalidate()
+            else:
+                docapi.ignore_all(self.current)
         self.next()
 
     def add(self):
         if self.current:
-            docapi.add_to_dictionary(self.current)
+            if self.native:
+                from .native import spell
+                spell.add_to_dictionary(self.current)
+                sp = self.win.engine.view.speller
+                sp.cache.clear()
+                sp.invalidate()
+            else:
+                docapi.add_to_dictionary(self.current)
         self.next()
 
 
@@ -790,6 +831,10 @@ class ThesaurusPane(Pane):
         self.pack_start(hint, False, False, 0)
 
     def lookup_selection(self):
+        if getattr(self.win.engine, "native", False):
+            from .native import docops
+            self.lookup(docops.select_word_at_caret(self.win))
+            return
         m = self.model
         if m is None:
             return
@@ -807,9 +852,14 @@ class ThesaurusPane(Pane):
     def lookup(self, word):
         self.entry.set_text(word or "")
         self.store.clear()
-        if not word or self.model is None:
+        native = getattr(self.win.engine, "native", False)
+        if not word or (self.model is None and not native):
             return
-        res = docapi.synonyms(word, docapi.doc_locale(self.model))
+        if native:
+            from .native import docops
+            res = docops.synonyms(word)
+        else:
+            res = docapi.synonyms(word, docapi.doc_locale(self.model))
         if not res:
             self.store.append(None, ["<i>No results found.</i>", ""])
             return
@@ -831,7 +881,13 @@ class ThesaurusPane(Pane):
         if not res:
             return True
         w = self.store[res[0]][1].split(" (")[0]
-        pop = menu_popover(tv, [("Insert", lambda: docapi.replace_selection_text(self.model, w)),
+        def insert():
+            if getattr(self.win.engine, "native", False):
+                from .native import docops
+                docops.replace_selection(self.win, w)
+            else:
+                docapi.replace_selection_text(self.model, w)
+        pop = menu_popover(tv, [("Insert", insert),
                                 ("Copy", lambda: Gtk.Clipboard.get(
                                     __import__("gi.repository.Gdk", fromlist=["Gdk"]).SELECTION_CLIPBOARD
                                 ).set_text(w, -1))])
