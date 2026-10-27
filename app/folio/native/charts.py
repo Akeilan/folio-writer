@@ -127,6 +127,8 @@ def read(xml):
         root = ET.fromstring(xml.encode() if isinstance(xml, str) else xml)
     except ET.ParseError:
         return default_model()
+    if root.tag == "{%s}chartSpace" % "http://schemas.microsoft.com/office/drawing/2014/chartex":
+        return _read_ex(root)
     ext = root.find(".//{%s}model" % FO)
     if ext is not None and ext.text:
         try:
@@ -218,6 +220,42 @@ def read(xml):
                        "outEnd": "outside-end"}.get(pos.get("val") if pos is not None else "", "outside-end")
     m["labels"] = lbl
     m["data_table"] = pa is not None and pa.find(_q("c:dTable")) is not None
+    return m
+
+
+def _read_ex(root):
+    cx = "{http://schemas.microsoft.com/office/drawing/2014/chartex}"
+    ext = root.find(".//{%s}model" % FO)
+    if ext is not None and ext.text:
+        try:
+            m = default_model()
+            m.update(json.loads(ext.text))
+            return m
+        except ValueError:
+            pass
+    m = default_model(classic.TREEMAP)
+    ser = root.find(".//%sseries" % cx)
+    if ser is not None and ser.get("layoutId") == "sunburst":
+        m["type"] = classic.SUNBURST
+    data = root.find(".//%sdata" % cx)
+    levels, vals = [], []
+    if data is not None:
+        for dim in data:
+            if dim.tag == cx + "strDim":
+                for lv in dim.findall(cx + "lvl"):
+                    levels.append({int(p.get("idx", 0)): (p.text or "") for p in lv.findall(cx + "pt")})
+            elif dim.tag == cx + "numDim":
+                lv = dim.find(cx + "lvl")
+                if lv is not None:
+                    vals = {int(p.get("idx", 0)): _num(p.text) for p in lv.findall(cx + "pt")}
+    levels.reverse()
+    n = max(vals) + 1 if vals else 0
+    rows = ["/".join(l[i] for l in levels if l.get(i)) for i in range(n)]
+    m["data"] = {"rows": rows, "cols": ["Value"], "values": [[vals.get(i, 0.0)] for i in range(n)]}
+    t = root.find(".//%stitle//%sv" % (cx, cx))
+    m["title"] = t.text if t is not None else None
+    lg = root.find(".//%slegend" % cx)
+    m["legend"] = "none" if lg is None else {"r": "right", "t": "top", "l": "left", "b": "bottom"}.get(lg.get("pos"), "top")
     return m
 
 
@@ -556,6 +594,74 @@ def write(m):
                EXT_URI, FO, escape(model)))
 
 
+# ================================================================ treemap, sunburst
+CX = "http://schemas.microsoft.com/office/drawing/2014/chartex"
+TREEMAP, SUNBURST = classic.TREEMAP, classic.SUNBURST
+EX_TYPES = {TREEMAP: "treemap", SUNBURST: "sunburst"}
+
+
+def _paths(d):
+    return [str(r).split("/") for r in d["rows"]]
+
+
+def write_ex(m):
+    """An Office 2016 chart part (cx:chartSpace) for a treemap or sunburst:
+    the categories as levels (innermost first, as Word writes them)."""
+    d = m["data"]
+    paths = _paths(d)
+    depth = max((len(p) for p in paths), default=1)
+    n = len(paths)
+    vals = [row[0] if row else 0 for row in d["values"]]
+    lvls = []
+    for k in range(depth - 1, -1, -1):
+        pts = "".join('<cx:pt idx="%d">%s</cx:pt>' % (i, escape(p[k])) for i, p in enumerate(paths) if k < len(p))
+        lvls.append('<cx:lvl ptCount="%d">%s</cx:lvl>' % (n, pts))
+    last_col = _col(depth - 1)
+    val_col = _col(depth)
+    lay = EX_TYPES[m["type"]]
+    title = m.get("title")
+    legend = m.get("legend", "top")
+    leg = "" if legend == "none" else '<cx:legend pos="%s" align="ctr" overlay="0"/>' % (
+        {"right": "r", "top": "t", "left": "l", "bottom": "b"}.get(legend, "t"))
+    lbl = m.get("labels")
+    show_val = lbl not in (None, "center")
+    return ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<cx:chartSpace xmlns:a="%s" xmlns:r="%s" xmlns:cx="%s">'
+            '<cx:chartData><cx:externalData r:id="rId1" cx:autoUpdate="0"/><cx:data id="0">'
+            '<cx:strDim type="cat"><cx:f>Sheet1!$A$2:$%s$%d</cx:f>%s</cx:strDim>'
+            '<cx:numDim type="size"><cx:f>Sheet1!$%s$2:$%s$%d</cx:f><cx:lvl ptCount="%d" formatCode="General">%s</cx:lvl></cx:numDim>'
+            '</cx:data></cx:chartData><cx:chart>%s<cx:plotArea><cx:plotAreaRegion>'
+            '<cx:series layoutId="%s" uniqueId="{00000001-6C1A-4E3D-9B8A-F01A0C4A5170}">'
+            '<cx:tx><cx:txData><cx:f>Sheet1!$%s$1</cx:f><cx:v>%s</cx:v></cx:txData></cx:tx>'
+            '<cx:dataLabels pos="%s"><cx:visibility seriesName="0" categoryName="1" value="%d"/></cx:dataLabels>'
+            '<cx:dataId val="0"/>%s</cx:series></cx:plotAreaRegion></cx:plotArea>%s</cx:chart>'
+            '<cx:extLst><cx:ext uri="%s"><fo:model xmlns:fo="%s">%s</fo:model></cx:ext></cx:extLst>'
+            '</cx:chartSpace>'
+            % (A, R, CX, last_col, n + 1, "".join(lvls), val_col, val_col, n + 1, n,
+               "".join('<cx:pt idx="%d">%s</cx:pt>' % (i, _numtext(v)) for i, v in enumerate(vals)),
+               ('<cx:title pos="t" align="ctr" overlay="0"><cx:tx><cx:txData><cx:v>%s</cx:v></cx:txData></cx:tx></cx:title>'
+                % escape(title)) if title else "",
+               lay, val_col, escape(d["cols"][0] if d["cols"] else "Value"),
+               "inEnd" if lay == "treemap" else "ctr", int(show_val),
+               '<cx:layoutPr><cx:parentLabelLayout val="overlapping"/></cx:layoutPr>' if lay == "treemap" else "",
+               leg, EXT_URI, FO, escape(json.dumps(m))))
+
+
+def workbook_ex(d):
+    """The workbook for a treemap / sunburst: a column per level, then the sizes."""
+    paths = _paths(d)
+    depth = max((len(p) for p in paths), default=1)
+    cols = ["Level %d" % (k + 1) for k in range(depth)]
+    rows = [p + [""] * (depth - len(p)) for p in paths]
+    flat = {"rows": [r[0] for r in rows], "cols": cols[1:] + [d["cols"][0] if d["cols"] else "Value"],
+            "values": [r[1:] + [v[0] if v else 0] for r, v in zip(rows, d["values"])]}
+    return workbook(flat)
+
+
+def is_ex(ref):
+    return (ref.part or "").split("/")[-1].startswith("chartEx")
+
+
 # ================================================================ the workbook
 def workbook(d):
     """An .xlsx holding the data (Sheet1: categories down A, series across)."""
@@ -621,14 +727,41 @@ def model_of(ref):
 
 def save(ref, m, data_changed=False):
     ed = ref.ed
+    ex = m["type"] in EX_TYPES
+    if ex != is_ex(ref):
+        return _replace(ref, m)
     ed.begin_group("Chart")
     try:
-        ed.set_chart_xml(ref.part, write(m))
+        ed.set_chart_xml(ref.part, write_ex(m) if ex else write(m))
         if data_changed:
-            ed.set_chart_workbook(ref.part, workbook(m["data"]))
+            ed.set_chart_workbook(ref.part, workbook_ex(m["data"]) if ex else workbook(m["data"]))
     finally:
         ed.end_group()
     ref.win.engine.view.after_edit()
+
+
+def _replace(ref, m):
+    """A chart of the other family (treemap / sunburst or not) in the old one's place."""
+    ed = ref.ed
+    o = ed.selected_object()
+    if o is None:
+        return
+    ed.begin_group("Change Chart Type")
+    try:
+        ed.object_delete()
+        ed.select_nodes(o["para"], o["off"], o["para"], o["off"])
+        part = _insert_model(ref.win, m, o["w"], o["h"])
+    finally:
+        ed.end_group()
+    ref.part = part
+    ref.win.engine.view.after_edit()
+
+
+def _insert_model(win, m, w=432.0, h=252.0):
+    ed = _ed(win)
+    if m["type"] in EX_TYPES:
+        return ed.insert_chart(write_ex(m), workbook_ex(m["data"]), w, h, True)
+    return ed.insert_chart(write(m), workbook(m["data"]), w, h)
 
 
 def insert(win, type_index=0, data=None):
@@ -636,13 +769,16 @@ def insert(win, type_index=0, data=None):
     m = default_model(type_index)
     if data:
         m["data"] = data
+    if type_index in EX_TYPES and not data:
+        m["data"] = json.loads(json.dumps(__import__("folio.imagecharts", fromlist=["x"]).DEFAULT))
+        m["legend"] = "top" if type_index == TREEMAP else "none"
     if type_index in SPECIALS and not data:
         m["data"] = _special_default(type_index, m["data"])
     if type_index in (5, 6):
         m["legend"] = "bottom"
     if SPECIALS.get(type_index) in ("histogram", "box", "funnel"):
         m["legend"] = "none"
-    part = ed.insert_chart(write(m), workbook(m["data"]), 432.0, 252.0)
+    part = _insert_model(win, m)
     win.engine.view.after_edit()
     try:
         win.update_object_tabs()
@@ -694,6 +830,14 @@ def set_type(ref, index):
     m = model_of(ref)
     old = m["type"]
     m["type"] = index
+    if (index in EX_TYPES) != (old in EX_TYPES):
+        if index in EX_TYPES and not any("/" in str(r) for r in m["data"]["rows"]) and m["data"] == classic.DEFAULT_DATA:
+            m["data"] = json.loads(json.dumps(__import__("folio.imagecharts", fromlist=["x"]).DEFAULT))
+        elif index in EX_TYPES:
+            m["data"] = {"rows": m["data"]["rows"], "cols": m["data"]["cols"][:1],
+                         "values": [r[:1] for r in m["data"]["values"]]}
+        save(ref, m)
+        return
     if index in SPECIALS and old not in SPECIALS and m["data"] == classic.DEFAULT_DATA:
         m["data"] = _special_default(index, m["data"])
         save(ref, m, True)
@@ -843,9 +987,6 @@ def edit_chart(win, ref):
 def insert_chart_dialog(win):
     idx = classic.type_dialog(win)
     if idx is None:
-        return
-    if idx in classic.IMAGE_TYPES:
-        win.dialogs.message("Treemap and Sunburst charts aren't available yet.")
         return
     ref = insert(win, idx)
     if ref is not None:

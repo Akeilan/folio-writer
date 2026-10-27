@@ -436,6 +436,13 @@ class TextDialogs:
         by = LengthSpin(abs(first), 0, 55880)
         p1.pack_start(grid([["_Left:", left, "_Special:", "B_y:"],
                             ["_Right:", right, special, by]]), False, False, 0)
+        # Mirror indents: Left and Right become Inside and Outside
+        mirror = Gtk.CheckButton.new_with_mnemonic("_Mirror indents")
+        ned = getattr(self.eng, "ed", None) if getattr(self.eng, "native", False) else None
+        mirror_was = bool(ned is not None and "w:mirrorIndents" in (ned.para_xml() if hasattr(ned, "para_xml") else ""))
+        mirror.set_active(mirror_was)
+        mirror.set_sensitive(ned is not None)
+        p1.pack_start(mirror, False, False, 0)
         p1.pack_start(heading("Spacing"), False, False, 0)
         before = PointSpin(round(docapi.to_pt(cur["before"])), 0, 1584, 6)
         after = PointSpin(round(docapi.to_pt(cur["after"])), 0, 1584, 6)
@@ -614,6 +621,8 @@ class TextDialogs:
             vc.ParaLineNumberCount = not nolines.get_active()
         if nohyph.get_active() == cur["hyph"]:
             vc.ParaIsHyphenation = not nohyph.get_active()
+        if ned is not None and mirror.get_active() != mirror_was:
+            ned.apply_para([("w:mirrorIndents", [] if mirror.get_active() else None)], "Paragraph")
         if default_scope is None and outline.get_active() > 0:
             try:
                 editfeatures.set_collapsed_by_default(self.win, m, self._cursor(m),
@@ -669,6 +678,8 @@ class TextDialogs:
         d = FDialog(self.win, "Tabs")
         kinds = [("Left", "LEFT"), ("Center", "CENTER"), ("Right", "RIGHT"),
                  ("Decimal", "DECIMAL")]
+        if getattr(self.eng, "native", False):
+            kinds.append(("Bar", "BAR"))
         leaders = [("1 None", " "), ("2 .......", "."), ("3 -------", "-"), ("4 ____", "_")]
         from .widgets import fmt_len, parse_len
         pos = Gtk.Entry()

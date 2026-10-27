@@ -1,7 +1,11 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
 def word():
-    return find("word")
+    r = find("word")
+    if r is None and NATIVE:
+        # hidden text isn't found while it's hidden (as in the original): the selection still holds it
+        r = docapi.controller(M()).getSelection().getByIndex(0)
+    return r
 def shortcuts():
     cases = [
         ("ctrl+shift+d", lambda: word().CharUnderline == 2, "double underline"),

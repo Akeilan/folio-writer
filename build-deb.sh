@@ -44,6 +44,9 @@ for f in "$HERE"/share/equations/*.png; do
   install -Dm644 "$f" "$S/equations/$(basename "$f")"
 done
 install -Dm644 "$HERE/share/inkmath/templates.json" "$S/inkmath/templates.json"
+install -Dm644 "$HERE/share/inkmath/handwriting.json" "$S/inkmath/handwriting.json"
+install -Dm644 "$HERE/share/inkmath/prior.json" "$S/inkmath/prior.json"
+for f in "$HERE"/share/autocorr/*.dat; do install -Dm644 "$f" "$S/autocorr/$(basename "$f")"; done
 install -Dm644 "$HERE/share/SHORTCUTS.txt" "$S/SHORTCUTS.txt"
 # the equation font (STIX Two Math, SIL OFL)
 install -Dm644 "$HERE/share/fonts/STIX2Math.otf" "$S/fonts/STIX2Math.otf"
@@ -72,8 +75,9 @@ Section: editors
 Priority: optional
 Architecture: $ARCH
 Installed-Size: $SIZE
-Depends: python3 (>= 3.10), libc6 (>= 2.34), libcairo2, libfreetype6, python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, gir1.2-lokdocview-0.1, gir1.2-poppler-0.18, python3-uno, python3-enchant, python3-pil, libreoffice-writer, libreoffice-math, libreoffice-script-provider-python, libreoffice-style-colibre, librsvg2-common, fonts-crosextra-carlito, fonts-crosextra-caladea, fonts-liberation2 | fonts-liberation
-Recommends: hunspell-en-us | hunspell-dictionary, mythes-en-us, hyphen-en-us, cups-client, xdg-utils, fonts-dejavu-extra, fonts-lmodern, libreoffice-lightproof-en, python3-speechd, speech-dispatcher, espeak-ng
+Depends: python3 (>= 3.10), libc6 (>= 2.34), libcairo2, libfreetype6, python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, gir1.2-poppler-0.18, python3-enchant, python3-pil, libreoffice-style-colibre, librsvg2-common, fonts-crosextra-carlito, fonts-crosextra-caladea, fonts-liberation2 | fonts-liberation
+Recommends: hunspell-en-us | hunspell-dictionary, mythes-en-us, hyphen-en-us, cups-client, xdg-utils, fonts-dejavu-extra, fonts-lmodern, python3-speechd, speech-dispatcher, espeak-ng
+Suggests: libreoffice-writer, python3-uno, gir1.2-lokdocview-0.1, libreoffice-lightproof-en
 Maintainer: Ron Shillings <ron.shillings@gmail.com>
 Description: ribbon word processor
  Folio Writer is a word processor with a ribbon interface, KeyTips, a File

@@ -183,6 +183,34 @@ def set_bevel(win, name=None):
     _done(win)
 
 
+# Word's 3-D Rotation gallery: name -> camera preset
+ROTATIONS = [
+    ("Parallel", None),
+    ("Isometric: Left Down", "isometricLeftDown"), ("Isometric: Right Up", "isometricRightUp"),
+    ("Isometric: Top Up", "isometricTopUp"), ("Isometric: Bottom Down", "isometricBottomDown"),
+    ("Off Axis 1: Left", "isometricOffAxis1Left"), ("Off Axis 1: Right", "isometricOffAxis1Right"),
+    ("Off Axis 2: Left", "isometricOffAxis2Left"), ("Off Axis 2: Right", "isometricOffAxis2Right"),
+    ("Perspective", None),
+    ("Perspective: Left", "perspectiveLeft"), ("Perspective: Right", "perspectiveRight"),
+    ("Perspective: Below", "perspectiveBelow"), ("Perspective: Above", "perspectiveAbove"),
+    ("Perspective: Relaxed", "perspectiveRelaxed"),
+    ("Oblique", None),
+    ("Oblique: Top Left", "obliqueTopLeft"), ("Oblique: Top Right", "obliqueTopRight"),
+    ("Oblique: Bottom Left", "obliqueBottomLeft"), ("Oblique: Bottom Right", "obliqueBottomRight"),
+]
+
+
+def set_rotation(win, prst=None):
+    """3-D Rotation: a camera preset (None: no rotation)."""
+    ed = _ed(win)
+    if not prst:
+        ed.object_effect("a:scene3d", None)
+    else:
+        ed.object_effect("a:scene3d", '<a:scene3d><a:camera prst="%s"/>'
+                         '<a:lightRig rig="threePt" dir="t"/></a:scene3d>' % prst)
+    _done(win)
+
+
 def set_adjust(win, bright=0, contrast=0):
     """Corrections: brightness / contrast in percent."""
     ed = _ed(win)
@@ -394,7 +422,7 @@ DISPATCH = {"set_direction": set_direction, "set_align": set_align, "set_fill": 
             "set_wrap": set_wrap, "align": align, "z_order": z_order, "rotate": rotate,
             "set_size_locked": set_size_locked, "reset_picture": reset_picture,
             "set_shadow": set_shadow, "set_reflection": set_reflection, "set_glow": set_glow,
-            "set_soft_edges": set_soft_edges, "set_bevel": set_bevel, "set_adjust": set_adjust,
+            "set_soft_edges": set_soft_edges, "set_bevel": set_bevel, "set_rotation": set_rotation, "set_adjust": set_adjust,
             "set_color_mode": set_color_mode, "set_transparency": set_transparency,
             "set_outline": set_outline, "set_picture_style": set_picture_style}
 
@@ -411,7 +439,7 @@ for _n in ("set_anchor_mode", "crop_to_ratio", "aspect_fill", "aspect_fit", "cro
 DISPATCH["crop"] = _arr("crop_mm100")
 # applied to every selected object
 EACH = {"set_wrap", "z_order", "rotate", "set_fill", "set_outline", "set_shadow", "set_reflection",
-        "set_glow", "set_soft_edges", "set_bevel", "set_shape_style", "set_text_color",
+        "set_glow", "set_soft_edges", "set_bevel", "set_rotation", "set_shape_style", "set_text_color",
         "set_text_outline", "set_anchor_mode", "set_transparency", "set_color_mode", "set_adjust",
         "set_picture_style", "change_shape"}
 

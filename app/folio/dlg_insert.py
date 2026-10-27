@@ -398,15 +398,21 @@ class InsertDialogs:
         sb.pack_start(sort_name, False, False, 0)
         sb.pack_start(sort_loc, False, False, 0)
         d.add(sb)
+        hidden = Gtk.CheckButton.new_with_mnemonic("_Hidden bookmarks")
+        d.add(hidden)
 
         def refill(*_):
             names = api.bookmarks(m)
+            if hidden.get_active() and getattr(self.eng, "native", False):
+                names = list(self.eng.ed.bookmark_names())
+            names = [n for n in names if hidden.get_active() or not n.startswith("_")]
             if sort_name.get_active():
                 names.sort(key=str.lower)
             store.clear()
             for n in names:
                 store.append([n])
         sort_name.connect("toggled", refill)
+        hidden.connect("toggled", refill)
         refill()
         bb = Gtk.Box(spacing=6)
         delb = Gtk.Button(label="_Delete", use_underline=True)
@@ -468,6 +474,16 @@ class InsertDialogs:
         link.set_active(True)
         above = Gtk.CheckButton.new_with_mnemonic("Include above/_below")
         d.add(grid([[link, above]]))
+        sep_on = Gtk.CheckButton.new_with_mnemonic("Separate numbers _with")
+        sep_e = Gtk.Entry(text=".")
+        sep_e.set_width_chars(4)
+        d.add(grid([[sep_on, sep_e]]))
+
+        def sep_sens(*_):
+            ok = (rtype.get_active_text() or "") == "Numbered item" and "number" in (part.get_active_text() or "").lower()
+            sep_on.set_sensitive(ok)
+            sep_e.set_sensitive(ok and sep_on.get_active())
+        sep_on.connect("toggled", sep_sens)
         part.connect("changed", lambda c: above.set_sensitive(
             "Above" not in (c.get_active_text() or "")))
 
@@ -485,13 +501,20 @@ class InsertDialogs:
                 tv.get_selection().select_path(Gtk.TreePath(0))
         rtype.connect("changed", type_changed)
         type_changed()
+        part.connect("changed", sep_sens)
+        sep_sens()
         if d.ask() == Gtk.ResponseType.OK:
             model, it = tv.get_selection().get_selected()
             if it:
                 k = rtype.get_active_text()
                 pv = parts.get(k, seq_parts)[max(0, part.get_active())][1]
-                api.insert_cross_reference(m, k, model[it][1], pv, link.get_active(),
-                                              above.get_active() and above.get_sensitive())
+                sep = sep_e.get_text() if sep_on.get_active() and sep_on.get_sensitive() else None
+                if sep is not None and getattr(self.win, "native", False):
+                    api.insert_cross_reference(m, k, model[it][1], pv, link.get_active(),
+                                               above.get_active() and above.get_sensitive(), sep=sep)
+                else:
+                    api.insert_cross_reference(m, k, model[it][1], pv, link.get_active(),
+                                               above.get_active() and above.get_sensitive())
         d.done()
 
     # ============================================================ captions
@@ -790,15 +813,20 @@ class InsertDialogs:
         self.eng.command(".uno:GoUp")
 
     def cover_page(self, style="simple"):
-        m = self._model_or_warn()
-        if m is None:
-            return
         from . import covers
+        if not getattr(self.win.engine, "native", False):
+            m = self._model_or_warn()
+            if m is None:
+                return
         names = {n.lower(): n for n, _s in covers.COVERS}
         covers.insert_cover(self.win, names.get(str(style).lower(), "Simple"))
 
     def remove_cover_page(self):
         from . import covers
+        if getattr(self.win.engine, "native", False):
+            if not covers.remove_current(self.win):
+                self.message("This document doesn't have a cover page.")
+            return
         m = self.model
         if m is not None and not covers.remove_cover(m):
             self.message("This document doesn't have a cover page.")

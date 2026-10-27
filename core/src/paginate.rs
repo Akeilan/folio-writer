@@ -122,6 +122,10 @@ pub struct Page {
     pub borders: Option<crate::art::PageBorders>,
     /// line numbers: right edge x, baseline y, number, font size
     pub line_numbers: Vec<(f64, f64, i32, f64)>,
+    /// Design > Page Color (w:background), as 0xRRGGBB
+    pub background: Option<u32>,
+    /// Page Color > Fill Effects: gradient, pattern or picture
+    pub fill: Option<crate::document::PageFill>,
 }
 
 /// A floating object placed on a page.
@@ -467,6 +471,8 @@ impl<'a> Flow<'a> {
                 _ => true,
             }),
             line_numbers: Vec::new(),
+            background: self.doc.page_background(),
+            fill: self.doc.page_fill(),
         });
         self.ptop = body_top;
         self.pbottom = body_bottom;

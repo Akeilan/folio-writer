@@ -120,6 +120,11 @@ class OptionsDialog:
         ctrl_click.set_active(s.get("ctrl_click_links", True))
         adv.pack_start(typing_replaces, False, False, 0)
         adv.pack_start(ctrl_click, False, False, 0)
+        adv.pack_start(heading("Show document content"), False, False, 0)
+        anim = Gtk.CheckButton(label="Show text animation")
+        anim.set_sensitive(False)
+        anim.set_tooltip_text("Text animation (blinking, marching ants) is shown as plain text, as in current versions of the original.")
+        adv.pack_start(anim, False, False, 0)
         adv.pack_start(heading("Cut, copy, and paste"), False, False, 0)
         modes = ["Keep Source Formatting (Default)", "Merge Formatting", "Keep Text Only"]
         keys = ["source", "merge", "text"]
@@ -145,7 +150,9 @@ class OptionsDialog:
         new_engine = Gtk.CheckButton(
             label="Use Folio's own document engine (applies to new windows)")
         new_engine.set_active(s.get("engine", "native") != "classic")
-        new_engine.set_sensitive(_native.available())
+        new_engine.set_sensitive(_native.available() and _native.classic_available())
+        if not _native.classic_available():
+            new_engine.set_tooltip_text("The old engine isn't installed, so Folio's own engine is always used.")
         adv.pack_start(new_engine, False, False, 0)
 
         # Language
@@ -325,6 +332,21 @@ class OptionsDialog:
         from . import customize
         save_ribbon = customize.ribbon_page(self.win, cr)
 
+        # Add-ins and Trust Center: there to find, not offered here
+        from . import APP_NAME as _APP
+        for name, what in (("Add-ins", "Add-ins"),
+                           ("Trust Center", "The Trust Center (macro and add-in security settings)")):
+            pg = page(name)
+            pg.pack_start(heading(name), False, False, 0)
+            lab = Gtk.Label(label="%s aren't available in %s: it doesn't run add-ins or macros from "
+                                  "documents, so there's nothing to set here." % (what, _APP)
+                            if name == "Add-ins" else
+                            "%s isn't available in %s: documents' macros and add-ins are never run, "
+                            "and nothing is sent anywhere." % (what, _APP), xalign=0)
+            lab.set_line_wrap(True)
+            lab.set_max_width_chars(70)
+            pg.pack_start(lab, False, False, 0)
+
         if page_name:
             d.show_all()
             stack.set_visible_child_name(page_name.lower())
@@ -423,9 +445,11 @@ AC_TABS = [
         ("ac_numbers", "Automatic numbered lists", True),
         ("ac_borders", "Border lines", True),
         ("ac_tables", "Tables", True),
+        ("ac_headings", "Built-in Heading styles", False),
         ("#", "Automatically as you type", None),
         ("ac_list_format", "Format beginning of list item like the one before it", True),
-        ("ac_tab_indent", "Set left- and first-indent with tabs and backspaces", True)]),
+        ("ac_tab_indent", "Set left- and first-indent with tabs and backspaces", True),
+        ("ac_define_styles", "Define styles based on your formatting", False)]),
 ]
 
 
@@ -575,6 +599,22 @@ def autocorrect_options(win, tab=0, with_text=None):
     mpage.pack_start(fb, False, False, 0)
     nb.append_page(mpage, Gtk.Label(label="Math AutoCorrect"))
     nb.append_page(page(AC_TABS[1][1]), Gtk.Label(label="AutoFormat As You Type"))
+    if "ac_define_styles" in checks:
+        checks["ac_define_styles"].set_active(False)
+        checks["ac_define_styles"].set_sensitive(False)
+        checks["ac_define_styles"].set_tooltip_text("Making styles from your formatting isn't available in this version.")
+    for tab_name, note in (("AutoFormat", "AutoFormat for the whole document at once isn't available in %s; "
+                                          "AutoFormat As You Type makes the same changes while you type."),
+                           ("Actions", "Additional actions in the right-click menu (dates, financial symbols and "
+                                       "the like) aren't available in %s.")):
+        from . import APP_NAME as _APP
+        tb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        tb.set_border_width(10)
+        lab = Gtk.Label(label=note % _APP, xalign=0)
+        lab.set_line_wrap(True)
+        lab.set_max_width_chars(60)
+        tb.pack_start(lab, False, False, 0)
+        nb.append_page(tb, Gtk.Label(label=tab_name))
     d.add(nb, expand=True)
     nb.show_all()
     nb.set_current_page(tab)

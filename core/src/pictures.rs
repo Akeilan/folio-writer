@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 /// An image part's bytes.
 #[derive(Clone)]
+#[derive(Debug)]
 pub struct ImageData {
     pub part: String,
     pub bytes: Arc<Vec<u8>>,
@@ -173,6 +174,8 @@ pub fn drawingml(dom: &XmlDoc, holder: NodeId, w: f64, h: f64, images: &HashMap<
         "picture"
     } else if uri.ends_with("/chart") {
         "chart"
+    } else if uri.ends_with("/chartex") {
+        "chartex"
     } else if uri.contains("wordprocessingShape") {
         "shape"
     } else if uri.contains("diagram") {
@@ -183,7 +186,7 @@ pub fn drawingml(dom: &XmlDoc, holder: NodeId, w: f64, h: f64, images: &HashMap<
         "object"
     };
     let Some(obj) = dom.elements(gd).next() else { return pic };
-    if pic.kind == "chart" {
+    if pic.kind == "chart" || pic.kind == "chartex" {
         let rid = dom.attr(obj, "r:id").unwrap_or("");
         pic.image = images.get(rid).cloned();
         pic.chart_theme = Some(Box::new(theme_array(colors)));

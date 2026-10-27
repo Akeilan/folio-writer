@@ -13,11 +13,13 @@ def texts_of(w):
                     tl = x.get_tab_label(x.get_nth_page(i))
                     for l in ([tl] if isinstance(tl, Gtk.Label) else find_widget(tl, lambda y: isinstance(y, Gtk.Label))):
                         out.append(l.get_text())
+            elif isinstance(x, Gtk.TreeView) and x.get_model() is not None:
+                out.extend(r[0] for r in x.get_model() if isinstance(r[0], str))
             elif isinstance(x, Gtk.ComboBoxText):
                 m = x.get_model()
                 out.extend(r[0] for r in m if isinstance(r[0], str))
         except Exception: pass
-    return " | ".join(t.replace("_", "") for t in out if t)
+    return " | ".join(" ".join(t.replace("_", "").split()) for t in out if t)
 D = win.dialogs
 SPECS = [
  ("Font", lambda: D.font_dialog(), ["Font style", "Size", "Font color", "Underline style", "Underline color", "Strikethrough", "Double strikethrough", "Superscript", "Subscript", "Small caps", "All caps", "Hidden", "Advanced", "Scale", "Spacing", "Position", "Kerning", "Ligatures", "Number spacing", "Stylistic sets", "Preview", "Set As Default", "Text Effects"]),
@@ -78,6 +80,7 @@ def dlgs():
     fresh(); yield 0.3
     T("Some text in the document to work with."); yield 0.4
     K("ctrl+a"); yield 0.3
+    K("ctrl+c"); yield 0.3     # something on the clipboard for Paste Special
     for spec in SPECS:
         yield from run_spec(spec)
         focus()

@@ -2,7 +2,7 @@ exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
 H = "/home/claude/folio2/tests/word/helpers/"
 procs = []
-ENV = dict(os.environ, DISPLAY=":99")
+ENV = dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99"))
 def spawn(*args):
     p = subprocess.Popen(list(args), env=ENV, stdin=subprocess.PIPE if args[0] == "xclip" else None)
     procs.append(p); return p
@@ -48,7 +48,7 @@ def c_html():
 def d_drag_in():
     fresh(); yield 0.3
     T("Drop here: "); yield 0.4
-    spawn("/usr/bin/python3.12", H + "ext_src.py", "none"); yield 2.0
+    spawn("/usr/bin/python3", H + "ext_src.py", "none"); yield 2.0
     x0, y0, w, h = win._follow_rect
     dx, dy = doc_screen(x0 + 200, y0 + h / 2)
     sx, sy = 1320 + 100, 120 + 50
@@ -79,7 +79,7 @@ def f_drag_out():
     T("Take me away"); yield 0.3
     try: os.remove("/tmp/c1_drop.txt")
     except Exception: pass
-    spawn("/usr/bin/python3.12", H + "ext_dst.py", "/tmp/c1_drop.txt"); yield 2.0
+    spawn("/usr/bin/python3", H + "ext_dst.py", "/tmp/c1_drop.txt"); yield 2.0
     docapi.controller(M()).select(find("Take me")); yield 0.6
     c = vc(); r = find("Take me"); c.gotoRange(r.getStart(), False); yield 0.3
     x0, y0, w, h = win._follow_rect

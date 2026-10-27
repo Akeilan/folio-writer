@@ -44,12 +44,17 @@ class ACWatch:
         return self.win.app.settings
 
     # ------------------------------------------------------------ indents
+    def native(self):
+        return getattr(self.win.engine, "native", False)
+
     def tab_indent(self, keyname, mods):
         """Tab at the start of a paragraph sets its first-line indent;
         Backspace there takes it away (AutoFormat As You Type)."""
         if mods or keyname not in ("tab", "backspace") or \
                 not self.settings().get("ac_tab_indent", True):
             return False
+        if self.native():
+            return self._tab_indent_native(keyname)
         m = self.win.engine.model
         if m is None:
             return False
@@ -82,6 +87,68 @@ class ACWatch:
             return False
         return False
 
+    def _tab_indent_native(self, keyname):
+        eng = self.win.engine
+        ed = eng.ed
+        if ed is None or ed.has_selection() or ed.cell_name() or ed.list_info() is not None:
+            return False
+        p, off = ed.caret_pos()
+        if off != 0:
+            return False
+        d = ed.state() or {}
+        first = d.get("ind_first", 0) or 0
+        left = d.get("ind_left", 0) or 0
+        if keyname == "tab":
+            if not ed.para_text_of(p).strip():
+                return False
+            if first < 720:
+                ed.set_indent(None, None, 720)
+            else:
+                ed.set_indent(left + 720, None, None)
+            eng.view.after_edit()
+            return True
+        if first > 0:
+            ed.set_indent(None, None, 0)
+        elif left > 0:
+            ed.set_indent(max(0, left - 720), None, None)
+        else:
+            return False
+        eng.view.after_edit()
+        return True
+
+    def note(self, old, new, kind):
+        """The new engine's AutoCorrect made a change: the button goes under it."""
+        self.last = {"native": True, "old": old, "new": new, "kind": kind}
+        if not self.settings().get("ac_buttons", True):
+            return
+        self.keys_since = 0
+        GLib.timeout_add(60, self._place_native, new)
+
+    def _place_native(self, new):
+        eng = self.win.engine
+        ed = eng.ed
+        if ed is None or self.last is None:
+            return False
+        r = ed.caret_rect()
+        if not r:
+            return False
+        v = eng.view
+        x, y = v.to_widget(r[0], r[1], r[2])
+        h = r[3] * v.ppp
+        try:
+            back = self._text_px(new + " ")
+        except Exception:
+            back = len(new) * 7
+        res = v.translate_coordinates(self.overlay, int(x - back), int(y + h) + 1)
+        if not res:
+            return False
+        ox, oy = res
+        self.btn.set_margin_start(max(0, ox))
+        self.btn.set_margin_top(max(0, oy))
+        self.btn.get_child().show_all()
+        self.btn.show()
+        return False
+
     # ------------------------------------------------------------ keys
     typed = ""
     enters = 0
@@ -93,6 +160,8 @@ class ACWatch:
             self.keys_since += 1
             if self.keys_since > 12:
                 self.hide()
+        if self.native():
+            return False
         if mods:
             self.typed = ""
             return False
@@ -337,6 +406,12 @@ class ACWatch:
         last, self.last = self.last, None
         self.hide()
         if last is None:
+            return
+        if last.get("native"):
+            ac = getattr(self.win.engine.view, "autocorrect", None)
+            if ac is not None and ac.undo_last():
+                self.win.engine.view.after_edit()
+            self.win.focus_document()
             return
         m = self.win.engine.model
         um = m.getUndoManager()

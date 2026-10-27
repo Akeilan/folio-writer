@@ -61,7 +61,10 @@ def sort():
     respond("Sort", Gtk.ResponseType.CANCEL); yield 0.5
     from folio import sortdlg
     K("ctrl+a"); yield 0.5
-    sortdlg.sort(M(), "text", None, [(2, 1, True)], False, {"sep": "\t"}); yield 0.8
+    if NATIVE:
+        sortdlg.sort_native(win, [(2, 1, True)], False, {"sep": "\t"}); yield 0.8
+    else:
+        sortdlg.sort(M(), "text", None, [(2, 1, True)], False, {"sep": "\t"}); yield 0.8
     check("sorted by field 2", [p.lower() for p in para_texts()[:3]] == ["c\t1", "b\t2", "a\t3"], para_texts())
 def caption():
     fresh(); yield 0.3

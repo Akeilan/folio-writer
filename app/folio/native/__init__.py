@@ -46,10 +46,30 @@ def available():
     return core() is not None
 
 
+_classic = None
+
+
+def classic_available():
+    """Is the old engine (LibreOffice's, an optional extra) installed?"""
+    global _classic
+    if _classic is None:
+        try:
+            import gi
+            gi.require_version("LOKDocView", "0.1")
+            from gi.repository import LOKDocView  # noqa: F401
+            import uno  # noqa: F401
+            _classic = True
+        except Exception:
+            _classic = False
+    return _classic
+
+
 def wanted(settings):
     """Does the user want the new engine (Options > Advanced, or
-    FOLIO_ENGINE=native)?"""
+    FOLIO_ENGINE=native)? Without the old engine installed, always."""
     env = os.environ.get("FOLIO_ENGINE")
+    if env == "native" or (available() and not classic_available()):
+        return True
     if env:
         return env == "native"
     # Folio's own engine is the default; "classic" keeps the old one

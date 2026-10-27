@@ -304,6 +304,19 @@ pub struct Settings {
     pub hyphen_limit: i32,
 }
 
+/// A page background beyond a plain colour (Fill Effects).
+#[derive(Clone, Debug)]
+pub struct PageFill {
+    /// gradient, gradientRadial, pattern, frame (a stretched picture), tile
+    pub kind: String,
+    pub c1: u32,
+    pub c2: u32,
+    pub angle: f64,
+    pub focus: String,
+    pub image: Option<crate::pictures::ImageData>,
+    pub pattern: String,
+}
+
 pub struct Document {
     pub numbering: crate::numbering::Numbering,
     /// numbering.xml (edited in place; None if the document has no lists yet)
@@ -505,7 +518,7 @@ impl Document {
         let mut out = std::collections::HashMap::new();
         for r in pkg.rels(part) {
             // charts too: their part, drawn from its cached values
-            if r.external || !(r.kind.ends_with("/image") || r.kind.ends_with("/chart")) {
+            if r.external || !(r.kind.ends_with("/image") || r.kind.ends_with("/chart") || r.kind.ends_with("/chartEx")) {
                 continue;
             }
             let name = Package::resolve(part, &r.target);
@@ -595,6 +608,41 @@ impl Document {
         std::fs::write(&tmp, &data).map_err(|e| DocError(e.to_string()))?;
         std::fs::rename(&tmp, path).map_err(|e| DocError(e.to_string()))?;
         Ok(())
+    }
+
+    /// Page Color > Fill Effects, from the w:background's v:background v:fill.
+    pub fn page_fill(&self) -> Option<PageFill> {
+        let d = &self.dom;
+        let bg = d.child(d.root, "w:background")?;
+        let vb = d.child(bg, "v:background")?;
+        let f = d.child(vb, "v:fill")?;
+        let hex = |v: Option<&str>| v.and_then(|c| {
+            let c = c.trim_start_matches('#');
+            match c {
+                "white" => Some(0xFFFFFF),
+                "black" => Some(0),
+                _ => u32::from_str_radix(c, 16).ok(),
+            }
+        });
+        let c1 = hex(d.attr(vb, "fillcolor")).or_else(|| self.page_background()).unwrap_or(0xFFFFFF);
+        let c2 = hex(d.attr(f, "color2")).unwrap_or(0xFFFFFF);
+        let kind = d.attr(f, "type").unwrap_or("solid").to_string();
+        let angle = d.attr(f, "angle").and_then(|a| a.parse::<f64>().ok()).unwrap_or(0.0);
+        let focus = d.attr(f, "focusposition").unwrap_or("").to_string();
+        let image = d.attr(f, "r:id").and_then(|rid| self.images.get(rid).cloned());
+        let pattern = d.attr(f, "o:title").unwrap_or("").to_string();
+        Some(PageFill { kind, c1, c2, angle, focus, image, pattern })
+    }
+
+    /// Design > Page Color: the document's w:background colour.
+    pub fn page_background(&self) -> Option<u32> {
+        let root = self.dom.root;
+        let bg = self.dom.child(root, "w:background")?;
+        let c = self.dom.attr(bg, "w:color")?;
+        if c == "auto" {
+            return None;
+        }
+        u32::from_str_radix(c, 16).ok()
     }
 
     /// Find the blocks and sections again (after structural edits).
@@ -1248,12 +1296,18 @@ pub fn settings_index(x: &XmlDoc, name: &str) -> usize {
 
 fn set_settings_flag(x: &mut XmlDoc, name: &str, on: bool) {
     let root = x.root;
+    let off = |v: Option<&str>| matches!(v, Some("0") | Some("false") | Some("off"));
     match (x.child(root, name), on) {
         (Some(t), false) => {
-            x.detach(t);
+            // as it was written when it already says off
+            if !off(x.attr(t, "w:val")) {
+                x.detach(t);
+            }
         }
         (Some(t), true) => {
-            x.remove_attr(t, "w:val");
+            if off(x.attr(t, "w:val")) {
+                x.remove_attr(t, "w:val");
+            }
         }
         (None, true) => {
             let me = SETTINGS_ORDER.iter().position(|n| *n == name).unwrap_or(0);

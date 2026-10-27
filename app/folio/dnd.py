@@ -103,6 +103,12 @@ class DropHandler:
 
     def _move(self, x, y):
         eng = self.win.engine
+        if getattr(eng, "native", False):
+            hit = eng.view.page_at(x, y)
+            if hit is not None and eng.ed is not None:
+                eng.ed.click(hit[0], hit[1], hit[2], False)
+                eng.view.after_move()
+            return
         tx, ty = eng.px_to_twips(x, y)
         eng.click_at(tx, ty)
 

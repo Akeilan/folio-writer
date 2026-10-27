@@ -26,23 +26,51 @@ def templates():
                      os.path.join(os.path.dirname(__file__), "..", "..", "share", "inkmath")):
             p = os.path.join(base, "templates.json")
             if os.path.exists(p):
-                with open(p) as fh:
-                    for t in json.load(fh):
-                        _templates.append((t["c"], t["n"], t["a"], t["f"]))
+                # the font shapes, then shapes learnt from real handwriting
+                prior = {}
+                q = os.path.join(base, "prior.json")
+                if os.path.exists(q):
+                    with open(q) as fh:
+                        prior = json.load(fh)
+                for name, pen in (("templates.json", 0.05), ("handwriting.json", 0.0)):
+                    q = os.path.join(base, name)
+                    if os.path.exists(q):
+                        with open(q) as fh:
+                            for t in json.load(fh):
+                                # font shapes a little behind handwritten ones; common
+                                # symbols a little ahead of rare look-alikes
+                                bias = pen + 0.005 * prior.get(t["c"], 12.0)
+                                _templates.append((t["c"], t["n"], t["a"], t["f"], bias))
                 break
     return _templates
 
 
 # ---------------------------------------------------------------- symbols
+_cache = {}
+
+
 def classify(strokes, k=5):
     """[(char, score)] best first (lower score is better)."""
+    key = (k, tuple(tuple(map(tuple, s)) for s in strokes))
+    hit = _cache.get(key)
+    if hit is not None:
+        return hit
+    if len(_cache) > 512:
+        _cache.clear()
+    _cache[key] = res = _classify(strokes, k)
+    return res
+
+
+def _classify(strokes, k):
+    import operator
+    mul = operator.mul
     f = features(strokes)
     a = aspect(strokes)
     n = len(strokes)
     scored = []
-    for ch, tn, ta, tf in templates():
-        dot = sum(x * y for x, y in zip(f, tf))
-        d = (1.0 - dot) + 0.08 * abs(a - ta) + (0.04 * abs(n - tn) if n != tn else 0)
+    for ch, tn, ta, tf, bias in templates():
+        dot = sum(map(mul, f, tf))
+        d = (1.0 - dot) + 0.08 * abs(a - ta) + (0.04 * abs(n - tn) if n != tn else 0) + bias
         scored.append((d, ch))
     scored.sort()
     best = {}
@@ -316,8 +344,15 @@ def _context(syms):
         nb = [order[j].ch for j in (i - 1, i + 1) if 0 <= j < len(order)]
         if s.ch in pairs and any(c in DIGITS for c in nb):
             s.ch = pairs[s.ch]
-        if s.ch in ("×", "x", "X"):
-            s.ch = "x" if any(c in DIGITS for c in nb) and False else s.ch
+        # a cross is mostly the letter x; a times sign sits between numbers
+        if s.ch == "×":
+            both = i > 0 and i + 1 < len(order)
+            num = both and order[i - 1].ch in DIGITS | {")"} and order[i + 1].ch in DIGITS | {"("}
+            if not num:
+                s.ch = "x"
+        # a t between two operands is a plus written with a short stem
+        if s.ch in ("t", "f") and "+" in s.alts[:3] and 0 < i < len(order) - 1:
+            s.ch = "+"
 
 
 # ---------------------------------------------------------------- dialog

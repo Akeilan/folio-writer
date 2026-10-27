@@ -61,7 +61,7 @@ def views():
     shot("w5_navpane")
 def painter():
     fresh(); yield 0.3
-    T("source target"); docapi.controller(M()).select(find("source")); K("ctrl+b"); yield 0.3
+    T("source target"); yield 0.4; docapi.controller(M()).select(find("source")); yield 0.2; K("ctrl+b"); yield 0.3
     rib("Home", "Format Painter"); yield 0.6
     # now drag-select 'target' with mouse
     c = vc(); c.gotoRange(find("target").getStart(), False); yield 0.3

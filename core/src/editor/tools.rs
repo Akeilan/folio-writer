@@ -275,6 +275,110 @@ impl Editor {
 
     /// Home > Sort: the selected paragraphs (or a table's rows) by their
     /// text; `numeric` compares numbers, `header` keeps a table's first row.
+    /// What Sort Text works on: the table's rows (less a header row) or the
+    /// selected sibling paragraphs.
+    fn sort_targets(&self, header: bool) -> Option<(bool, Vec<NodeId>)> {
+        let (a, b) = self.selection();
+        let dom = &self.doc.dom;
+        if let (Some((ta, _, _)), Some((tb, _, _))) = (self.cell_of(a.para), self.cell_of(b.para)) {
+            let (tr, tr2) = (dom.parent(ta)?, dom.parent(tb)?);
+            let (tbl, tbl2) = (dom.parent(tr)?, dom.parent(tr2)?);
+            if tbl != tbl2 {
+                return None;
+            }
+            let mut rows: Vec<NodeId> = dom.children_named(tbl, "w:tr").collect();
+            if header && !rows.is_empty() {
+                rows.remove(0);
+            }
+            return Some((true, rows));
+        }
+        let mut paras: Vec<NodeId> = self.paras_between(a.para, b.para);
+        if b.off == 0 && paras.len() > 1 && a != b {
+            paras.pop();
+        }
+        if a == b {
+            let parent = dom.parent(a.para);
+            paras = parent.map(|pp| dom.children_named(pp, "w:p").collect()).unwrap_or_default();
+        }
+        if paras.is_empty() {
+            return None;
+        }
+        let parent = dom.parent(paras[0]);
+        if paras.iter().any(|&p| dom.parent(p) != parent) {
+            return None;
+        }
+        if header && paras.len() > 1 {
+            paras.remove(0);
+        }
+        Some((false, paras))
+    }
+
+    /// Sort Text's items: each row's cell texts, or each paragraph's text.
+    pub fn sort_items(&self, header: bool) -> Option<(bool, Vec<Vec<String>>)> {
+        let (table, items) = self.sort_targets(header)?;
+        let dom = &self.doc.dom;
+        let out = items.iter().map(|&n| {
+            if table {
+                dom.children_named(n, "w:tc").map(|c| self.node_text(c)).collect()
+            } else {
+                vec![self.node_text(n)]
+            }
+        }).collect();
+        Some((table, out))
+    }
+
+    /// Put Sort Text's items in this order (indices into sort_items).
+    pub fn sort_apply(&mut self, order: &[usize], header: bool) -> bool {
+        let Some((table, items)) = self.sort_targets(header) else { return false };
+        if order.len() != items.len() || items.len() < 2 {
+            return false;
+        }
+        let mut seen = vec![false; items.len()];
+        for &i in order {
+            if i >= items.len() || seen[i] {
+                return false;
+            }
+            seen[i] = true;
+        }
+        let parent = match self.doc.dom.parent(items[0]) {
+            Some(p) => p,
+            None => return false,
+        };
+        self.begin();
+        let dom = &mut self.doc.dom;
+        let sect = if table {
+            None
+        } else {
+            items.last().and_then(|&p| dom.child(p, "w:pPr")).and_then(|ppr| dom.child(ppr, "w:sectPr"))
+        };
+        if let Some(s) = sect {
+            dom.detach(s);
+        }
+        let at = dom.index_in_parent(items[0]).unwrap_or(0);
+        for &n in &items {
+            dom.detach(n);
+        }
+        let mut last = items[0];
+        for (k, &i) in order.iter().enumerate() {
+            dom.insert(parent, at + k, items[i]);
+            last = items[i];
+        }
+        if let Some(s) = sect {
+            let ppr = ensure_child_first(dom, last, "w:pPr");
+            dom.append(ppr, s);
+        }
+        self.commit("Sort", false);
+        if !table {
+            let f = items[order[0]];
+            if self.pidx(&f).is_some() && self.pidx(&last).is_some() {
+                let e = self.para_len(last);
+                self.move_to(Pos { para: f, off: 0 }, false, false);
+                self.move_to(Pos { para: last, off: e }, true, false);
+            }
+        }
+        true
+    }
+
     pub fn sort_paras(&mut self, descending: bool, numeric: bool, header: bool) -> bool {
         let (a, b) = self.selection();
         fn key_of(text: &str, numeric: bool) -> (u8, f64, String) {
@@ -508,6 +612,11 @@ impl Editor {
     /// (decimal, upperLetter, lowerRoman, bullet...) as `text` ("%1." or
     /// the bullet character, in `font`).
     pub fn set_list_format(&mut self, fmt: &str, text: &str, font: Option<&str>) -> bool {
+        self.set_list_format_from(fmt, text, font, None)
+    }
+
+    /// The same, numbering from `start`.
+    pub fn set_list_format_from(&mut self, fmt: &str, text: &str, font: Option<&str>, start: Option<i64>) -> bool {
         let (a, b) = self.selection();
         let paras = self.paras_between(a.para, b.para);
         if paras.is_empty() {
@@ -537,6 +646,15 @@ impl Editor {
                     }
                     if let Some(t) = k(nd, "w:lvlText") {
                         nd.set_attr(t, "w:val", text);
+                    }
+                    if let Some(st) = start {
+                        match k(nd, "w:start") {
+                            Some(x) => nd.set_attr(x, "w:val", &st.to_string()),
+                            None => {
+                                let x = nd.new_element("w:start", &[("w:val", &st.to_string())]);
+                                nd.insert(lv, 0, x);
+                            }
+                        }
                     }
                     let roman = fmt.ends_with("Roman");
                     if let Some(j) = k(nd, "w:lvlJc") {
@@ -655,7 +773,18 @@ impl Editor {
                 continue;
             }
             let mut pos = 0;
+            let mut in_field = false;
             for pc in &pl.pieces {
+                if kind == "Field" {
+                    // the start of each field's result
+                    let f = pc.field.is_some();
+                    if f && !in_field {
+                        out.push(Pos { para: pl.node, off: pos });
+                    }
+                    in_field = f;
+                    pos += pc.item.len();
+                    continue;
+                }
                 let hit = match (&pc.item, kind) {
                     (Item::Object(..), "Graphic") | (Item::Anchor(Some(_)), "Graphic") => true,
                     (Item::Math(..), "Equation") => true,

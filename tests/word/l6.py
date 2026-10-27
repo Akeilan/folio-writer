@@ -5,7 +5,33 @@ def _sd(t):
     sd = M().createSearchDescriptor(); sd.SearchString = t; return sd
 def open_fr(tab=0):
     GLib.idle_add(lambda: (win.dialogs.find_replace(tab), False)[1])
-def st(): return win.dialogs._fr
+class _NFmt:
+    """The native dialog's Format choices, as the classic dialog's attrs."""
+    def __init__(self, fd, which):
+        self.fd, self.which = fd, which
+        self.attrs = self
+        self.words = []
+
+    def clear(self):
+        self.fd.fmt[self.which] = {}
+
+    def __setitem__(self, k, v):
+        key = {"CharWeight": "bold", "CharPosture": "italic"}.get(k)
+        if key:
+            self.fd.fmt[self.which][key] = True
+
+
+def st():
+    if not NATIVE:
+        return win.dialogs._fr
+    fd = getattr(win, "_native_find", None)
+    if fd is None:
+        return None
+    c = dict(fd.checks)
+    c["ign_punct"] = c.get("ignore_punct")
+    c["ign_space"] = c.get("ignore_space")
+    c = {k: v for k, v in c.items() if v is not None}
+    return {"dlg": fd.dlg, "checks": c, "nb": fd.nb, "ffmt": _NFmt(fd, "find"), "rfmt": _NFmt(fd, "rep")}
 def setfind(t):
     st()["dlg"]; 
     for e in find_widget(st()["dlg"], lambda w: isinstance(w, Gtk.ComboBoxText) and w.get_has_entry()):
@@ -50,18 +76,20 @@ def opts():
     # reading highlight
     setfind("the"); yield 0.2
     was = M().isModified()
-    GLib.idle_add(lambda: (win.reading_hl.highlight([M().getText().getStart()]) and False))
-    yield 0.3
-    win.reading_hl.clear()
+    if not NATIVE:
+        GLib.idle_add(lambda: (win.reading_hl.highlight([M().getText().getStart()]) and False))
+        yield 0.3
+        win.reading_hl.clear()
     hl = [w for w in find_widget(st()["dlg"], lambda w: isinstance(w, Gtk.MenuButton) and "Highlight" in (w.get_label() or "").replace("_", ""))]
     check("Reading Highlight button", bool(hl))
     items = hl[0].get_popup().get_children()
     GLib.idle_add(lambda: (items[0].activate(), False)[1]); yield 0.8
     shot("l6_hl")
-    check("highlight marks", len(win.reading_hl.marks) >= 2, len(win.reading_hl.marks))
+    marks = (lambda: E.view.highlights) if NATIVE else (lambda: win.reading_hl.marks)
+    check("highlight marks", len(marks()) >= 2, len(marks()))
     check("highlight not a change", M().isModified() == was, (was, M().isModified()))
     GLib.idle_add(lambda: (items[1].activate(), False)[1]); yield 0.5
-    check("cleared", not win.reading_hl.marks)
+    check("cleared", not marks())
     # find in main document
     fi = [w for w in find_widget(st()["dlg"], lambda w: isinstance(w, Gtk.MenuButton) and "Find In" in (w.get_label() or "").replace("_", ""))]
     GLib.idle_add(lambda: (fi[0].get_popup().get_children()[0].activate(), False)[1]); yield 0.8

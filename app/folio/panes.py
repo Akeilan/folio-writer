@@ -226,10 +226,25 @@ class NavigationPane(Pane):
     def _drag_received(self, tv, ctx, x, y, data, info, time):
         tv.stop_emission_by_name("drag-data-received")
         src_path = data.get_data().decode() if data.get_data() else None
-        if self._native() is not None:
-            Gtk.drag_finish(ctx, False, False, time)
-            return
         dest = tv.get_dest_row_at_pos(x, y)
+        ed = self._native()
+        if ed is not None:
+            if not src_path or dest is None:
+                Gtk.drag_finish(ctx, False, False, time)
+                return
+            path, pos = dest
+            src = self.hstore[Gtk.TreePath.new_from_string(src_path)][1]
+            dst = self.hstore[path][1]
+            after = pos in (Gtk.TreeViewDropPosition.AFTER, Gtk.TreeViewDropPosition.INTO_OR_AFTER)
+            Gtk.drag_finish(ctx, True, False, time)
+            nodes = ed.section_paras(src)
+            if src == dst or dst in nodes:
+                return
+            target = ed.section_paras(dst)[-1] if after else dst
+            if ed.move_paras(nodes, target, after):
+                self.win.engine.view.after_edit()
+            GLib.timeout_add(200, lambda: (self.refresh_headings(), False)[1])
+            return
         if not src_path or dest is None:
             Gtk.drag_finish(ctx, False, False, time)
             return
@@ -332,10 +347,78 @@ class NavigationPane(Pane):
             lvl = int(mm.group(1)) if mm else 1
             self.win.actions.apply_style("Heading %d" % max(1, min(9, lvl + d)))
             GLib.timeout_add(200, lambda: (self.refresh_headings(), False)[1])
-        for label, d in (("Promote", -1), ("Demote", 1)):
+        def add(label, fn):
             mi = Gtk.MenuItem(label=label)
-            mi.connect("activate", lambda _m, d=d: level(d))
+            mi.connect("activate", lambda *_: fn())
             menu.append(mi)
+        add("Promote", lambda: level(-1))
+        add("Demote", lambda: level(1))
+        menu.append(Gtk.SeparatorMenuItem())
+        view = self.win.engine.view
+
+        def style_of():
+            return ed.state().get("style_name") or ed.state().get("style") or "Heading 1"
+
+        def new_heading(before):
+            if not ed.goto_node(node):
+                return
+            st = style_of()
+            back = True
+            if not before:
+                last = ed.section_paras(node)[-1]
+                ed.goto_node(last)
+                ed.move_caret("para_down", False)
+                if ed.caret_pos()[0] == last:
+                    back = False            # the end of the document
+            ed.type_text("\n")
+            if back:
+                ed.move_caret("left", False)
+            self.win.actions.apply_style(st)
+            view.after_edit()
+            self.win.focus_document()
+            GLib.timeout_add(200, lambda: (self.refresh_headings(), False)[1])
+
+        def new_sub():
+            if not ed.goto_node(node):
+                return
+            import re
+            mm = re.search(r"(\d)$", style_of())
+            lvl = int(mm.group(1)) if mm else 1
+            ed.move_caret("end", False)
+            ed.type_text("\n")
+            self.win.actions.apply_style("Heading %d" % min(9, lvl + 1))
+            view.after_edit()
+            self.win.focus_document()
+            GLib.timeout_add(200, lambda: (self.refresh_headings(), False)[1])
+
+        def select_section():
+            nodes = ed.section_paras(node)
+            if not nodes:
+                return False
+            ed.select_nodes(nodes[0], 0, nodes[-1], len(ed.para_text_of(nodes[-1])))
+            view.after_move()
+            return True
+
+        def delete_section():
+            nodes = ed.section_paras(node)
+            if not nodes:
+                return
+            ed.goto_node(nodes[0])
+            nxt = ed.para_text_of(nodes[-1])
+            ed.select_nodes(nodes[0], 0, nodes[-1], len(nxt))
+            # the paragraph mark at the end goes too, unless it's the document's last
+            ed.move_caret("right", True)
+            ed.delete(True, False)
+            view.after_edit()
+            GLib.timeout_add(200, lambda: (self.refresh_headings(), False)[1])
+        add("New Heading Before", lambda: new_heading(True))
+        add("New Heading After", lambda: new_heading(False))
+        add("New Subheading", new_sub)
+        menu.append(Gtk.SeparatorMenuItem())
+        add("Delete", delete_section)
+        menu.append(Gtk.SeparatorMenuItem())
+        add("Select Heading and Content", lambda: (select_section(), self.win.focus_document()))
+        add("Print Heading and Content", lambda: select_section() and self.win.run("backstage-print"))
         menu.append(Gtk.SeparatorMenuItem())
         for label, fn in (("Expand All", self.htv.expand_all), ("Collapse All", self.htv.collapse_all)):
             mi = Gtk.MenuItem(label=label)

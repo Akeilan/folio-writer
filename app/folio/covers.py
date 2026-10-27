@@ -97,7 +97,23 @@ def _band(m, spec, ps):
     return band
 
 
+def _native(win):
+    return getattr(getattr(win, "engine", None), "native", False)
+
+
+def remove_current(win):
+    """Remove Current Cover Page."""
+    if _native(win):
+        from .native import covers as nc
+        return nc.remove_cover(win)
+    m = win.engine.model
+    return remove_cover(m) if m is not None else False
+
+
 def insert_cover(win, name):
+    if _native(win):
+        from .native import covers as nc
+        return nc.insert_cover(win, name)
     m = win.engine.model
     if m is None:
         return
@@ -195,6 +211,9 @@ def _field(m, kind):
 def hf_design(win, which, name):
     """Put a built-in design in the header or footer of the current
     section."""
+    if _native(win):
+        from .native import covers as nc
+        return nc.hf_design(win, which, name)
     m = win.engine.model
     if m is None:
         return

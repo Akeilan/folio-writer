@@ -76,6 +76,9 @@ SHAPE_MENU = [
     ("Left-Right Arrow", "left-right-arrow"), ("Up-Down Arrow", "up-down-arrow"),
     ("Notched Right Arrow", "notched-right-arrow"), ("Chevron", "chevron"),
     ("Circular Arrow", "circular-arrow"),
+    ("#", "Equation Shapes"), ("Plus Sign", "math-plus"), ("Minus Sign", "math-minus"),
+    ("Multiplication Sign", "math-multiply"), ("Division Sign", "math-divide"),
+    ("Equal", "math-equal"), ("Not Equal", "math-not-equal"),
     ("#", "Flowchart"), ("Process", "flowchart-process"), ("Decision", "flowchart-decision"),
     ("Terminator", "flowchart-terminator"), ("Document", "flowchart-document"),
     ("Data", "flowchart-data"), ("Connector", "flowchart-connector"),
@@ -85,7 +88,7 @@ SHAPE_MENU = [
     ("#", "Callouts"), ("Speech Bubble: Rectangle", "rect-callout"),
     ("Speech Bubble: Rounded Rectangle", "callout"), ("Speech Bubble: Oval", "oval-callout"),
     ("Thought Bubble: Cloud", "cloud-callout"),
-    None, ("Text Box", "textbox"),
+    None, ("Text Box", "textbox"), ("New Drawing Canvas", "canvas"),
 ]
 
 # the menu's kinds as DrawingML presets (the new engine)
@@ -95,6 +98,8 @@ PRST = {
     "ellipse": "ellipse", "isosceles-triangle": "triangle", "right-triangle": "rtTriangle",
     "parallelogram": "parallelogram", "trapezoid": "trapezoid", "diamond": "diamond",
     "pentagon": "pentagon", "hexagon": "hexagon", "octagon": "octagon", "frame": "frame",
+    "math-plus": "mathPlus", "math-minus": "mathMinus", "math-multiply": "mathMultiply",
+    "math-divide": "mathDivide", "math-equal": "mathEqual", "math-not-equal": "mathNotEqual",
     "ring": "donut", "cube": "cube", "can": "can", "heart": "heart", "lightning": "lightningBolt",
     "sun": "sun", "moon": "moon", "smiley": "smileyFace", "cloud": "cloud",
     "right-arrow": "rightArrow", "left-arrow": "leftArrow", "up-arrow": "upArrow",

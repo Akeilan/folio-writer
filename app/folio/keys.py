@@ -62,7 +62,7 @@ BINDINGS = [
     ("ctrl+shift+s", "apply-styles"), ("ctrl+alt+shift+s", "styles-pane"),
     ("alt+shift+Left", "promote"), ("alt+shift+Right", "demote"),
     ("alt+shift+Up", "move-up"), ("alt+shift+Down", "move-down"), ("alt+x", "unicode-toggle"),
-    ("ctrl+F9", "field-dialog"),
+    ("ctrl+F9", "field-braces"),
     # ---- insert
     ("ctrl+Return", ".uno:InsertPagebreak"), ("ctrl+shift+Return", ".uno:InsertColumnBreak"),
     ("shift+Return", ".uno:InsertLinebreak"), ("ctrl+shift+space", "nbsp"),

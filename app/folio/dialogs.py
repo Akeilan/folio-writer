@@ -27,7 +27,24 @@ OPEN_PATTERNS = ["*.docx", "*.docm", "*.dotx", "*.dotm", "*.doc", "*.dot", "*.od
                  "*.rtf", "*.txt", "*.htm", "*.html", "*.xml", "*.wpd", "*.wps", "*.fodt"]
 
 
+# dialogs that are the new engine's own (the classic ones need the old engine)
+NATIVE_ROUTES = {"word_count": "do_word_count", "toc_dialog": "do_toc_dialog",
+                 "line_numbers_dialog": "do_line_numbers", "sort_dialog": "do_sort_dialog",
+                 "insert_index": "do_insert_index", "table_of_figures": "do_table_of_figures",
+                 "goto": "do_goto"}
+
+
 class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
+    def __getattribute__(self, name):
+        if name in NATIVE_ROUTES:
+            win = object.__getattribute__(self, "win")
+            if getattr(getattr(win, "engine", None), "native", False):
+                acts = getattr(win, "actions", None)
+                fn = getattr(type(acts), NATIVE_ROUTES[name], None) if acts is not None else None
+                if fn is not None:
+                    return lambda *a, **k: fn(acts)
+        return object.__getattribute__(self, name)
+
     def crop(self):
         from .native import arrange
         arrange.crop_dialog(self.win)
@@ -357,7 +374,13 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
         link = docapi.selected_link(m) if m is not None else ""
         word = ""
         misspelled = None
-        if m is not None:
+        ned = getattr(self.eng, "ed", None) if getattr(self.eng, "native", False) else None
+        if ned is not None:
+            has_sel = ned.has_selection()
+            in_table = bool(ned.cell_name())
+            if has_sel:
+                word = " ".join(ned.selected_text().split())
+        if m is not None and ned is None:
             # the engine's table state can lag behind a click; ask the cursor
             try:
                 vc = docapi.view_cursor(m)
@@ -475,15 +498,25 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
             item("Split Cells...", "split-cells")
             item("Table Properties...", "table-properties")
             sep()
-        from . import lists
-        if m is not None and lists.in_list(m):
-            numbered = lists.in_numbered_list(m)
-            item("Adjust List _Indents...", lambda: lists.adjust_indents(self.win))
-            if numbered:
-                item("_Restart at 1", lambda: lists.restart_at(m, 1))
-                item("_Continue Numbering", lambda: lists.continue_numbering(m))
-                item("Set Numbering _Value...", lambda: lists.set_numbering_value(self.win))
-            sep()
+        if getattr(self.eng, "native", False):
+            from .native import lists as nl
+            if nl.in_list(self.win):
+                item("Adjust List _Indents...", lambda: nl.adjust_indents(self.win))
+                if nl.in_numbered_list(self.win):
+                    item("_Restart at 1", lambda: nl.restart_at(self.win, 1))
+                    item("_Continue Numbering", lambda: nl.continue_numbering(self.win))
+                    item("Set Numbering _Value...", lambda: nl.set_numbering_value(self.win))
+                sep()
+        else:
+            from . import lists
+            if m is not None and lists.in_list(m):
+                numbered = lists.in_numbered_list(m)
+                item("Adjust List _Indents...", lambda: lists.adjust_indents(self.win))
+                if numbered:
+                    item("_Restart at 1", lambda: lists.restart_at(m, 1))
+                    item("_Continue Numbering", lambda: lists.continue_numbering(m))
+                    item("Set Numbering _Value...", lambda: lists.set_numbering_value(self.win))
+                sep()
         lvl, par = 0, None
         try:
             vc = docapi.read_cursor(m)

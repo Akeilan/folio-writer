@@ -25,7 +25,31 @@ WINDOW = {
     "side-by-side", "sync-scrolling", "reset-window-position", "draft-view", "web-layout", "print-layout",
     "outline-view", "close-outline", "read-mode", "immersive-reader", "close-immersive", "split", "new-window",
     "read-aloud", "check-accessibility", "merge-preview", "find-recipient", "highlight-merge-fields", "paragraph-borders", "zoom-one-page", "zoom-page-width", "toggle-ruler", "drop-cap", "watermark-dialog", "draw-shape",
+    "context-menu", "open-dialog", "view-macros", "apply-styles", "field-braces",
 }
+
+def split_command(name):
+    """'.uno:Cmd?Arg:type=value&Arg2:type=value' (the old engine's URL form)
+    -> (name, {arg: value})."""
+    from urllib.parse import unquote
+    name, _q, query = name.partition("?")
+    args = {}
+    for part in query.split("&"):
+        if not part:
+            continue
+        k, _e, v = part.partition("=")
+        key, _c, typ = k.partition(":")
+        v = unquote(v)
+        if typ in ("long", "short", "int"):
+            try:
+                v = int(v)
+            except ValueError:
+                pass
+        elif typ == "boolean":
+            v = v.lower() == "true"
+        args[key] = v
+    return name, args
+
 
 SECTION_BREAKS = {"next-page": "nextPage", "continuous": "continuous", "even": "evenPage",
                   "odd": "oddPage"}
@@ -56,13 +80,52 @@ class NativeActions(Actions):
         self.eng.view.after_edit()
 
     def cmd(self, name, args=None):
+        if "?" in name and args is None:
+            name, args = split_command(name)
         if name == ".uno:FormatPaintbrush" and getattr(self.win, "painter", None) is not None:
             self.win.painter.toggle()
             return
         if not self.eng.command(name, args):
             self._not_yet()
 
+    # what F4 (Repeat) may run again: formatting and inserting, not moving or undoing
+    NO_REPEAT = {"undo", "redo-repeat", "repeat", "copy", "cut", "paste", "find-pane", "goto", "go-back",
+                 "save", "save-as", "extend-selection", "context-menu", "select-all", "spike", "spike-paste"}
+
     def run(self, action):
+        if action is None:
+            return
+        name = action if isinstance(action, str) else (action[0] if isinstance(action, tuple) else None)
+        if name is not None and not callable(action) and name not in self.NO_REPEAT and \
+                not (isinstance(name, str) and name.startswith((".uno:Go", ".uno:Jump", ".uno:Select", ".uno:Undo", ".uno:Redo"))) \
+                and (name in self.WINDOW_REPEAT or not (isinstance(name, str) and name in WINDOW)):
+            self.last_action = action
+            self.last_state = None
+        self._run(action)
+        if name is not None and getattr(self, "last_action", None) is action and isinstance(action, str) \
+                and action in self.TOGGLES:
+            # Repeat gives the same formatting again, not the opposite
+            self.last_state = self._toggle_on(action)
+
+    def _toggle_on(self, cmd):
+        try:
+            st = self.ed.state()
+        except Exception:
+            return None
+        k = {".uno:Bold": "bold", ".uno:Italic": "italic", ".uno:Strikeout": "strike"}.get(cmd)
+        if k:
+            return bool(st.get(k))
+        if cmd == ".uno:Underline":
+            return st.get("underline", "none") != "none"
+        if cmd in (".uno:SuperScript", ".uno:SubScript"):
+            return st.get("vert_align") == ("superscript" if cmd == ".uno:SuperScript" else "subscript")
+        return None
+
+    WINDOW_REPEAT = set()
+    TOGGLES = {".uno:Bold", ".uno:Italic", ".uno:Underline", ".uno:Strikeout", ".uno:SuperScript",
+               ".uno:SubScript", ".uno:SmallCaps", ".uno:Shadowed", ".uno:OutlineFont"}
+
+    def _run(self, action):
         if action is None:
             return
         if callable(action):
@@ -98,6 +161,10 @@ class NativeActions(Actions):
                  "doc-fonts": design.fonts}[kind](self.win, arg)
             elif kind == "watermark":
                 self.win.dialogs.watermark(arg)
+            elif kind == "page-color":
+                self.ed.set_page_color(None if arg is None or (isinstance(arg, int) and arg < 0)
+                                       else "%06X" % (int(arg) & 0xFFFFFF))
+                self.eng.view.after_edit()
             elif kind == "line-numbers":
                 from . import layoutopts
                 layoutopts.line_numbers(self.win, arg)
@@ -222,6 +289,48 @@ class NativeActions(Actions):
         from .. import dlg_cite
         dlg_cite.manage_sources(self.win)
 
+    def do_remove_header(self):
+        from . import covers
+        if not covers.remove_hf(self.win, "header"):
+            self.win.status.flash("This page doesn't have a header.")
+
+    def do_remove_footer(self):
+        from . import covers
+        if not covers.remove_hf(self.win, "footer"):
+            self.win.status.flash("This page doesn't have a footer.")
+
+    def do_remove_page_numbers(self):
+        """Insert > Page Number > Remove Page Numbers: the page numbers in the
+        current section's header and footer."""
+        import re
+        ed = self.ed
+        pg = ed.caret_page()
+        n = 0
+        ed.begin_group("Remove Page Numbers")
+        try:
+            for footer in (False, True):
+                if not ed.page_hf(pg)[1 if footer else 0]:
+                    continue
+                ed.edit_header_footer(pg, footer)
+                ed.move_caret("doc_start", False)
+                for _i in range(50):
+                    p = ed.caret_pos()[0]
+                    t = ed.para_text_of(p)
+                    if re.fullmatch(r"\s*(Page\s+)?\d+(\s+of\s+\d+)?\s*|\s*-\s*\d+\s*-\s*", t or ""):
+                        ed.select_nodes(p, 0, p, len(t))
+                        ed.delete(True, False)
+                        n += 1
+                    before = ed.caret_pos()
+                    ed.move_caret("para_down", False)
+                    if ed.caret_pos() == before:
+                        break
+            ed.edit_header_footer(None)
+        finally:
+            ed.end_group()
+        self.eng.view.after_edit()
+        if not n:
+            self.win.status.flash("There are no page numbers in this section's header or footer.")
+
     def do_remove_toc(self):
         self.ed.remove_toc()
         self.eng.view.after_edit()
@@ -305,6 +414,123 @@ class NativeActions(Actions):
     def do_select_all(self):
         self.cmd(".uno:SelectAll")
 
+    # ------------------------------------------------------------ keyboard (W-04)
+    def do_repeat(self):
+        """F4: the last formatting or insertion again, here."""
+        a = getattr(self, "last_action", None)
+        if a is None:
+            self.win.status.flash("There's nothing to repeat.")
+            return
+        want = getattr(self, "last_state", None)
+        if isinstance(a, str) and a in self.TOGGLES and want is not None and self._toggle_on(a) == want:
+            return
+        self._run(a)
+
+    def do_extend_selection(self):
+        self.win.extend_selection()
+
+    def do_move_up(self):
+        if self.ed.move_block(True):
+            self.eng.view.after_edit()
+
+    def do_move_down(self):
+        if self.ed.move_block(False):
+            self.eng.view.after_edit()
+
+    def do_go_back(self):
+        """Shift+F5: back to the places last edited."""
+        v = self.eng.view
+        spots = getattr(v, "edit_spots", [])
+        if not spots:
+            return
+        cur = tuple(self.ed.caret_pos())
+        # the newest spot that isn't where the caret is; pressed again, the one before
+        k = getattr(self, "_back_i", -1) if getattr(self, "_back_spots", None) == list(spots) else -1
+        self._back_spots = list(spots)
+        for _ in range(len(spots)):
+            k = (k + 1) % len(spots)
+            p, off = spots[-1 - k]
+            if (p, off) != cur:
+                break
+        self._back_i = k
+        try:
+            n = len(self.ed.para_text_of(p))
+            self.ed.select_nodes(p, min(off, n), p, min(off, n))
+        except Exception:
+            return
+        v.after_move()
+
+    def do_unicode_toggle(self):
+        """Alt+X: the hex code before the caret becomes its character, or the
+        character before the caret its hex code."""
+        ed = self.ed
+        hexd = "0123456789abcdefABCDEF"
+        if ed.has_selection():
+            pa, a, pb, b = ed.selection_range()
+            if pa != pb:
+                return
+            s = ed.para_text_of(pa)[a:b]
+            core = s[2:] if s[:2] in ("U+", "u+") else s
+            if core and all(c in hexd for c in core) and int(core, 16) <= 0x10FFFF:
+                ed.type_text(chr(int(core, 16)))
+            elif len(s) == 1:
+                ed.type_text("%04X" % ord(s))
+            self.eng.view.after_edit()
+            return
+        p, off = ed.caret_pos()
+        text = ed.para_text_of(p)[:off]
+        k = off
+        while k > 0 and off - k < 6 and text[k - 1] in hexd:
+            k -= 1
+        if k < off:
+            start = k
+            if start >= 2 and text[start - 2:start] in ("U+", "u+"):
+                start -= 2
+            code = int(text[k:off], 16)
+            # "x00e9": the x isn't hex, so the code is 00e9
+            if code <= 0x10FFFF and code > 0:
+                ed.select_nodes(p, start, p, off)
+                ed.type_text(chr(code))
+                self.eng.view.after_edit()
+                return
+        if off > 0:
+            ch = text[-1]
+            ed.select_nodes(p, off - 1, p, off)
+            ed.type_text("%04X" % ord(ch))
+            self.eng.view.after_edit()
+
+    def do_spike(self):
+        """Ctrl+F3: cut the selection onto the Spike."""
+        if not self.ed.has_selection():
+            self.win.status.flash("Select something to put on the Spike.")
+            return
+        frag = self.ed.copy_fragment()
+        if frag is None:
+            return
+        spike = getattr(self.win.app, "spike", None)
+        if spike is None:
+            spike = self.win.app.spike = []
+        spike.append(frag)
+        self.ed.delete(False, False)
+        self.eng.view.after_edit()
+
+    def do_spike_paste(self):
+        """Ctrl+Shift+F3: everything on the Spike, which is then empty."""
+        spike = getattr(self.win.app, "spike", None) or []
+        if not spike:
+            self.win.status.flash("The Spike is empty.")
+            return
+        self.ed.begin_group("Paste Spike")
+        try:
+            for k, frag in enumerate(spike):
+                if k:
+                    self.ed.type_text("\n")
+                self.ed.paste_fragment(frag, True)
+        finally:
+            self.ed.end_group()
+        self.win.app.spike = []
+        self.eng.view.after_edit()
+
     # ------------------------------------------------------------ characters
     def do_all_caps(self):
         self._edit(self.ed.toggle, "w:caps")
@@ -327,7 +553,7 @@ class NativeActions(Actions):
         self.apply_style("Normal")
 
     def do_hidden(self):
-        self._not_yet()
+        self._edit(self.ed.toggle, "w:vanish")
 
     # ------------------------------------------------------------ paragraphs
     def _para(self):
@@ -374,7 +600,7 @@ class NativeActions(Actions):
         self._edit(self.ed.set_para_spacing, 0 if b else 240, None)
 
     def do_reset_paragraph(self):
-        self.apply_style(self._para()["style"] or "Normal")
+        self._edit(self.ed.reset_para_formatting)
 
     def apply_style(self, name):
         self.eng.apply_style(name)
@@ -434,13 +660,40 @@ class NativeActions(Actions):
 
     # ------------------------------------------------------------ painter
     def copy_format_data(self):
-        if self.ed is None:
+        ed = self.ed
+        if ed is None:
             return None
-        self.ed.copy_format()
+        if not ed.has_selection():
+            # the insertion point: the format of the word it's in (or the character before it)
+            from .units import word_bounds
+            p, off = ed.caret_pos()
+            t = ed.para_text_of(p)
+            a, b = word_bounds(t, max(0, off - 1) if off and (off >= len(t) or not t[off].isalnum()) else off)
+            while b > a and t[b - 1] == " ":
+                b -= 1
+            if b > a:
+                ed.select_nodes(p, a, p, b)
+                ed.copy_format()
+                ed.select_nodes(p, off, p, off)
+                return True
+        ed.copy_format()
         return True
 
     def apply_format_data(self, _data):
-        if self.ed is not None and self.ed.paste_format():
+        ed = self.ed
+        if ed is None:
+            return
+        if not ed.has_selection():
+            # a click on a word: the whole word takes the format, as in the original
+            from .units import word_bounds
+            p, off = ed.caret_pos()
+            t = ed.para_text_of(p)
+            a, b = word_bounds(t, off)
+            while b > a and t[b - 1] == " ":
+                b -= 1
+            if b > a:
+                ed.select_nodes(p, a, p, b)
+        if ed.paste_format():
             self.eng.view.after_edit()
 
     def do_copy_format(self):
@@ -471,11 +724,23 @@ class NativeActions(Actions):
             mode = "upper" if words and all(w[0].isupper() for w in words) else "lower"
         self._edit(ed.change_case, mode)
 
-    def do_sort_dialog(self):
-        from . import tools
-        tools.sort_dialog(self.win)
+    def _para_style_now(self):
+        """The paragraph style at the caret, from the document (not the
+        reported state, which follows a moment later)."""
+        try:
+            st = self.ed.state()
+            name = st.get("style_name") or st.get("style")
+            if name:
+                from ..actions import word_style
+                return word_style(name)
+        except Exception:
+            pass
+        return super()._para_style_now()
 
-    # ------------------------------------------------------------ tables
+    def do_sort_dialog(self):
+        from .. import sortdlg
+        sortdlg.dialog(self.win)
+
     def do_select_cell(self):
         from . import tables
         tables.select(self.win, "cell")

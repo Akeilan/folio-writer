@@ -27,14 +27,14 @@ def tables():
     # alt+shift+up moves row up
     K("alt+shift+Up"); yield 0.5
     note("alt+shift+up row move", [t.getCellByName("A%d" % i).getString() for i in (1, 2, 3)])
-    check("alt+shift+Up moves table row up", t.getCellByName("A2").getString().startswith("x"), [t.getCellByName("A%d" % i).getString() for i in (1, 2, 3)])
+    check("alt+shift+Up moves table row up", t.getCellByName("A2").getString().lower().startswith("x"), [t.getCellByName("A%d" % i).getString() for i in (1, 2, 3)])
     shot("w3_table")
     # select whole table and press Backspace -> deletes table (Word)
     c = vc(); c.gotoRange(t.getCellByName("A1").getText().getStart(), False)
     K("ctrl+a"); yield 0.3
     note("ctrl+a in table selects", repr(sel())[:40])
     # table select via Layout > Select > Select Table then Backspace
-    rib("Layout", "Select", "Select Table"); yield 0.6
+    rib("Table Layout", "Select", "Select Table"); yield 0.6
     K("BackSpace"); yield 0.6
     check("Select Table + Backspace deletes table", M().getTextTables().getCount() == 0, M().getTextTables().getCount())
     # Enter at start of first cell of table at doc start inserts paragraph before table

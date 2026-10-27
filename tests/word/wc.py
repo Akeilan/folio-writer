@@ -4,12 +4,17 @@ import subprocess, time, traceback, os
 from folio import docapi
 E = win.engine
 M = lambda: E.model
+NATIVE = getattr(E, "native", False)
+if NATIVE:
+    exec(open("/home/claude/folio2/tests/word/nuno.py").read())
+    _NU = NativeUnoModel(E)
+    M = lambda: _NU
 RESULTS = []
 CUR = {"name": "?"}
 
 def K(*specs):
     for s in specs:
-        subprocess.run(["xdotool", "key", "--clearmodifiers", s], env=dict(os.environ, DISPLAY=":99"))
+        subprocess.run(["xdotool", "key", "--clearmodifiers", s], env=dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99")))
         time.sleep(0.06)
 
 def T(text, delay=15):
@@ -19,10 +24,10 @@ def T(text, delay=15):
             K("Return")
         if part:
             subprocess.run(["xdotool", "type", "--delay", str(delay), "--", part],
-                           env=dict(os.environ, DISPLAY=":99"))
+                           env=dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99")))
 
 def X(*args):
-    subprocess.run(["xdotool"] + [str(a) for a in args], env=dict(os.environ, DISPLAY=":99"))
+    subprocess.run(["xdotool"] + [str(a) for a in args], env=dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99")))
 
 def check(name, cond, detail=""):
     tag = "PASS" if cond else "FAIL"
@@ -65,6 +70,67 @@ def focus():
 
 def fresh():
     """Empty document with default formatting."""
+    if NATIVE:
+        ed = E.ed
+        ed.set_track_changes(False)
+        ed.select_all()
+        ed.delete(True, False)
+        try:
+            ed.remove_toc()
+        except Exception:
+            pass
+        for _i in range(20):
+            try:
+                cc = ed.content_controls()
+            except Exception:
+                break
+            if not cc:
+                break
+            ed.move_caret("doc_end", False)
+            if not ed.remove_control(cc[0][0], False):
+                break
+        for _i in range(50):
+            tbl = [b for b in ed.body_blocks() if b[0] == "t"]
+            if not tbl:
+                break
+            try:
+                p0 = ed.table_cells(tbl[0][2])[0][0][0]
+                ed.select_nodes(p0, 0, p0, 0)
+                ed.table_command("delete_table")
+            except Exception:
+                break
+        for _i in range(200):
+            if len(ed.body_blocks()) <= 1:
+                break
+            ed.move_caret("doc_end", False)
+            ed.delete(False, False)
+            if len(ed.body_blocks()) > 1 and not ed.para_text_of(ed.caret_pos()[0]):
+                ed.move_caret("doc_start", False)
+                ed.delete(True, False)
+        ed.select_all()
+        ed.delete(True, False)
+        for _i in range(20):
+            try:
+                objs = ed.objects_list()
+                if not objs:
+                    break
+                ed.select_object_node(objs[0][0])
+                ed.object_delete()
+            except Exception:
+                break
+        for fn in ("remove_list", "reset_para_formatting", "clear_formatting"):
+            try:
+                getattr(ed, fn)()
+            except Exception:
+                pass
+        try:
+            win.actions.apply_style("Normal")
+        except Exception:
+            pass
+        ed.set_borders("paras", [(s, None) for s in ("top", "left", "bottom", "right", "between")])
+        E.view.after_edit()
+        focus()
+        return
     m = M()
     t = m.getText()
     # drop tables/frames
@@ -201,7 +267,8 @@ def menu_labels():
     out = []
     for w in popups():
         for mi in find_widget(w, lambda x: isinstance(x, Gtk.MenuItem)):
-            out.append(mi.get_label() or "")
+            lab = mi.get_label() or " ".join(l.get_text() for l in find_widget(mi, lambda x: isinstance(x, Gtk.Label)))
+            out.append(lab or "")
         for mb in find_widget(w, lambda x: isinstance(x, Gtk.ModelButton)):
             out.append(mb.get_property("text") or "")
         for b in find_widget(w, lambda x: isinstance(x, Gtk.Button) and not isinstance(x, Gtk.ModelButton)):

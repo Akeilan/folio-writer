@@ -23,7 +23,7 @@ def _m(win):
     document is open) or the old engine's document."""
     if _native(win):
         return win if win.engine.ed is not None else None
-    return _m(win)
+    return win.engine.model
 from .widgets import FDialog, Preview, combo, grid, heading
 
 NEW_LIST_COLUMNS = ["Title", "First Name", "Last Name", "Company Name", "Address Line 1",
@@ -78,6 +78,17 @@ def envelopes(win):
     d.add(rsw)
     omit = Gtk.CheckButton.new_with_mnemonic("_Omit")
     d.add(omit)
+    tabs = Gtk.Box(spacing=8)
+    to_labels = Gtk.Button(label="_Labels...", use_underline=True)
+    to_labels.set_tooltip_text("Envelopes and Labels: the Labels tab")
+    to_labels.connect("clicked", lambda *_: (d.response(Gtk.ResponseType.CANCEL),
+                                             GLib.idle_add(lambda: (labels(win), False)[1])))
+    epost = Gtk.Button(label="E-postage Properties...")
+    epost.set_sensitive(False)
+    epost.set_tooltip_text("E-postage isn't available in Folio Writer.")
+    tabs.pack_start(to_labels, False, False, 0)
+    tabs.pack_start(epost, False, False, 0)
+    d.add(tabs)
     size = combo([e[0] for e in _M(win).ENVELOPES], st.get("envelope_size", 0))
     d.add(grid([["Envelope _size:", size]]))
     # preview and feed, as in the original
@@ -260,6 +271,13 @@ def labels(win):
     d.add(Gtk.Label(label="Address:", xalign=0))
     tv, sw = _textview(_selected_text(win) or st.get("return_address", ""))
     d.add(sw)
+    use_ret = Gtk.CheckButton.new_with_mnemonic("Use _return address")
+
+    def put_return(b):
+        if b.get_active():
+            tv.get_buffer().set_text(st.get("return_address", ""))
+    use_ret.connect("toggled", put_return)
+    d.add(use_ret)
     full = Gtk.RadioButton.new_with_mnemonic(None, "_Full page of the same label")
     single = Gtk.RadioButton.new_with_mnemonic_from_widget(full, "Single _label")
     row = Gtk.SpinButton.new_with_range(1, 30, 1)
@@ -558,3 +576,88 @@ def start_mail_merge(win, kind):
         if r != Gtk.ResponseType.OK:
             return
     win.engine.sync(lambda: (_M(win).start(m, kind, li, ei), win.refresh_mailings()))
+
+
+def not_available(win, what):
+    win.status.flash("%s isn't available in Folio Writer: it has no e-mail or Outlook connection." % what)
+
+
+WIZARD_STEPS = ["Select document type", "Select starting document", "Select recipients",
+                "Write your letter", "Preview your letters", "Complete the merge"]
+
+
+def wizard(win):
+    """Step-by-Step Mail Merge Wizard: Word's six steps, each with the
+    Mailings tab's own commands."""
+    d = FDialog(win, "Mail Merge", buttons=(("Close", Gtk.ResponseType.CLOSE),), width=340)
+    d.set_modal(False)
+    stack = Gtk.Stack()
+    step_lbl = Gtk.Label(xalign=0)
+    kinds = [("Letters", "letters"), ("Envelopes", "envelopes"), ("Labels", "labels"),
+             ("Directory", "directory")]
+    pages = []
+
+    def page(title, *rows):
+        b = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        b.pack_start(heading(title), False, False, 0)
+        for r in rows:
+            if isinstance(r, str):
+                lb = Gtk.Label(label=r, xalign=0, wrap=True, max_width_chars=44)
+                b.pack_start(lb, False, False, 0)
+            else:
+                b.pack_start(r, False, False, 0)
+        stack.add_named(b, str(len(pages)))
+        pages.append(b)
+
+    def button(label, fn):
+        bt = Gtk.Button(label=label)
+        bt.set_halign(Gtk.Align.START)
+        bt.connect("clicked", lambda *_: fn())
+        return bt
+    radios = []
+    for lab, _k in kinds:
+        radios.append(Gtk.RadioButton.new_with_label_from_widget(radios[0] if radios else None, lab))
+    page("Select document type", "What type of document are you working on?", *radios)
+    page("Select starting document", "Use the current document.",
+         "The document you have open becomes the main document of the merge.")
+    page("Select recipients", button("Type a new list...", lambda: type_new_list(win)),
+         button("Use an existing list...", lambda: use_existing_list(win)),
+         button("Edit recipient list...", lambda: edit_recipients(win)))
+    page("Write your letter", "Click where the information goes in the document, then:",
+         button("Address block...", lambda: win.model_call_sync("mailings.insert_address_block")),
+         button("Greeting line...", lambda: greeting(win)),
+         button("More items...", lambda: field_menu(win)))
+    page("Preview your letters", button("Preview results", lambda: win.run("merge-preview")),
+         button("<< Previous record", lambda: win.merge_go("prev")),
+         button("Next record >>", lambda: win.merge_go("next")),
+         button("Find a recipient...", lambda: win.run("find-recipient")))
+    page("Complete the merge", button("Print...", lambda: finish(win, print_after=True)),
+         button("Edit individual letters...", lambda: finish(win)))
+    d.add(step_lbl)
+    d.add(stack, True)
+    nav = Gtk.Box(spacing=6)
+    prev_b, next_b = Gtk.Button(label="< Previous"), Gtk.Button(label="Next >")
+    nav.pack_start(prev_b, False, False, 0)
+    nav.pack_end(next_b, False, False, 0)
+    d.add(nav)
+    cur = [0]
+
+    def show(i):
+        cur[0] = max(0, min(len(pages) - 1, i))
+        stack.set_visible_child_name(str(cur[0]))
+        step_lbl.set_text("Step %d of %d" % (cur[0] + 1, len(pages)))
+        prev_b.set_sensitive(cur[0] > 0)
+        next_b.set_sensitive(cur[0] < len(pages) - 1)
+
+    def nxt(*_):
+        if cur[0] == 0:
+            kind = kinds[next(i for i, r in enumerate(radios) if r.get_active())][1]
+            start_mail_merge(win, kind)
+        show(cur[0] + 1)
+    prev_b.connect("clicked", lambda *_: show(cur[0] - 1))
+    next_b.connect("clicked", nxt)
+    d.connect("response", lambda *_: d.destroy())
+    d.show_all()
+    show(0)
+    win.mail_wizard = d
+    return d

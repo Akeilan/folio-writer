@@ -999,7 +999,14 @@ impl Editor {
     pub fn object_effect(&mut self, kind: &str, xml: Option<&str>) -> bool {
         let Some((sppr, _, _)) = self.sel_props() else { return false };
         self.begin();
-        if kind == "bevel" {
+        if kind == "a:scene3d" || kind == "a:sp3d" {
+            if let Some(n) = self.doc.dom.child(sppr, kind) {
+                self.doc.dom.detach(n);
+            }
+            if let Some(n) = xml.and_then(|x| self.parse_snippet(x)) {
+                insert_ordered(&mut self.doc.dom, sppr, n, SPPR_ORDER);
+            }
+        } else if kind == "bevel" {
             for name in ["a:scene3d", "a:sp3d"] {
                 if let Some(n) = self.doc.dom.child(sppr, name) {
                     self.doc.dom.detach(n);

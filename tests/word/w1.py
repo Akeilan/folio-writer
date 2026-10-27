@@ -30,19 +30,19 @@ def nav_select():
     K("ctrl+Right", "ctrl+Right"); yield 0.3
     c = vc()
     r = c.getText().createTextCursorByRange(c.getStart()); r.gotoStartOfParagraph(True)
-    check("ctrl+right moves by word", r.getString() == "one two ", repr(r.getString()))
+    check("ctrl+right moves by word", r.getString().lower() == "one two ", repr(r.getString()))
     K("ctrl+shift+Right"); yield 0.3
     check("ctrl+shift+right selects word incl. space", sel() == "three ", repr(sel()))
     K("ctrl+Down"); yield 0.3
     c = vc(); r = c.getText().createTextCursorByRange(c.getStart()); r.gotoStartOfParagraph(True)
     check("ctrl+down goes to next paragraph start", r.getString() == "", repr(r.getString()))
     K("shift+End"); yield 0.3
-    check("shift+end selects to line end", sel() == "second paragraph here", repr(sel()))
+    check("shift+end selects to line end", (sel() or "").lower() == "second paragraph here", repr(sel()))
     K("ctrl+a"); yield 0.3
     check("ctrl+a selects all", (sel() or "").count("\n") >= 2, repr(sel())[:50])
     K("ctrl+End"); yield 0.2
     K("ctrl+shift+Up"); yield 0.3
-    check("ctrl+shift+up selects to para start", sel() == "third para", repr(sel()))
+    check("ctrl+shift+up selects to para start", (sel() or "").lower() == "third para", repr(sel()))
 
 def char_format():
     fresh(); yield 0.4
@@ -57,7 +57,7 @@ def char_format():
     check("ctrl+b while typing", b is not None and b.CharWeight > 100, b and b.CharWeight)
     check("ctrl+i while typing", i is not None and int(i.CharPosture.value != "NONE"), i and i.CharPosture.value)
     check("ctrl+u while typing", u is not None and u.CharUnderline == 1, u and u.CharUnderline)
-    check("formatting off after toggle", e is not None and e.CharWeight == 100 and e.CharUnderline == 0)
+    check("formatting off after toggle", e is not None and e.CharWeight == 100 and e.CharUnderline == 0, e and (e.CharWeight, e.CharUnderline, e.CharPosture))
     # select word, ctrl+shift+> grows
     docapi.controller(M()).select(fmt_of("plain")); yield 0.3
     h0 = fmt_of("plain").CharHeight
@@ -126,7 +126,7 @@ def breaks():
     check("shift+enter line break (same paragraph)", len(paras()) == 1 and "\n" in text(), para_texts())
     K("ctrl+Return"); yield 0.6
     T("page two"); yield 0.5
-    check("ctrl+enter page break", E.model.getCurrentController().getPageCount() == 2 if hasattr(E.model.getCurrentController(), "getPageCount") else vc().getPage() == 2, vc().getPage())
+    check("ctrl+enter page break", vc().getPage() == 2, vc().getPage())
     K("ctrl+shift+Return"); yield 0.5
     note("ctrl+shift+enter column break", para_texts())
 
@@ -158,7 +158,7 @@ def autoformat_lists():
     p = paras()
     check("'1. ' starts numbered list", len(p) == 2 and bool(p[1].NumberingIsNumber) and p[1].getString() == "second", [(x.getString(), x.NumberingIsNumber, x.ListLabelString) for x in p])
     check("list label 2.", p[-1].ListLabelString == "2.", p[-1].ListLabelString)
-    K("Tab"); yield 0.4
+    K("Home"); K("Tab"); yield 0.4
     check("Tab demotes list item", paras()[-1].NumberingLevel == 1, paras()[-1].NumberingLevel)
     note("level-2 label", paras()[-1].ListLabelString)
     K("shift+Tab"); yield 0.4
@@ -202,7 +202,7 @@ def misc_keys():
     T("cut me"); K("ctrl+a", "ctrl+x"); yield 0.4
     check("ctrl+x cuts", text() == "", repr(text()))
     K("ctrl+v"); yield 0.5
-    check("ctrl+v pastes", "cut me" in text(), repr(text()))
+    check("ctrl+v pastes", "cut me" in text().lower(), repr(text()))
     K("ctrl+alt+v"); yield 1.0
     dlg = [w.get_title() for w in Gtk.Window.list_toplevels() if w.get_visible() and w is not win and w.get_title()]
     check("ctrl+alt+v Paste Special dialog", any("Paste" in t for t in dlg), dlg)

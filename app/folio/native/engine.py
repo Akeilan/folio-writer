@@ -86,6 +86,14 @@ CASES = {".uno:ChangeCaseToSentenceCase": "sentence", ".uno:ChangeCaseToLower": 
          ".uno:ChangeCaseToUpper": "upper", ".uno:ChangeCaseToTitleCase": "title",
          ".uno:ChangeCaseToToggleCase": "toggle"}
 
+def _is_zip(path):
+    try:
+        with open(path, "rb") as fh:
+            return fh.read(4) == b"PK\x03\x04"
+    except OSError:
+        return False
+
+
 class NativeEngine(GObject.GObject):
     native = True
     __gsignals__ = {
@@ -100,7 +108,7 @@ class NativeEngine(GObject.GObject):
         super().__init__()
         self.author = author
         self.view = NativeView()
-        self.model = None          # no UNO model: features that need it stay off
+        self._model = None         # no UNO model: features that need it stay off
         self.ed = None
         self.state = {}
         self.path = None
@@ -117,6 +125,22 @@ class NativeEngine(GObject.GObject):
         self._cm_id = 0
         self.view.connect("changed", lambda *_: self._schedule_comments())
 
+    # which features asked for the old engine's document model (they do nothing here)
+    model_wanted = {}
+
+    @property
+    def model(self):
+        if self._model is None:
+            import sys as _sys
+            f = _sys._getframe(1)
+            key = "%s:%s" % (os.path.basename(f.f_code.co_filename), f.f_code.co_name)
+            NativeEngine.model_wanted[key] = NativeEngine.model_wanted.get(key, 0) + 1
+        return self._model
+
+    @model.setter
+    def model(self, v):
+        self._model = v
+
     def _schedule_comments(self):
         """Comment balloons follow the text they mark after edits."""
         win = getattr(self, "win", None)
@@ -131,10 +155,53 @@ class NativeEngine(GObject.GObject):
         self._cm_id = GLib.timeout_add(250, run)
 
     # --------------------------------------------------------------- files
-    def open(self, path, on_done=None):
+    def _import(self, path):
+        """An Editor for a file that isn't Word's own format: plain text read
+        here; .doc, .odt, .rtf and the rest through LibreOffice's converter,
+        when it's installed."""
+        ext = os.path.splitext(path)[1].lower()
+        if ext in (".txt", ".text", ".md", ".csv", ".log"):
+            tpl = None
+            here = os.path.dirname(os.path.abspath(__file__))
+            for d in ("/usr/share/folio-writer/templates",
+                      os.path.join(here, "..", "..", "..", "share", "templates")):
+                p = os.path.join(d, "Normal-Letter.docx")
+                if os.path.exists(p):
+                    tpl = p
+                    break
+            ed = core().Editor.open(tpl)
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                text = fh.read().replace("\r\n", "\n").replace("\r", "\n")
+            if text:
+                ed.type_text(text.rstrip("\n"))
+            ed.move_caret("doc_start", False)
+            return ed
+        import shutil
+        import subprocess
+        soffice = shutil.which("soffice") or shutil.which("libreoffice")
+        if not soffice:
+            raise RuntimeError("needs-converter")
+        tmpd = tempfile.mkdtemp(prefix="folio-")
         try:
-            ed = core().Editor.open(path)
+            r = subprocess.run([soffice, "--headless", "--convert-to", "docx:MS Word 2007 XML",
+                                "--outdir", tmpd, path], capture_output=True, timeout=180)
+            out = os.path.join(tmpd, os.path.splitext(os.path.basename(path))[0] + ".docx")
+            if r.returncode != 0 or not os.path.exists(out):
+                raise RuntimeError("conversion failed")
+            return core().Editor.open(out)
+        finally:
+            shutil.rmtree(tmpd, ignore_errors=True)
+
+    def open(self, path, on_done=None):
+        self.open_error = None
+        try:
+            if os.path.splitext(path)[1].lower() in (".docx", ".docm", ".dotx", ".dotm", "") \
+                    or _is_zip(path):
+                ed = core().Editor.open(path)
+            else:
+                ed = self._import(path)
         except Exception as e:
+            self.open_error = str(e)
             print("open:", e)
             if on_done:
                 GLib.idle_add(lambda: (on_done(False), False)[1])
@@ -197,13 +264,39 @@ class NativeEngine(GObject.GObject):
         ext = (fmt or os.path.splitext(path)[1].lstrip(".") or "docx").lower()
         try:
             if ext == "pdf":
-                self.ed.export_pdf(path)
+                fd = filter_data or {}
+                pages = []
+                rng = str(fd.get("PageRange", "") or "").replace(" ", "")
+                for part in [x for x in rng.split(",") if x]:
+                    a, _, b = part.partition("-")
+                    try:
+                        lo = int(a)
+                        hi = int(b) if b else lo
+                        pages += list(range(lo - 1, hi))
+                    except ValueError:
+                        pass
+                n = self.ed.page_count()
+                pages = [p for p in pages if 0 <= p < n]
+                if rng and not pages:
+                    self.save_error = "The page range is outside the document (it has %d page%s)." % (n, "" if n == 1 else "s")
+                    return False
+                from . import docprops
+                c = docprops.core(self.ed)
+                self.ed.export_pdf_opts(path, pages, bool(fd.get("ExportBookmarks", True)),
+                                        c.get("title", ""), c.get("creator", ""),
+                                        c.get("subject", ""), c.get("keywords", ""))
                 return True
             try:
                 from . import docprops
                 docprops.stamp_saved(self.ed, self.author or _user_name())
             except Exception as e:
                 print("properties:", e)
+            if ext == "txt":
+                with open(path, "w", encoding="utf-8") as fh:
+                    fh.write("\n".join(self.plain_lines()) + "\n")
+                return True
+            if ext in ("html", "htm", "rtf"):
+                return self._save_own(path, ext)
             if ext not in ("docx", "docm", "dotx"):
                 return self._save_converted(path, ext)
             self.ed.save(path)
@@ -218,10 +311,49 @@ class NativeEngine(GObject.GObject):
         self._schedule_state()
         return True
 
+    def plain_lines(self):
+        """The body as plain text, as Word saves it: a line per paragraph, table
+        cells separated by tabs."""
+        ed = self.ed
+        out = []
+        for kind, node, ti in ed.body_blocks():
+            if kind == "p":
+                out.append(ed.para_text_of(node).replace("\ufffc", ""))
+            else:
+                for row in ed.table_cells(ti):
+                    out.append("\t".join(" ".join(ed.para_text_of(p) for p in cell).replace("\ufffc", "") for cell in row))
+        return out
+
+    def _save_own(self, path, ext):
+        """Web Page and Rich Text Format, written by Folio itself."""
+        from . import htmlexport
+        tmpd = tempfile.mkdtemp(prefix="folio-")
+        try:
+            src = os.path.join(tmpd, "doc.docx")
+            self.ed.save(src)
+            if ext == "rtf":
+                data = htmlexport.docx_to_rtf(src)
+                with open(path, "w", encoding="ascii", errors="replace") as fh:
+                    fh.write(data)
+            else:
+                try:
+                    labels = dict(enumerate(self.ed.body_labels()))
+                except Exception:
+                    labels = {}
+                title = os.path.splitext(os.path.basename(path))[0]
+                with open(path, "w", encoding="utf-8") as fh:
+                    fh.write(htmlexport.docx_to_html(src, title, {k: v for k, v in labels.items() if v}))
+            return True
+        finally:
+            shutil.rmtree(tmpd, ignore_errors=True)
+
     def _save_converted(self, path, ext):
         """Other formats (.doc, .odt, .rtf, .txt...) go through LibreOffice's
         converter, from the .docx."""
         import subprocess
+        if not (shutil.which("soffice") or shutil.which("libreoffice")):
+            self.save_error = "needs-converter"
+            return False
         tmpd = tempfile.mkdtemp(prefix="folio-")
         try:
             src = os.path.join(tmpd, "doc.docx")
@@ -323,6 +455,9 @@ class NativeEngine(GObject.GObject):
         ed = self.ed
         if ed is None:
             return False
+        if "?" in cmd and not args:
+            from .actions import split_command
+            cmd, args = split_command(cmd)
         toggles = {".uno:Bold": "w:b", ".uno:Italic": "w:i", ".uno:Strikeout": "w:strike"}
         from . import objects
         if cmd in (".uno:InsertFootnote", ".uno:InsertEndnote"):
@@ -354,10 +489,22 @@ class NativeEngine(GObject.GObject):
             return objects.uno_command(self.win, cmd) if getattr(self, "win", None) else False
         aligns = {".uno:LeftPara": "left", ".uno:CenterPara": "center",
                   ".uno:RightPara": "right", ".uno:JustifyPara": "both"}
+        if cmd in (".uno:SelectWord", ".uno:SelectSentence", ".uno:SelectText"):
+            from .units import select_unit
+            select_unit(ed, {".uno:SelectWord": "word", ".uno:SelectSentence": "sentence",
+                             ".uno:SelectText": "paragraph"}[cmd])
+            self.view.after_move()
+            return True
+        if cmd in (".uno:DelToStartOfWord", ".uno:DelToEndOfWord"):
+            ed.delete(cmd == ".uno:DelToEndOfWord", True)
+            self.view.after_edit()
+            return True
         if cmd in toggles:
             self._edit(ed.toggle, toggles[cmd])
         elif cmd == ".uno:Underline":
-            self._edit(ed.set_underline, "none" if self.is_on(".uno:Underline") else "single")
+            # what the text has now (the reported state may lag behind fast typing)
+            cur = (ed.run_values() or {}).get("underline", "none")
+            self._edit(ed.set_underline, "none" if cur not in ("none", None, "") else "single")
         elif cmd == ".uno:UnderlineDouble":
             self._edit(ed.set_underline,
                        "none" if self.is_on(".uno:UnderlineDouble") else "double")
@@ -394,6 +541,19 @@ class NativeEngine(GObject.GObject):
                 return False
             self._edit(ed.set_highlight, "none" if c < 0 else HIGHLIGHT_NAMES.get(c & 0xFFFFFF,
                                                                                   "yellow"))
+        elif cmd == ".uno:BackgroundColor":
+            # Home > Shading: the selected text, or the paragraph when nothing is selected
+            c = _arg(args, "BackgroundColor")
+            try:
+                c = int(c)
+            except (TypeError, ValueError):
+                return False
+            shd = None if c < 0 else [("w:val", "clear"), ("w:color", "auto"), ("w:fill", "%06X" % (c & 0xFFFFFF))]
+            a = ed.selection_range()
+            if ed.has_selection() and a[0] == a[2] and not (a[1] == 0 and a[3] >= len(ed.para_text_of(a[0]))):
+                self._edit(ed.apply_run, [("w:shd", shd)], "Shading")
+            else:
+                self._edit(ed.apply_para, [("w:shd", shd)], "Shading")
         elif cmd == ".uno:StyleApply":
             self.apply_style(_arg(args, "Style", ""))
         elif cmd == ".uno:ResetAttributes":
@@ -494,17 +654,40 @@ class NativeEngine(GObject.GObject):
             nxt = next((s for s in reversed(SIZES) if s < cur), max(1, cur - 1))
         self._edit(self.ed.set_size, float(nxt))
 
+    # Word's built-in styles a template may not carry yet: made when first used
+    BUILTIN = {
+        "List Bullet": ("ListBullet", '<w:pPr><w:ind w:left="360" w:hanging="360"/><w:contextualSpacing/></w:pPr>', "bullet"),
+        "List Number": ("ListNumber", '<w:pPr><w:ind w:left="360" w:hanging="360"/><w:contextualSpacing/></w:pPr>', "number"),
+        "Quote": ("Quote", '<w:pPr><w:spacing w:before="200" w:after="160"/><w:ind w:left="864" w:right="864"/>'
+                  '<w:jc w:val="center"/></w:pPr><w:rPr><w:i/><w:iCs/><w:color w:val="404040"/></w:rPr>', None),
+        "Intense Quote": ("IntenseQuote", '<w:pPr><w:pBdr><w:top w:val="single" w:sz="4" w:space="10" w:color="4472C4"/>'
+                          '<w:bottom w:val="single" w:sz="4" w:space="10" w:color="4472C4"/></w:pBdr>'
+                          '<w:spacing w:before="360" w:after="360"/><w:ind w:left="864" w:right="864"/><w:jc w:val="center"/>'
+                          '</w:pPr><w:rPr><w:i/><w:iCs/><w:color w:val="4472C4"/></w:rPr>', None),
+        "No Spacing": ("NoSpacing", '<w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>', None),
+    }
+
     def apply_style(self, name):
         if not name or self.ed is None:
             return
         for sid, nm in self.ed.paragraph_styles():
             if nm == name or sid == name:
                 self._edit(self.ed.set_style, sid)
+                if name in self.BUILTIN and self.BUILTIN[name][2] and self.ed.list_info() is None:
+                    self._edit(self.ed.toggle_list, self.BUILTIN[name][2])
                 return
         for sid, nm in self.ed.character_styles():
             if nm == name or sid == name:
                 self._edit(self.ed.set_char_style, sid)
                 return
+        if name in self.BUILTIN:
+            sid, body, _lst = self.BUILTIN[name]
+            from xml.sax.saxutils import quoteattr
+            self.ed.add_style_xml('<w:style w:type="paragraph" w:styleId=%s><w:name w:val=%s/>'
+                                  '<w:basedOn w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/>%s</w:style>'
+                                  % (quoteattr(sid), quoteattr(name), body))
+            if any(s == sid for s, _n in self.ed.paragraph_styles()):
+                self.apply_style(name)
 
     def paragraph_styles(self):
         return [nm for _sid, nm in self.ed.paragraph_styles()] if self.ed else []
@@ -518,13 +701,28 @@ class NativeEngine(GObject.GObject):
         t = self.selection()
         if not t:
             return
-        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(t, -1)
         # the formatted copy, for pasting in Folio: kept beside the text
         try:
             frag = self.ed.copy_fragment()
         except Exception as e:
             print("copy:", e)
             frag = None
+        html = None
+        if frag:
+            try:
+                from . import htmlexport
+                html = htmlexport.fragment_to_html(frag, self.ed.paragraph_styles())
+            except Exception as e:
+                print("copy html:", e)
+        cb = None
+        try:
+            cb = self.win.app.clipboard()
+        except Exception:
+            cb = None
+        if html and cb is not None:
+            cb.set(html, t)
+        else:
+            Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(t, -1)
         _store_fragment(t, frag, self._doc_token())
         if cut:
             self._edit(self.ed.delete, True)
@@ -536,6 +734,12 @@ class NativeEngine(GObject.GObject):
         from gi.repository import Gdk, Gtk
         cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
         t = cb.wait_for_text()
+        html_atom = Gdk.Atom.intern("text/html", False)
+        if not t and not plain and cb.wait_is_target_available(html_atom):
+            # formatted text only (some programs offer no plain text)
+            sel = cb.wait_for_contents(html_atom)
+            if sel is not None and self.paste_html(bytes(sel.get_data())):
+                return
         if t:
             frag = None if plain else _load_fragment(t)
             if frag is not None and self.ed is not None:
@@ -612,8 +816,25 @@ class NativeEngine(GObject.GObject):
     def selection_type(self):
         return 1 if self.ed and self.ed.has_selection() else 0
 
+    # the original engine's key codes, as Extend mode sends them
+    KEY_MOVES = {1024: ("down", "para_down"), 1025: ("up", "para_up"), 1026: ("left", "word_left"),
+                 1027: ("right", "word_right"), 1028: ("home", "doc_start"), 1029: ("end", "doc_end")}
+
     def post_key(self, key_code, char_code=0):
-        pass
+        ed = self.ed
+        if ed is None:
+            return
+        base = key_code & 4095
+        shift = bool(key_code & 4096)
+        ctrl = bool(key_code & 8192)
+        if base in self.KEY_MOVES:
+            plain, with_ctrl = self.KEY_MOVES[base]
+            ed.move_caret(with_ctrl if ctrl else plain, shift)
+        elif base in (1030, 1031):
+            ed.move_by(500.0 if base == 1031 else -500.0, shift)
+        else:
+            return
+        self.view.after_move()
 
     # Document coordinates (twips) stack the pages top to bottom with a gap,
     # as the original engine's do.

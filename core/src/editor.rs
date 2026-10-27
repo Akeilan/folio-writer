@@ -1690,6 +1690,47 @@ impl Editor {
         }
         let pieces = self.pieces(p);
         let mut emptied_runs: Vec<NodeId> = Vec::new();
+        // fields wholly inside the range go entirely, their codes too
+        let mut whole: Vec<NodeId> = Vec::new();
+        {
+            let dom = &self.doc.dom;
+            let mut stack: Vec<(usize, Vec<NodeId>)> = Vec::new();
+            for (pc, ps, _pe) in &pieces {
+                let Some(node) = pc.node else { continue };
+                if dom.is(node, "w:fldChar") {
+                    match dom.attr(node, "w:fldCharType") {
+                        Some("begin") => stack.push((*ps, vec![node])),
+                        Some("separate") => {
+                            if let Some(t) = stack.last_mut() {
+                                t.1.push(node);
+                            }
+                        }
+                        Some("end") => {
+                            if let Some((b, mut nodes)) = stack.pop() {
+                                nodes.push(node);
+                                if b >= s && *ps <= e && b != e && *ps != s {
+                                    whole.extend(nodes);
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                } else if dom.is(node, "w:instrText") {
+                    if let Some(t) = stack.last_mut() {
+                        t.1.push(node);
+                    }
+                }
+            }
+        }
+        for pc_node in whole {
+            if self.doc.dom.parent(pc_node).is_none() {
+                continue;
+            }
+            if let Some(r) = self.run_of(pc_node) {
+                emptied_runs.push(r);
+            }
+            self.doc.dom.detach(pc_node);
+        }
         for (pc, ps, pe) in pieces.iter().rev() {
             let len = pc.item.len();
             if len == 0 || *pe <= s || *ps >= e {
@@ -2008,7 +2049,8 @@ impl Editor {
         self.anchor = self.caret;
         self.goal_x = None;
         let word_end = text.chars().any(|c| c.is_whitespace() || c.is_ascii_punctuation());
-        self.commit("Typing", single && !word_end);
+        // a space or punctuation ends the word: it undoes with it, and the next word is a new step
+        self.commit("Typing", single);
         if word_end {
             self.typing = false;
         }
@@ -3522,6 +3564,25 @@ impl Editor {
 
     /// The Bullets / Numbering buttons: the selected paragraphs become a
     /// list (continuing one just above), or stop being one.
+    /// Ctrl+Q: the selected paragraphs' own formatting goes; their style,
+    /// list and section stay.
+    pub fn reset_para_formatting(&mut self) -> bool {
+        let (a, b) = self.selection();
+        let paras = self.paras_between(a.para, b.para);
+        self.begin();
+        for p in paras {
+            let dom = &mut self.doc.dom;
+            let Some(pp) = dom.child(p, "w:pPr") else { continue };
+            for k in dom.elements(pp).collect::<Vec<_>>() {
+                if !matches!(dom.name(k), "w:pStyle" | "w:numPr" | "w:sectPr" | "w:rPr" | "w:pPrChange") {
+                    dom.detach(k);
+                }
+            }
+        }
+        self.commit("Reset Paragraph", false);
+        true
+    }
+
     pub fn toggle_list(&mut self, kind: &str) {
         let (a, b) = self.selection();
         let paras = self.paras_between(a.para, b.para);
@@ -3597,7 +3658,11 @@ impl Editor {
     /// The list the caret's paragraph is in: (numId, level, bullet, its number's text,
     /// the level's start value).
     pub fn list_info(&self) -> Option<(i32, i32, bool, String, i32)> {
-        let p = self.caret.para;
+        self.list_info_of(self.caret.para)
+    }
+
+    /// A paragraph's list: (numId, level, bullet, label, start).
+    pub fn list_info_of(&self, p: NodeId) -> Option<(i32, i32, bool, String, i32)> {
         let pp = self.doc.para_props(p).0;
         let num = pp.num_id.filter(|n| *n > 0)?;
         let ilvl = pp.ilvl.unwrap_or(0);
@@ -3801,6 +3866,26 @@ impl Editor {
 
     pub fn export_pdf(&mut self, path: &str) -> Result<(), String> {
         crate::render::export_pdf(&self.layout, &mut self.fonts, path)
+    }
+
+    /// PDF with options: some pages, the headings as bookmarks, properties.
+    pub fn export_pdf_opts(&mut self, path: &str, pages: Vec<usize>, bookmarks: bool,
+                           meta: [String; 4]) -> Result<(), String> {
+        let mut outline = Vec::new();
+        if bookmarks {
+            for row in self.outline_paras() {
+                let (node, text, level) = (row.0, row.1, row.2);
+                if !(1..=9).contains(&level) || text.trim().is_empty() {
+                    continue;
+                }
+                if let Some((pg, _x, y, _h)) = self.caret_rect(Pos { para: node, off: 0 }) {
+                    outline.push((level as u32, text.trim().to_string(), pg, y));
+                }
+            }
+        }
+        let [title, author, subject, keywords] = meta;
+        let o = crate::render::PdfOptions { pages, outline, title, author, subject, keywords };
+        crate::render::export_pdf_with(&self.layout, &mut self.fonts, path, &o)
     }
 
     // --------------------------------------------------------- drawing
