@@ -395,7 +395,14 @@ def object_dialog(win):
                 ext = os.path.splitext(path)[1].lower()
                 if ext in (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".tif", ".tiff",
                            ".webp"):
-                    win.engine.sync(lambda: docapi.insert_picture(m, path))
+                    if getattr(win.engine, "native", False):
+                        from .native import objects
+                        objects.insert_picture_path(win, path)
+                    else:
+                        win.engine.sync(lambda: docapi.insert_picture(m, path))
+                elif getattr(win.engine, "native", False):
+                    from .native import insertfile
+                    insertfile.insert(win, path)
                 else:
                     win.engine.sync(lambda: docapi.insert_text_from_file(m, path))
     d.done()

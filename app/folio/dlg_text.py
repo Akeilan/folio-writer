@@ -910,6 +910,10 @@ class TextDialogs:
 
     # ==================================================== Borders and Shading
     def borders_dialog(self, page_tab=False):
+        if getattr(self.eng, "native", False):
+            from .native import borders
+            borders.dialog(self.win, 1 if page_tab else 0)
+            return
         if self._model_or_warn() is not None:
             from . import bordersdlg
             bordersdlg.dialog(self.win, 1 if page_tab else 0)

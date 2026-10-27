@@ -498,6 +498,14 @@ impl PyEditor {
         ok
     }
 
+    fn border_state(&self, target: &str) -> Vec<(String, Vec<(String, String)>)> {
+        self.ed.border_state(target)
+    }
+
+    fn shading_state(&self, target: &str) -> Option<String> {
+        self.ed.shading_state(target)
+    }
+
     fn grid_widths(&self) -> Vec<i32> {
         self.ed.grid_widths()
     }
@@ -729,6 +737,9 @@ impl PyEditor {
         d.set_item("cols", s.cols)?;
         d.set_item("col_space", s.col_space)?;
         d.set_item("section_count", self.ed.doc.sections.len())?;
+        d.set_item("start", s.start.clone())?;
+        d.set_item("v_align", s.v_align.clone())?;
+        d.set_item("title_pg", s.title_pg)?;
         Ok(Some(d))
     }
 
@@ -775,6 +786,22 @@ impl PyEditor {
 
     fn deselect_object(&mut self) {
         self.ed.sel_obj = None;
+    }
+
+    fn objects_list(&self) -> Vec<(u32, String, String, bool)> {
+        self.ed.objects_list()
+    }
+
+    #[pyo3(signature = (node, name=None, visible=None))]
+    fn object_set_meta(&mut self, node: u32, name: Option<&str>, visible: Option<bool>) -> bool {
+        let ok = self.ed.object_set_meta(node, name, visible);
+        self.touched();
+        ok
+    }
+
+    fn select_object_node(&mut self, node: u32) -> bool {
+        self.ed.select_object(Some(node));
+        self.ed.selected_object().is_some()
     }
 
     /// The selected object: page, x, y, w, h (points), rot, inline, kind,
@@ -1012,6 +1039,11 @@ impl PyEditor {
         self.touched();
     }
 
+    fn style_set_num(&mut self, id: &str, num: i32, ilvl: i32) {
+        self.ed.style_set_num(id, num, ilvl);
+        self.touched();
+    }
+
     fn style_apply_para_attrs(&mut self, id: &str, name: &str, attrs: Vec<(String, Option<String>)>) {
         let a: Vec<(&str, Option<&str>)> = attrs.iter().map(|(k, v)| (k.as_str(), v.as_deref())).collect();
         self.ed.style_apply_para_attrs(id, name, &a);
@@ -1063,6 +1095,7 @@ impl PyEditor {
         let fam = crate::text::family_for(st, &r, 'a');
         d.set_item("font", fam)?;
         d.set_item("size", r.size.unwrap_or(20) as f64 / 2.0)?;
+        d.set_item("lang", r.lang.clone().unwrap_or_default())?;
         d.set_item("bold", self.ed.toggle_state("w:b"))?;
         d.set_item("italic", self.ed.toggle_state("w:i"))?;
         d.set_item("strike", self.ed.toggle_state("w:strike"))?;
@@ -1432,6 +1465,11 @@ impl PyEditor {
         Ok(self.ed.find_all(query, &o).map_err(err)?.into_iter().map(|(a, b, c)| (a.para, a.off, b.para, b.off, c)).collect())
     }
 
+    /// The paragraphs on a page with their text and languages (spelling as you type).
+    fn page_text(&self, page: usize) -> Vec<(u32, String, Vec<(usize, usize, String)>)> {
+        self.ed.page_text(page)
+    }
+
     /// Rectangles [(page, x, y, w, h)] of a range given by nodes.
     fn range_rects(&self, pa: u32, a: usize, pb: u32, b: usize) -> Vec<(usize, f64, f64, f64, f64)> {
         self.ed.body_range_rects(crate::editor::Pos { para: pa, off: a }, crate::editor::Pos { para: pb, off: b })
@@ -1796,6 +1834,71 @@ impl PyEditor {
         let r = self.ed.set_math_display(id as crate::xml::NodeId, display);
         self.touched();
         r
+    }
+
+    /// Select several stretches [(para, off, para, off)]; formatting goes to each.
+    fn select_ranges(&mut self, ranges: Vec<(u32, usize, u32, usize)>) {
+        let r: Vec<_> = ranges.into_iter().map(|(a, x, b, y)| (crate::editor::Pos { para: a, off: x }, crate::editor::Pos { para: b, off: y })).collect();
+        self.ed.select_ranges(&r);
+    }
+
+    fn count_style_instances(&self, id: &str) -> usize {
+        self.ed.count_style_instances(id)
+    }
+
+    fn select_style_instances(&mut self, id: &str) -> usize {
+        self.ed.select_style_instances(id)
+    }
+
+    /// The paragraph style id at the caret.
+    fn para_style_id(&self) -> String {
+        let dom = &self.ed.doc.dom;
+        dom.child(self.ed.caret.para, "w:pPr").and_then(|pp| dom.child(pp, "w:pStyle"))
+            .and_then(|n| dom.attr(n, "w:val")).map(|v| v.to_string())
+            .unwrap_or_else(|| self.ed.doc.styles.default_para.clone().unwrap_or_default())
+    }
+
+    fn list_info(&self) -> Option<(i32, i32, bool, String, i32)> {
+        self.ed.list_info()
+    }
+
+    fn new_list_definition(&mut self, levels_xml: &str) -> i32 {
+        let r = self.ed.new_list_definition(levels_xml);
+        self.touched();
+        r
+    }
+
+    fn apply_list_definition(&mut self, levels_xml: &str) -> bool {
+        let r = self.ed.apply_list_definition(levels_xml);
+        self.touched();
+        r
+    }
+
+    fn restart_numbering(&mut self, start: i32) -> bool {
+        let r = self.ed.restart_numbering(start);
+        self.touched();
+        r
+    }
+
+    fn continue_numbering(&mut self) -> bool {
+        let r = self.ed.continue_numbering();
+        self.touched();
+        r
+    }
+
+    fn list_level_indents(&self) -> Option<(i32, i32, String)> {
+        self.ed.list_level_indents()
+    }
+
+    fn set_list_level_indents(&mut self, number_at: i32, text_at: i32, suff: &str) -> bool {
+        let r = self.ed.set_list_level_indents(number_at, text_at, suff);
+        self.touched();
+        r
+    }
+
+    /// The caret: (paragraph node, offset).
+    fn caret_pos(&self) -> (u32, usize) {
+        (self.ed.caret.para, self.ed.caret.off)
     }
 
     fn caret_para_empty(&self) -> bool {

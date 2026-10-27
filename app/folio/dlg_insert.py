@@ -1287,6 +1287,13 @@ class InsertDialogs:
                               "All Documents")
         if not path:
             return
+        if getattr(self.eng, "native", False):
+            from .native import insertfile
+            try:
+                insertfile.insert(self.win, path)
+            except Exception as e:
+                self.message("This file couldn't be inserted. (%s)" % e, kind="error")
+            return
         m = self._model_or_warn()
         if m is None:
             return
@@ -1411,10 +1418,15 @@ class InsertDialogs:
 
     # ============================================================ language
     def language_dialog(self):
-        m = self._model_or_warn()
-        if m is None:
+        native = getattr(self.eng, "native", False)
+        m = None if native else self._model_or_warn()
+        if m is None and not native:
             return
-        cur_l, cur_c = docapi.current_language(m)
+        if native:
+            tag = (self.eng.ed.state().get("lang") or "-".join(self.win.app.settings.get("language") or ["en", "US"]))
+            cur_l, _s, cur_c = tag.replace("_", "-").partition("-")
+        else:
+            cur_l, cur_c = docapi.current_language(m)
         d = FDialog(self.win, "Language")
         d.set_default_size(380, 420)
         d.add(Gtk.Label(label="Mark selected text as:", xalign=0))
@@ -1463,6 +1475,14 @@ class InsertDialogs:
                 d.done()
                 return
             self.win.app.settings["detect_language"] = detect.get_active()
+            if native:
+                from .native import proofing
+                proofing.set_language(self.win, l, c, noproof.get_active(), default=r == 1)
+                if r == 1:
+                    self.win.app.settings["language"] = [l, c]
+                    self.win.app.save_settings()
+                d.done()
+                return
             docapi.set_language(m, l, c, noproof.get_active())
             if r == 1:
                 docapi.set_language(m, l, c, default=True, whole=True)

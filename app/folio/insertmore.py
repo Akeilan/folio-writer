@@ -53,6 +53,11 @@ def screenshot(win, clip=True):
 def _insert_pixbuf(win, pb):
     path = tempfile.mktemp(prefix="folio-shot-", suffix=".png")
     pb.savev(path, "png", [], [])
+    if getattr(win.engine, "native", False):
+        from .native import objects
+        objects.insert_picture_path(win, path)
+        os.unlink(path)
+        return
     m = win.engine.model
     win.engine.sync(lambda: docapi.insert_picture(m, path))
 
@@ -210,6 +215,11 @@ def icons_dialog(win):
     picks = [ch.get_child().path for ch in flow.get_selected_children()]
     d.done()
     if r != Gtk.ResponseType.OK or not picks:
+        return
+    if getattr(win.engine, "native", False):
+        from .native import objects
+        for p in picks:
+            objects.insert_picture_path(win, p, size_pt=72)
         return
     m = win.engine.model
 

@@ -143,8 +143,8 @@ class OptionsDialog:
         adv.pack_start(heading("Document engine"), False, False, 0)
         from . import native as _native
         new_engine = Gtk.CheckButton(
-            label="Use Folio's own document engine (preview; applies to new windows)")
-        new_engine.set_active(s.get("engine") == "native")
+            label="Use Folio's own document engine (applies to new windows)")
+        new_engine.set_active(s.get("engine", "native") != "classic")
         new_engine.set_sensitive(_native.available())
         adv.pack_start(new_engine, False, False, 0)
 

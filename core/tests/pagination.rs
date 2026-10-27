@@ -5,7 +5,10 @@ use folio_core::document::Document;
 use folio_core::fonts::FontCache;
 use folio_core::paginate::layout_document;
 
+/// exact matches with the whole corpus (Apache POI's test documents plus the Word
+/// corpus), and with POI's alone when the Word corpus isn't on this machine
 const BASELINE: usize = 1231;
+const BASELINE_POI: usize = 100;
 
 #[test]
 fn page_counts_match_word() {
@@ -37,5 +40,6 @@ fn page_counts_match_word() {
     if let Ok(out) = std::env::var("FOLIO_MISSES") {
         std::fs::write(out, misses.join("\n")).ok();
     }
-    assert!(exact >= BASELINE, "page counts regressed: {exact} < {BASELINE}");
+    let base = if std::path::Path::new("/home/claude/corpus/word").exists() { BASELINE } else { BASELINE_POI };
+    assert!(exact >= base, "page counts regressed: {exact} < {base}");
 }

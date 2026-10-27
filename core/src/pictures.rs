@@ -42,6 +42,8 @@ pub struct Pic {
     /// text drawn to fill the shape (a VML text path: watermarks, WordArt):
     /// the text, font family, bold, italic
     pub textpath: Option<(String, String, bool, bool)>,
+    /// hidden (the Selection pane's eye): laid out, not drawn
+    pub hidden: bool,
 }
 
 impl PartialEq for Pic {
@@ -60,6 +62,7 @@ impl PartialEq for Pic {
             && self.children.len() == o.children.len()
             && self.fx == o.fx
             && self.textpath == o.textpath
+            && self.hidden == o.hidden
     }
 }
 
@@ -98,6 +101,9 @@ pub fn drawingml(dom: &XmlDoc, holder: NodeId, w: f64, h: f64, images: &HashMap<
         pic.effect = [num(dom, e, "l") / EMU, num(dom, e, "t") / EMU, num(dom, e, "r") / EMU,
                       num(dom, e, "b") / EMU];
     }
+    if let Some(dp) = dom.child(holder, "wp:docPr") {
+        pic.hidden = matches!(dom.attr(dp, "hidden"), Some("1") | Some("true"));
+    }
     let Some(gd) = find(dom, holder, "a:graphicData") else { return pic };
     let uri = dom.attr(gd, "uri").unwrap_or("");
     pic.kind = if uri.ends_with("/picture") {
@@ -122,7 +128,7 @@ impl Pic {
     pub fn empty(w: f64, h: f64) -> Pic {
         Pic { image: None, crop: [0.0; 4], effect: [0.0; 4], w, h, rot: 0.0, flip_h: false, flip_v: false,
               line: None, kind: "object", shape: None, text: None, children: Vec::new(), fx: None,
-              textpath: None }
+              textpath: None, hidden: false }
     }
 }
 

@@ -648,7 +648,7 @@ impl Renderer {
         if w <= 0.0 || h <= 0.0 {
             return;
         }
-        if pic.kind == "frame" {
+        if pic.kind == "frame" || pic.hidden {
             return;
         }
         if let Some(fx) = pic.fx.as_deref() {

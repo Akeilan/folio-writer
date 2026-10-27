@@ -21,7 +21,8 @@ WINDOW = {
     "one-page", "page-width", "multiple-pages", "side-to-side", "ruler", "print-layout", "font-dialog", "paragraph-dialog",
     "tabs-dialog", "new-style", "modify-style", "date-time", "field-dialog", "caption", "hyperlink", "bookmark", "cross-reference",
     "page-borders", "margins", "paper", "orientation", "columns", "equation", "comment", "prev-comment", "next-comment", "delete-all-comments", "manage-changes",
-    "find-pane", "zoom-one-page", "zoom-page-width", "toggle-ruler", "drop-cap", "watermark-dialog", "draw-shape",
+    "find-pane", "page-setup", "language-dialog", "text-from-file", "selection-pane", "styles-pane", "spelling", "thesaurus", "clipboard-pane", "arrange-all",
+    "side-by-side", "sync-scrolling", "reset-window-position", "paragraph-borders", "zoom-one-page", "zoom-page-width", "toggle-ruler", "drop-cap", "watermark-dialog", "draw-shape",
 }
 
 SECTION_BREAKS = {"next-page": "nextPage", "continuous": "continuous", "even": "evenPage",
@@ -326,6 +327,22 @@ class NativeActions(Actions):
         else:
             self.cmd(".uno:DecrementLevel" if d < 0 else ".uno:IncrementLevel")
 
+
+    # ------------------------------------------------------------ select
+    def do_select_similar(self):
+        ed = self.ed
+        if ed is None:
+            return
+        n = ed.select_style_instances(ed.para_style_id())
+        self.eng.view.after_move()
+        self.win.status.flash("%d paragraph%s selected." % (n, "" if n == 1 else "s")) if n else None
+
+    # ------------------------------------------------------------ clipboard
+    def do_paste_special(self):
+        self.win.dialogs.paste_special()
+
+    def do_paste_text_only(self):
+        self.eng.paste(plain=True)
 
     # ------------------------------------------------------------ find
     def do_replace(self):

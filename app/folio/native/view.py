@@ -57,6 +57,9 @@ class NativeView(Gtk.DrawingArea):
         self.connect("size-allocate", lambda *_: self._relayout_pages())
         from .objects import ObjectHandles
         self.objs = ObjectHandles(self)
+        self.speller = None          # spelling as you type (set by the window)
+        self.typing = False
+        self._typing_id = 0
 
     editable = True
 
@@ -250,6 +253,9 @@ class NativeView(Gtk.DrawingArea):
             cr.set_source_surface(surf, ox, oy)
             cr.paint()
             self._dim(cr, i, ox, oy, pw, ph)
+            if self.speller is not None:
+                from . import spell
+                spell.draw(cr, self.speller.page_marks(i), ox, oy, s)
             if i in hl:
                 cr.save()
                 cr.set_operator(cairo.OPERATOR_MULTIPLY)
@@ -400,7 +406,21 @@ class NativeView(Gtk.DrawingArea):
         if self.objs.active():
             self.ed.deselect_object()
         self.ed.type_text(text)
+        # the word being typed isn't marked until the typing pauses or leaves it
+        self.typing = text.isalnum() or text in "'’"
+        if self._typing_id:
+            GLib.source_remove(self._typing_id)
+        self._typing_id = GLib.timeout_add(1500, self._typing_done)
         self.after_edit()
+
+    def _typing_done(self):
+        self._typing_id = 0
+        if self.typing:
+            self.typing = False
+            if self.speller is not None:
+                self.speller.invalidate()
+            self.queue_draw()
+        return False
 
     MOVES = {
         Gdk.KEY_Left: ("left", "word_left"), Gdk.KEY_KP_Left: ("left", "word_left"),

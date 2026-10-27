@@ -436,6 +436,38 @@ def uno_command(win, cmd):
     return call(win, fname, arg)
 
 
+def insert_picture_path(win, path, size_pt=None):
+    """Insert a picture file at the caret (SVG drawn to a PNG first); True when it went in."""
+    import os
+    import tempfile
+    ed = _ed(win)
+    tmp = None
+    try:
+        if path.lower().endswith((".svg", ".svgz", ".emf", ".wmf")):
+            from gi.repository import GdkPixbuf
+            px = int((size_pt or 96) * 2)
+            pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, px, px, True)
+            fd, tmp = tempfile.mkstemp(suffix=".png", prefix="folio-pic-")
+            os.close(fd)
+            pb.savev(tmp, "png", [], [])
+            path = tmp
+        ok = ed.insert_picture(path)
+        if ok and size_pt:
+            o = ed.selected_object()
+            if o and o["w"] > 0:
+                k = size_pt / max(o["w"], o["h"])
+                ed.object_resize(o["w"] * k, o["h"] * k)
+        _done(win)
+        win.update_object_tabs()
+        return ok
+    except Exception as e:
+        print("insert picture:", e)
+        return False
+    finally:
+        if tmp:
+            os.unlink(tmp)
+
+
 def insert_picture(win):
     path = win.dialogs.pick_file("Insert Picture", ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp",
                                                     "*.tif", "*.tiff", "*.webp"], "All Pictures")

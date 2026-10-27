@@ -4,6 +4,7 @@
 //! syntax.
 
 use super::{Editor, Pos};
+use crate::xml::NodeId;
 use regex::Regex;
 
 /// The search options of the Find and Replace dialog.
@@ -433,5 +434,50 @@ mod tests {
         assert!(!build("cat", &ww).unwrap().is_match("concatenate"));
         let c = build("(a)(b)", &w).unwrap().captures("ab").unwrap();
         assert_eq!(expand("\\2\\1^&", &c, true), "baab");
+    }
+}
+
+
+impl Editor {
+    /// The text of the paragraphs with lines on a page, for spelling as you type: (paragraph,
+    /// its text — one character per position, U+FFFC for objects, fields and breaks — and the
+    /// language of each stretch).
+    pub fn page_text(&self, page: usize) -> Vec<(NodeId, String, Vec<(usize, usize, String)>)> {
+        let Some(pg) = self.layout.pages.get(page) else { return vec![] };
+        let mut seen: Vec<usize> = Vec::new();
+        for l in &pg.lines {
+            if !seen.contains(&l.para) {
+                seen.push(l.para);
+            }
+        }
+        let mut out = Vec::new();
+        for pi in seen {
+            let Some(pl) = self.layout.paras.get(pi) else { continue };
+            let node = pl.node;
+            let (_, base) = self.doc.para_props(node);
+            let mut text = String::new();
+            let mut langs: Vec<(usize, usize, String)> = Vec::new();
+            let mut pos = 0;
+            for pc in self.doc.para_pieces(node, &base) {
+                let n = pc.item.len();
+                match &pc.item {
+                    crate::document::Item::Text(t) if pc.field.is_none() && pc.change != "del" => text.push_str(t),
+                    _ => text.extend(std::iter::repeat('\u{fffc}').take(n)),
+                }
+                if n > 0 {
+                    let dom = &self.doc.dom;
+                    let no_proof = pc.run.and_then(|r| dom.child(r, "w:rPr")).and_then(|rp| dom.child(rp, "w:noProof"))
+                        .map_or(false, |n| !matches!(dom.attr(n, "w:val"), Some("0") | Some("false")));
+                    let lang = if no_proof { "zxx".to_string() } else { pc.rpr.lang.clone().unwrap_or_default() };
+                    match langs.last_mut() {
+                        Some(last) if last.2 == lang && last.1 == pos => last.1 = pos + n,
+                        _ => langs.push((pos, pos + n, lang)),
+                    }
+                }
+                pos += n;
+            }
+            out.push((node, text, langs));
+        }
+        out
     }
 }

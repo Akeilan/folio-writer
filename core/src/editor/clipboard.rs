@@ -197,6 +197,16 @@ impl Editor {
             // the first pasted paragraph joins the head
             if self.doc.dom.is(rest[0], "w:p") {
                 let first = rest.remove(0);
+                // into an empty paragraph, the pasted one's paragraph formatting comes too
+                if off == 0 && self.fresh_len(head) == 0 {
+                    if let Some(np) = self.doc.dom.child(first, "w:pPr") {
+                        if let Some(old) = self.doc.dom.child(head, "w:pPr") {
+                            self.doc.dom.detach(old);
+                        }
+                        self.doc.dom.detach(np);
+                        self.doc.dom.insert(head, 0, np);
+                    }
+                }
                 let kids: Vec<NodeId> = self.doc.dom.children(first).iter().copied().filter(|&k| !self.doc.dom.is(k, "w:pPr")).collect();
                 let at = self.doc.dom.children(head).len();
                 let n = kids.len();

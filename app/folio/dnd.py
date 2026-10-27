@@ -110,6 +110,11 @@ class DropHandler:
         self._move(x, y)
 
         def insert():
+            if getattr(self.win.engine, "native", False):
+                from .native import objects
+                if objects.insert_picture_path(self.win, path):
+                    self.win.select_tab("Picture Format")
+                return
             m = self.win.engine.model
             if m is None:
                 return

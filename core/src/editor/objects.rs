@@ -232,6 +232,61 @@ impl Editor {
         true
     }
 
+    /// Every picture, shape, text box and chart in the body, front-most first:
+    /// (node, name, kind, visible).
+    pub fn objects_list(&self) -> Vec<(NodeId, String, String, bool)> {
+        let dom = &self.doc.dom;
+        let mut out: Vec<(NodeId, String, String, bool, i64)> = Vec::new();
+        fn walk(dom: &XmlDoc, n: NodeId, out: &mut Vec<NodeId>) {
+            for c in dom.elements(n) {
+                if dom.is(c, "w:drawing") {
+                    out.push(c);
+                } else if !dom.is(c, "w:sectPr") {
+                    walk(dom, c, out);
+                }
+            }
+        }
+        let mut nodes = Vec::new();
+        walk(dom, dom.root, &mut nodes);
+        for d in nodes {
+            let holder = dom.child(d, "wp:inline").or_else(|| dom.child(d, "wp:anchor"));
+            let Some(h) = holder else { continue };
+            let dp = dom.child(h, "wp:docPr");
+            let name = dp.and_then(|x| dom.attr(x, "name")).unwrap_or("").to_string();
+            let hidden = dp.map_or(false, |x| matches!(dom.attr(x, "hidden"), Some("1") | Some("true")));
+            let uri = crate::pictures::find(dom, h, "a:graphicData").and_then(|g| dom.attr(g, "uri")).unwrap_or("");
+            let kind = if uri.ends_with("/picture") { "Picture" } else if uri.ends_with("/chart") { "Chart" }
+                else if uri.contains("wordprocessingGroup") { "Group" } else if uri.contains("diagram") { "SmartArt" }
+                else { "Shape" };
+            let z = dom.attr(h, "relativeHeight").and_then(|v| v.parse::<i64>().ok()).unwrap_or(0)
+                + if dom.attr(h, "behindDoc") == Some("1") { -1 << 40 } else { 0 };
+            out.push((d, name, kind.to_string(), !hidden, z));
+        }
+        out.sort_by(|a, b| b.4.cmp(&a.4));
+        out.into_iter().map(|(a, b, c, d, _)| (a, b, c, d)).collect()
+    }
+
+    /// Show / hide or rename an object (its wp:docPr).
+    pub fn object_set_meta(&mut self, node: NodeId, name: Option<&str>, visible: Option<bool>) -> bool {
+        let dom = &self.doc.dom;
+        let Some(h) = dom.child(node, "wp:inline").or_else(|| dom.child(node, "wp:anchor")) else { return false };
+        let Some(dp) = dom.child(h, "wp:docPr") else { return false };
+        self.begin();
+        let dom = &mut self.doc.dom;
+        if let Some(n) = name {
+            dom.set_attr(dp, "name", n);
+        }
+        if let Some(v) = visible {
+            if v {
+                dom.remove_attr(dp, "hidden");
+            } else {
+                dom.set_attr(dp, "hidden", "1");
+            }
+        }
+        self.commit(if visible.is_some() { "Show/Hide Object" } else { "Rename Object" }, false);
+        true
+    }
+
     /// Select an object (None: back to the text). The caret goes to it.
     pub fn select_object(&mut self, node: Option<NodeId>) {
         self.sel_obj = node;

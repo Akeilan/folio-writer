@@ -50,6 +50,8 @@ class DocWindow(Gtk.ApplicationWindow):
         if self.native:
             from .native.engine import NativeEngine
             self.engine = NativeEngine(app.engine_profile, app.user_name())
+            from .native.spell import Speller
+            self.engine.view.speller = Speller(self)
         else:
             self.engine = Engine(app.engine_profile, app.user_name())
         self.engine.connect("state-changed", self.on_state)
@@ -1277,7 +1279,10 @@ class DocWindow(Gtk.ApplicationWindow):
         review.lock_tracking(self)
 
     def act_selection_pane(self):
-        from .arrange import SelectionPane
+        if self.native:
+            from .native.selection import NativeSelectionPane as SelectionPane
+        else:
+            from .arrange import SelectionPane
         pane = self.panes.get(SelectionPane)
         if pane is not None and pane.get_parent() is not None:
             self.hide_pane(pane)
