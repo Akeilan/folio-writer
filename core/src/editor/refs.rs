@@ -1181,6 +1181,37 @@ impl Editor {
         n
     }
 
+    // ------------------------------------------------------------ package parts
+    /// A part's XML by name (docProps/core.xml...).
+    pub fn package_part(&mut self, name: &str) -> Option<String> {
+        if !self.doc.pkg.has(name) {
+            return None;
+        }
+        if let Ok(x) = self.doc.pkg.xml(name) {
+            return Some(x.serialize());
+        }
+        String::from_utf8(self.doc.pkg.raw(name)?.to_vec()).ok()
+    }
+
+    /// Write a part (made, typed and related from the package if new).
+    pub fn set_package_part(&mut self, name: &str, xml: &str, ctype: &str, rel: &str) -> bool {
+        if XmlDoc::parse(xml.as_bytes()).is_err() {
+            return false;
+        }
+        let new = !self.doc.pkg.has(name);
+        self.doc.pkg.put_raw(name, xml.as_bytes().to_vec());
+        if new {
+            if !ctype.is_empty() {
+                self.doc.pkg.set_content_type(name, ctype);
+            }
+            if !rel.is_empty() && !self.doc.pkg.rels("").iter().any(|r| r.kind == rel) {
+                self.doc.pkg.add_rel("", rel, name);
+            }
+        }
+        self.modified = true;
+        true
+    }
+
     // ------------------------------------------------------------ custom XML
     /// The custom XML part whose root is in namespace `ns` (the
     /// bibliography sources): its XML, or None.

@@ -244,15 +244,46 @@ def _hash(pw):
     return hashlib.sha256(("folio:" + (pw or "")).encode()).hexdigest()
 
 
+def _native_ed(m):
+    eng = getattr(m, "eng", None)
+    return eng.ed if eng is not None and getattr(eng, "native", False) else None
+
+
 def restriction(m):
+    """{"on", "mode", "lock", "hash" or "password"}: the editing restriction.
+    The new engine keeps it as Word does (w:documentProtection)."""
+    ed = _native_ed(m)
+    if ed is not None:
+        from .native import protect
+        return protect.read(ed)
     try:
         return json.loads(docapi._doc_setting(m, "EditRestriction", "") or "{}")
     except ValueError:
         return {}
 
 
-def set_restriction(m, data):
+def set_restriction(m, data, pw=""):
+    ed = _native_ed(m)
+    if ed is not None:
+        from .native import protect
+        protect.write(ed, data.get("mode") if data else None, pw)
+        return
+    if data and pw:
+        data = dict(data, hash=_hash(pw))
     docapi._set_doc_setting(m, "EditRestriction", json.dumps(data) if data else "")
+
+
+def password_ok(m, r, pw):
+    """Does pw lift restriction r?"""
+    ed = _native_ed(m)
+    if ed is not None:
+        from .native import protect
+        return protect.check(ed, pw or "")
+    return not r.get("hash") or _hash(pw or "") == r["hash"]
+
+
+def has_password(r):
+    return bool(r.get("hash") or r.get("password"))
 
 
 class RestrictPane(Pane):
@@ -317,16 +348,16 @@ class RestrictPane(Pane):
                 d.message("The passwords don't match.")
                 return
         mode = "tracked" if self.kind.get_active() == 1 else "readonly"
-        set_restriction(self.model, {"on": True, "mode": mode, "hash": _hash(pw) if pw else ""})
+        set_restriction(self.model, {"on": True, "mode": mode}, pw)
         enforce(self.win)
         self.on_shown()
 
     def stop(self):
         m = self.model
         r = restriction(m)
-        if r.get("hash"):
+        if has_password(r):
             pw = self.win.dialogs.ask_password("Unprotect Document", "Password:")
-            if pw is None or _hash(pw) != r["hash"]:
+            if pw is None or not password_ok(m, r, pw):
                 self.win.dialogs.message("The password is incorrect.", kind="error")
                 return
         set_restriction(m, {})
@@ -336,16 +367,20 @@ class RestrictPane(Pane):
 
 def enforce(win):
     """Apply the document's editing restriction to this window."""
-    m = win.engine.model
+    m = win.docmodel
     if m is None:
         return
     r = restriction(m)
     on = bool(r.get("on"))
-    ro = on and r.get("mode") == "readonly"
+    ro = on and r.get("mode") in ("readonly", "comments", "forms")
     win.engine.view.set_edit(not ro and not getattr(win, "read_only", False))
     win.restricted = ro
     if on and r.get("mode") == "tracked":
-        if win.engine.get(".uno:TrackChanges") != "true":
+        if getattr(win.engine, "native", False):
+            if not win.engine.ed.track_changes():
+                win.engine.ed.set_track_changes(True)
+                win.engine._schedule_state()
+        elif win.engine.get(".uno:TrackChanges") != "true":
             win.engine.command(".uno:TrackChanges")
         win.track_locked = True
     else:
@@ -357,16 +392,16 @@ def enforce(win):
 def lock_tracking(win):
     """Review > Track Changes > Lock Tracking: others can't turn tracking off
     without the password."""
-    m = win.engine.model
+    m = win.docmodel
     if m is None:
         return
     r = restriction(m)
     d = win.dialogs
     if r.get("lock"):
-        pw = d.ask_password("Unlock Tracking", "Password:")
+        pw = d.ask_password("Unlock Tracking", "Password:") if has_password(r) else ""
         if pw is None:
             return
-        if r.get("hash") and _hash(pw) != r["hash"]:
+        if has_password(r) and not password_ok(m, r, pw):
             d.message("The password is incorrect.", kind="error")
             return
         set_restriction(m, {})
@@ -381,7 +416,6 @@ def lock_tracking(win):
         if pw != pw2:
             d.message("The passwords don't match.")
             return
-    set_restriction(m, {"on": True, "mode": "tracked", "lock": True,
-                        "hash": _hash(pw) if pw else ""})
+    set_restriction(m, {"on": True, "mode": "tracked", "lock": True}, pw)
     enforce(win)
     win.status.flash("Tracking is locked.")

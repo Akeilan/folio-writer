@@ -704,6 +704,32 @@ pub fn layout_document_cached(doc: &Document, fonts: &mut FontCache, cache: &mut
     Layout { index: index_of(&paras), paras, pages: f.pages, block_para, body_count, markup: doc.markup }
 }
 
+thread_local! {
+    /// Draft / Web Layout: manual page breaks don't start pages; Draft also
+    /// leaves floating objects out
+    static CONTINUOUS: std::cell::Cell<(bool, bool)> = const { std::cell::Cell::new((false, false)) };
+}
+
+pub fn set_continuous(on: bool, draft: bool) {
+    CONTINUOUS.with(|c| c.set((on, draft)));
+}
+
+fn continuous() -> bool {
+    CONTINUOUS.with(|c| c.get().0)
+}
+
+fn draft() -> bool {
+    CONTINUOUS.with(|c| c.get().1)
+}
+
+fn is_break(k: UnitKind) -> bool {
+    match k {
+        UnitKind::PageBreak => !continuous(),
+        UnitKind::ColumnBreak => !continuous(),
+        _ => false,
+    }
+}
+
 fn no_floats() -> bool {
     static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *V.get_or_init(|| std::env::var("FOLIO_NOFLOAT").is_ok())
@@ -1080,7 +1106,12 @@ fn float_pos(f: &Flow, pg: usize, fl: &crate::pictures::Float, para_y: f64, line
 /// Lay out a text box's paragraphs at x, y (the box's top-left).
 fn textbox_lines(f: &Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout>>, pic: &crate::pictures::Pic,
                  x: f64, y: f64) -> Vec<Placed> {
-    let Some((content, ins, anchor)) = pic.text else { return Vec::new() };
+    // a group's members hold their own text
+    let mut kids = Vec::new();
+    for (dx, dy, child) in &pic.children {
+        kids.extend(textbox_lines(f, m, paras, child, x + dx, y + dy));
+    }
+    let Some((content, ins, anchor)) = pic.text else { return kids };
     let dom = &f.doc.dom;
     let width = (pic.w - ins[0] - ins[2]).max(1.0);
     let g = std::mem::replace(&mut m.grid, 0.0);
@@ -1131,6 +1162,7 @@ fn textbox_lines(f: &Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout>>, pi
         l.x = x + ins[0];
         l.y += y + ins[1] + off;
     }
+    out.extend(kids);
     out
 }
 
@@ -1140,6 +1172,9 @@ fn textbox_lines(f: &Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout>>, pi
 #[allow(clippy::too_many_arguments)]
 fn register_floats(f: &mut Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout>>, p: &ParaLayout, pi: usize,
                    para_top: f64, y0: f64, from: usize) {
+    if draft() {
+        return;
+    }
     let cx = f.col_x();
     let mut ly = y0;
     let mut found = Vec::new();
@@ -1215,6 +1250,9 @@ fn wrapped(f: &Flow, orig: &ParaLayout, y0: f64) -> Option<ParaLayout> {
 fn prepare_floats(f: &mut Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout>>, orig: &Arc<ParaLayout>,
                   pi: usize, para_top: f64, y0: f64) -> Arc<ParaLayout> {
     f.page().floats.retain(|fb| fb.para != pi);
+    if draft() {
+        return orig.clone();
+    }
     // a paragraph pushed down by an object above starts below it, and so
     // do the objects anchored in it
     let skip0 = wrapped(f, orig, y0).map(|w| w.lines.first().map(|l| l.skip).unwrap_or(0.0)).unwrap_or(0.0);
@@ -1471,12 +1509,12 @@ fn place_paragraph(f: &mut Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout
             k += 1;
             // manual page / column break ends the run of lines here
             let e = p.lines[li + k - 1].ends_with;
-            if e == UnitKind::PageBreak || e == UnitKind::ColumnBreak {
+            if is_break(e) {
                 break;
             }
         }
         let rest = n - li;
-        let broke_manually = k > 0 && matches!(p.lines[li + k - 1].ends_with, UnitKind::PageBreak | UnitKind::ColumnBreak);
+        let broke_manually = k > 0 && is_break(p.lines[li + k - 1].ends_with);
         if k < rest && !broke_manually {
             // the paragraph splits here: apply the rules
             if keep_lines && f.used && li == 0 {
@@ -1556,7 +1594,7 @@ fn place_paragraph(f: &mut Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout
             seg_top = f.y;
         }
     }
-    let broke = p.lines.last().map(|l| matches!(l.ends_with, UnitKind::PageBreak | UnitKind::ColumnBreak)).unwrap_or(false);
+    let broke = p.lines.last().map(|l| is_break(l.ends_with)).unwrap_or(false);
     f.y += bottom_extra;
     let mut after = if broke { 0.0 } else { p.after };
     // a hidden mark: the next paragraph's text continues on this line

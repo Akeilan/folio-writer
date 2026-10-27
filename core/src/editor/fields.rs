@@ -266,6 +266,22 @@ fn number_picture(x: f64, pic: &str) -> String {
     out
 }
 
+/// Text into a run, a line break for each newline.
+fn append_text_lines(dom: &mut XmlDoc, r: NodeId, text: &str) {
+    for (i, line) in text.split('\n').enumerate() {
+        if i > 0 {
+            let br = dom.new_element("w:br", &[]);
+            dom.append(r, br);
+        }
+        if !line.is_empty() || i == 0 {
+            let t = dom.new_element("w:t", &[("xml:space", "preserve")]);
+            let tx = dom.new_text(line);
+            dom.append(t, tx);
+            dom.append(r, t);
+        }
+    }
+}
+
 pub(super) fn esc(s: &str) -> String {
     let mut o = String::new();
     crate::xml::escape_text(s, &mut o);
@@ -476,6 +492,10 @@ impl Editor {
             }
         }
         s.trim().to_string()
+    }
+
+    pub(super) fn core_prop_pub(&self, name: &str) -> Option<String> {
+        self.core_prop(name)
     }
 
     fn core_prop(&self, name: &str) -> Option<String> {
@@ -724,10 +744,7 @@ impl Editor {
                         dom.detach(k);
                     }
                 }
-                let t = dom.new_element("w:t", &[("xml:space", "preserve")]);
-                let tx = dom.new_text(text);
-                dom.append(t, tx);
-                dom.append(r, t);
+                append_text_lines(dom, r, text);
                 for o in between {
                     if o != r {
                         dom.detach(o);
@@ -743,10 +760,7 @@ impl Editor {
                     let c = dom.clone_node(rp);
                     dom.append(r, c);
                 }
-                let t = dom.new_element("w:t", &[("xml:space", "preserve")]);
-                let tx = dom.new_text(text);
-                dom.append(t, tx);
-                dom.append(r, t);
+                append_text_lines(dom, r, text);
                 let parent = dom.parent(end_run).unwrap();
                 let idx = dom.index_in_parent(end_run).unwrap();
                 dom.insert(parent, idx, r);

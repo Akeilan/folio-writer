@@ -50,6 +50,8 @@ pub struct Pic {
     pub link: Option<(String, u32)>,
     /// WordArt text warp (a:prstTxWarp other than textNoShape)
     pub warp: Option<String>,
+    /// a chart: the theme colours it's drawn in (lt1 dk1 lt2 dk2 accent1-6 hlink folHlink)
+    pub chart_theme: Option<Box<[u32; 12]>>,
 }
 
 impl PartialEq for Pic {
@@ -181,15 +183,36 @@ pub fn drawingml(dom: &XmlDoc, holder: NodeId, w: f64, h: f64, images: &HashMap<
         "object"
     };
     let Some(obj) = dom.elements(gd).next() else { return pic };
+    if pic.kind == "chart" {
+        let rid = dom.attr(obj, "r:id").unwrap_or("");
+        pic.image = images.get(rid).cloned();
+        pic.chart_theme = Some(Box::new(theme_array(colors)));
+        return pic;
+    }
     member(dom, obj, &mut pic, images, colors);
     pic
+}
+
+/// The theme's colours in the order charts index them.
+pub fn theme_array(colors: &HashMap<String, u32>) -> [u32; 12] {
+    let d = [0xFFFFFF, 0x000000, 0xE7E6E6, 0x44546A, 0x4472C4, 0xED7D31, 0xA5A5A5, 0xFFC000,
+             0x5B9BD5, 0x70AD47, 0x0563C1, 0x954F72];
+    let keys = ["lt1", "dk1", "lt2", "dk2", "accent1", "accent2", "accent3", "accent4", "accent5",
+                "accent6", "hlink", "folHlink"];
+    let mut out = d;
+    for (i, k) in keys.iter().enumerate() {
+        if let Some(c) = colors.get(*k) {
+            out[i] = *c;
+        }
+    }
+    out
 }
 
 impl Pic {
     pub fn empty(w: f64, h: f64) -> Pic {
         Pic { image: None, crop: [0.0; 4], effect: [0.0; 4], w, h, rot: 0.0, flip_h: false, flip_v: false,
               line: None, kind: "object", shape: None, text: None, children: Vec::new(), fx: None,
-              textpath: None, hidden: false, clip: None, link: None, warp: None }
+              textpath: None, hidden: false, clip: None, link: None, warp: None, chart_theme: None }
     }
 }
 

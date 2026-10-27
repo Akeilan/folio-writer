@@ -254,7 +254,17 @@ class NativeModel:
         return _Controller(self)
 
     def getDocumentProperties(self):
-        return _DocProps(self.eng.doc_settings)
+        from .docprops import DocumentProperties
+        return DocumentProperties(self.eng.ed)
+
+    def getText(self):
+        from . import docops
+        ed = self.eng.ed
+
+        class T:
+            def getString(self):
+                return "\n".join(t for _p, t, _l in docops.paragraphs(ed))
+        return T()
 
     def createInstance(self, svc):
         return _NewStyle("character" if "Character" in svc else "paragraph")

@@ -731,7 +731,11 @@ def smartart_dialog(win):
     idx = sel["i"]
     d.done()
     if r == Gtk.ResponseType.OK:
-        win.engine.sync(lambda: insert_smartart(win, LAYOUTS[idx][2]))
+        if getattr(win.engine, "native", False):
+            from .native import smartart
+            smartart.insert(win, LAYOUTS[idx][2])
+        else:
+            win.engine.sync(lambda: insert_smartart(win, LAYOUTS[idx][2]))
 
 
 def text_pane(win, group):

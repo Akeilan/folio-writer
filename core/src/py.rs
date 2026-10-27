@@ -774,6 +774,16 @@ impl PyEditor {
     // ------------------------------------------------------------ objects
     /// Select the object at a point of a page; False (and nothing
     /// selected) if there is none.
+    fn insert_anchor_xml(&mut self, xml: &str, pg: usize, x: f64, y: f64) -> bool {
+        let r = self.ed.insert_anchor_xml(xml, pg, x, y);
+        self.touched();
+        r
+    }
+
+    fn selected_drawing_xml(&self) -> Option<String> {
+        self.ed.selected_drawing_xml()
+    }
+
     fn select_object_at(&mut self, page: usize, x: f64, y: f64) -> bool {
         let n = self.ed.object_at(page, x, y);
         self.ed.select_object(n);
@@ -936,6 +946,83 @@ impl PyEditor {
 
     fn object_warp_name(&self) -> String {
         self.ed.object_warp_name()
+    }
+
+    /// 0 Print Layout, 1 Draft, 2 Web Layout (width: the window's, points).
+    #[pyo3(signature = (mode, width=0.0))]
+    fn set_view_mode(&mut self, mode: u8, width: f64) {
+        self.ed.set_view_mode(mode, width);
+        self.touched();
+    }
+
+    fn view_mode(&self) -> u8 {
+        self.ed.view_mode
+    }
+
+    fn outline_paras(&self) -> Vec<(u32, String, i32, f64, bool, bool, i64, String)> {
+        self.ed.outline_paras()
+    }
+
+    fn move_paras(&mut self, nodes: Vec<u32>, target: u32, after: bool) -> bool {
+        let ok = self.ed.move_paras(&nodes, target, after);
+        self.touched();
+        ok
+    }
+
+    fn section_paras(&self, head: u32) -> Vec<u32> {
+        self.ed.section_paras(head)
+    }
+
+    fn set_para_text(&mut self, p: u32, text: &str) -> bool {
+        let ok = self.ed.set_para_text(p, text);
+        self.touched();
+        ok
+    }
+
+    fn hyphen_points(&self, word: &str, lang: &str) -> Vec<usize> {
+        self.ed.hyphen_points(word, lang)
+    }
+
+    fn settings_xml(&mut self, tag: &str) -> Option<String> {
+        self.ed.settings_xml(tag)
+    }
+
+    #[pyo3(signature = (tag, xml=None))]
+    fn set_settings_xml(&mut self, tag: &str, xml: Option<&str>) -> bool {
+        let ok = self.ed.set_settings_xml(tag, xml);
+        self.touched();
+        ok
+    }
+
+    #[pyo3(signature = (kind, target, external=false))]
+    fn add_settings_rel(&mut self, kind: &str, target: &str, external: bool) -> Option<String> {
+        self.ed.add_settings_rel(kind, target, external)
+    }
+
+    /// Every body field: (depth, code as Word evaluates it, result).
+    fn fields_all(&self) -> Vec<(usize, String, String)> {
+        self.ed.fields_all()
+    }
+
+    fn set_field_text_at(&mut self, i: usize, text: &str) -> bool {
+        let ok = self.ed.set_field_text_at(i, text);
+        self.touched();
+        ok
+    }
+
+    fn unlink_fields(&mut self) -> usize {
+        let n = self.ed.unlink_fields();
+        self.touched();
+        n
+    }
+
+    fn table_cells(&self, n: usize) -> Vec<Vec<Vec<u32>>> {
+        self.ed.table_cells(n)
+    }
+
+    /// Check Accessibility: (category, label, node to go to).
+    fn accessibility_issues(&self) -> Vec<(String, String, u32)> {
+        self.ed.accessibility_issues()
     }
 
     fn wrap_polygon(&self) -> Vec<(f64, f64)> {
@@ -1406,6 +1493,15 @@ impl PyEditor {
         n
     }
 
+    fn package_part(&mut self, name: &str) -> Option<String> {
+        self.ed.package_part(name)
+    }
+
+    #[pyo3(signature = (name, xml, ctype="", rel=""))]
+    fn set_package_part(&mut self, name: &str, xml: &str, ctype: &str, rel: &str) -> bool {
+        self.ed.set_package_part(name, xml, ctype, rel)
+    }
+
     fn custom_xml(&mut self, ns: &str) -> Option<String> {
         self.ed.custom_xml(ns)
     }
@@ -1414,6 +1510,92 @@ impl PyEditor {
         let ok = self.ed.set_custom_xml(ns, xml);
         self.touched();
         ok
+    }
+
+    // ---- charts
+    fn insert_chart(&mut self, xml: &str, xlsx: Vec<u8>, w: f64, h: f64) -> Option<String> {
+        let r = self.ed.insert_chart(xml, &xlsx, w, h);
+        self.touched();
+        r
+    }
+
+    fn selected_chart(&mut self) -> Option<String> {
+        self.ed.selected_chart()
+    }
+
+    fn chart_parts(&self) -> Vec<String> {
+        self.ed.chart_parts()
+    }
+
+    fn set_chart_xml(&mut self, part: &str, xml: &str) -> bool {
+        let r = self.ed.set_chart_xml(part, xml);
+        self.touched();
+        r
+    }
+
+    fn chart_workbook<'py>(&mut self, py: Python<'py>, part: &str) -> Option<(String, Bound<'py, pyo3::types::PyBytes>)> {
+        self.ed.chart_workbook(part).map(|(n, b)| (n, pyo3::types::PyBytes::new_bound(py, &b)))
+    }
+
+    fn set_chart_workbook(&mut self, part: &str, xlsx: Vec<u8>) -> bool {
+        let r = self.ed.set_chart_workbook(part, &xlsx);
+        self.touched();
+        r
+    }
+
+    // ---- content controls
+    fn content_controls(&self) -> Vec<(String, String, String, bool)> {
+        self.ed.content_controls()
+    }
+
+    fn control_at_caret(&self) -> Option<String> {
+        self.ed.control_at_caret()
+    }
+
+    fn insert_content_control(&mut self, pr: &str, placeholder: &str) -> Option<String> {
+        let r = self.ed.insert_content_control(pr, placeholder);
+        self.touched();
+        r
+    }
+
+    fn control_pr(&self, id: &str) -> Option<String> {
+        self.ed.control_pr(id)
+    }
+
+    fn set_control_pr(&mut self, id: &str, pr: &str) -> bool {
+        let r = self.ed.set_control_pr(id, pr);
+        self.touched();
+        r
+    }
+
+    #[pyo3(signature = (id, text, placeholder=false))]
+    fn set_control_text(&mut self, id: &str, text: &str, placeholder: bool) -> bool {
+        let r = self.ed.set_control_text(id, text, placeholder);
+        self.touched();
+        r
+    }
+
+    fn select_control(&mut self, id: &str) -> bool {
+        self.ed.select_control(id)
+    }
+
+    #[pyo3(signature = (id, keep=true))]
+    fn remove_control(&mut self, id: &str, keep: bool) -> bool {
+        let r = self.ed.remove_control(id, keep);
+        self.touched();
+        r
+    }
+
+    fn control_range(&self, id: &str) -> Option<(u32, usize, usize)> {
+        self.ed.control_range(id)
+    }
+
+    fn control_ranges(&self) -> Vec<(String, u32, usize, usize)> {
+        self.ed.control_ranges()
+    }
+
+    fn showing_placeholder(&self, id: &str) -> bool {
+        self.ed.showing_placeholder(id)
     }
 
     fn update_toc(&mut self) -> bool {
@@ -1545,6 +1727,14 @@ impl PyEditor {
     }
 
     /// "all", "simple", "final" or "original".
+    fn set_show_formatting_changes(&mut self, on: bool) {
+        self.ed.set_show_fmt_changes(on);
+    }
+
+    fn show_formatting_changes(&self) -> bool {
+        self.ed.doc.show_fmt_changes
+    }
+
     fn set_markup(&mut self, mode: &str) {
         use crate::document::Markup;
         let m = match mode {

@@ -57,18 +57,43 @@ class MessageBar(Gtk.Box):
 
 # ------------------------------------------------------------ mark as final
 def is_final(m):
+    # Word's _MarkAsFinal custom property (older Folio files: MarkedFinal)
+    v = docapi._doc_setting(m, "_MarkAsFinal", None)
+    if v is not None:
+        return v is True or str(v).lower() in ("true", "1")
     return docapi._doc_setting(m, "MarkedFinal", "") == "1"
 
 
+def _set_final(m, on):
+    try:
+        ud = m.getDocumentProperties().getUserDefinedProperties()
+        if ud.getPropertySetInfo().hasPropertyByName("MarkedFinal"):
+            ud.removeProperty("MarkedFinal")
+        if on:
+            docapi._set_doc_setting(m, "_MarkAsFinal", True)
+        elif ud.getPropertySetInfo().hasPropertyByName("_MarkAsFinal"):
+            ud.removeProperty("_MarkAsFinal")
+    except Exception:
+        docapi._set_doc_setting(m, "MarkedFinal", "1" if on else "")
+    try:
+        p = m.getDocumentProperties()
+        if on:
+            p.ContentStatus = "Final"
+        elif getattr(p, "ContentStatus", "") == "Final":
+            p.ContentStatus = ""
+    except Exception:
+        pass
+
+
 def mark_final(win, on=True):
-    m = win.engine.model
+    m = win.docmodel
     if m is None:
         return
     if on:
         if not win.dialogs.confirm("This document will be marked as final and then saved.",
                                    yes="OK", no="Cancel"):
             return
-        docapi._set_doc_setting(m, "MarkedFinal", "1")
+        _set_final(m, True)
         if win.save():
             win.dialogs.message(
                 "This document has been marked as final to indicate that editing is "
@@ -78,12 +103,12 @@ def mark_final(win, on=True):
                 "turned off.", title="Marked as Final")
         apply_final(win)
     else:
-        docapi._set_doc_setting(m, "MarkedFinal", "")
+        _set_final(m, False)
         apply_final(win)
 
 
 def apply_final(win):
-    m = win.engine.model
+    m = win.docmodel
     if m is None:
         return
     if is_final(m):
@@ -101,9 +126,9 @@ def apply_final(win):
 
 
 def edit_anyway(win):
-    m = win.engine.model
+    m = win.docmodel
     if m is not None:
-        docapi._set_doc_setting(m, "MarkedFinal", "")
+        _set_final(m, False)
     win.read_only = False
     win.engine.view.set_edit(True)
     win.msgbar.hide_bar("final")

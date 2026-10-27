@@ -422,6 +422,14 @@ class DocWindow(Gtk.ApplicationWindow):
             self.dialogs.message("%s couldn't open this file. It may be damaged or in a "
                                  "format %s doesn't support." % (APP_NAME, APP_NAME),
                                  kind="error")
+        if ok and getattr(self.engine, "native", False):
+            try:
+                from . import docprotect, review
+                review.enforce(self)
+                if docprotect.is_final(self.docmodel):
+                    docprotect.apply_final(self)
+            except Exception as e:
+                print("protection:", e)
         self.status.show_zoom(self.engine.view.get_zoom())
         self.focus_document()
         self.update_title()
@@ -579,6 +587,18 @@ class DocWindow(Gtk.ApplicationWindow):
                                       ps.getByName("Standard").CharFontName)
         except Exception:
             pass
+
+    @property
+    def docmodel(self):
+        """The document model for properties and settings: UNO's, or the new
+        engine's stand-in."""
+        eng = self.engine
+        if getattr(eng, "native", False):
+            if getattr(eng, "ed", None) is None:
+                return None
+            from .native.uno_model import NativeModel
+            return NativeModel(eng)
+        return eng.model
 
     def doc_name(self):
         if self.engine.path and not self.engine.is_new:
@@ -758,6 +778,15 @@ class DocWindow(Gtk.ApplicationWindow):
             kind = value.split(":")[0] if value else ""
             self.ribbon.show_contextual("Picture Format", kind == "picture")
             self.ribbon.show_contextual("Shape Format", kind in ("shape", "textbox", "group"))
+            self.ribbon.show_contextual("Chart Design", kind == "chart")
+            smart = False
+            if kind == "group":
+                try:
+                    from .native import smartart
+                    smart = smartart.selected(self) is not None
+                except Exception:
+                    pass
+            self.ribbon.show_contextual("SmartArt Design", smart)
             if kind:
                 try:
                     _k, w, h = value.split(":")
@@ -859,6 +888,11 @@ class DocWindow(Gtk.ApplicationWindow):
             if mod == "citations":
                 from .native import refs
                 getattr(refs.cites(), fn)(self, *args)
+                return
+            if mod == "mailings":
+                from .native import mailmerge
+                getattr(mailmerge, fn)(self, *args)
+                self.refresh_mailings()
                 return
             if mod == "insertextras" and fn == "insert_textbox":
                 from .native import objects
@@ -1028,6 +1062,8 @@ class DocWindow(Gtk.ApplicationWindow):
         if isinstance(self.alt_view, OutlineView):
             return
         self.leave_special_views()
+        if self.native:
+            from .native.views import NativeOutlineView as OutlineView
         ov = OutlineView(self)
         self.show_alt_view(ov)
         ov.load()
@@ -1081,13 +1117,17 @@ class DocWindow(Gtk.ApplicationWindow):
     def leave_special_views(self):
         if self.alt_view is not None:
             self.close_alt_view()
-        if getattr(self, "draft", False):
+        if getattr(self, "draft", False) or (self.native and self.engine.view.continuous):
             self.act_print_layout()
 
     def act_draft_view(self):
         """Draft: text only, no page edges, margins, headers or pictures in
         place; it wraps at the page's text width."""
         self.leave_special_views()
+        if self.native:
+            from .native import views
+            views.set_layout(self, 1)
+            return
         if not self.engine.is_on(".uno:BrowseView"):
             self.engine.command(".uno:BrowseView")
         self.draft = True
@@ -1096,6 +1136,10 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def act_print_layout(self):
         self.close_alt_view()
+        if self.native:
+            from .native import views
+            views.set_layout(self, 0)
+            return
         if getattr(self, "draft", False):
             self.draft = False
             self.rulers.set_visible(self.app.settings.get("ruler", True))
@@ -1105,6 +1149,10 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def act_web_layout(self):
         self.close_alt_view()
+        if self.native:
+            from .native import views
+            views.set_layout(self, 2)
+            return
         if getattr(self, "draft", False):
             self.draft = False
             self.rulers.set_visible(self.app.settings.get("ruler", True))
@@ -1568,6 +1616,9 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def toggle_formatting_markup(self):
         self.change_bars.show_formatting = not self.change_bars.show_formatting
+        if getattr(self.engine, "native", False) and self.engine.ed is not None:
+            self.engine.ed.set_show_formatting_changes(self.change_bars.show_formatting)
+            self.engine.view.document_changed()
         self.change_bars.refresh()
 
     def accept_reject_shown(self, accept):
@@ -1680,6 +1731,9 @@ class DocWindow(Gtk.ApplicationWindow):
         """Enable the merge controls once there are recipients; show the record."""
         from . import mailings
         m = self.engine.model
+        if self.native:
+            from .native import mailmerge as mailings
+            m = self if self.engine.ed is not None else None
         if m is None or not hasattr(self, "mail_controls"):
             return
         try:
@@ -1699,6 +1753,9 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_merge_preview(self):
         from . import mailings
         m = self.engine.model
+        if self.native:
+            from .native import mailmerge as mailings
+            m = self
         if m is None:
             return
         cols, rows, inc = mailings.recipients(m)
@@ -1711,6 +1768,9 @@ class DocWindow(Gtk.ApplicationWindow):
     def merge_go(self, where):
         from . import mailings
         m = self.engine.model
+        if self.native:
+            from .native import mailmerge as mailings
+            m = self
         if m is None:
             return
         cols, rows, inc = mailings.recipients(m)
@@ -1728,10 +1788,14 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def act_find_recipient(self):
         from . import mailings
+        m = self.engine.model
+        if self.native:
+            from .native import mailmerge as mailings
+            m = self
         t = self.dialogs.ask_text("Find Entry", "Find:")
         if not t:
             return
-        k = mailings.find_recipient(self.engine.model, t, (self.merge_preview or 0) + 1)
+        k = mailings.find_recipient(m, t, (self.merge_preview or 0) + 1)
         if k is None:
             self.dialogs.message("No matching entries were found.")
         else:
@@ -1740,7 +1804,11 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_highlight_merge_fields(self):
         from . import mailings
         self.merge_highlight = not self.merge_highlight
-        mailings.highlight_fields(self.merge_highlight)
+        if self.native:
+            from .native import mailmerge
+            mailmerge.highlight(self, self.merge_highlight)
+        else:
+            mailings.highlight_fields(self.merge_highlight)
         self.engine.view.queue_draw()
         b = self.mail_controls.get("highlight") if hasattr(self, "mail_controls") else None
         if b is not None:
@@ -1810,11 +1878,17 @@ class DocWindow(Gtk.ApplicationWindow):
             self.engine.sync(jump)
         self.focus_document()
 
+    def _second_view(self):
+        if self.native:
+            from .native import views
+            return views.second_view(self)
+        from gi.repository import LOKDocView
+        return LOKDocView.View.new_from_widget(self.engine.view, "{}")
+
     def act_new_window(self):
         """View > New Window: a second window onto this same document."""
-        from gi.repository import LOKDocView
         try:
-            v2 = LOKDocView.View.new_from_widget(self.engine.view, "{}")
+            v2 = self._second_view()
         except Exception as e:
             self.dialogs.message("A new window couldn't be opened. (%s)" % e)
             return
@@ -1836,6 +1910,8 @@ class DocWindow(Gtk.ApplicationWindow):
             return False
         v2.connect("scroll-event", scroll)
         self.connect("destroy", lambda *_: w.destroy())
+        self.extra_windows = getattr(self, "extra_windows", []) + [w]
+        w.connect("destroy", lambda *_: self.extra_windows.remove(w) if w in self.extra_windows else None)
         w.show_all()
         w.present()
 
@@ -1844,9 +1920,8 @@ class DocWindow(Gtk.ApplicationWindow):
         if self.split_view is not None:
             self.remove_split()
             return
-        from gi.repository import LOKDocView
         try:
-            v2 = LOKDocView.View.new_from_widget(self.engine.view, "{}")
+            v2 = self._second_view()
         except Exception as e:
             self.dialogs.message("The window couldn't be split. (%s)" % e)
             return
@@ -2429,6 +2504,17 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def on_doc_release(self, view, event):
         if self.native:
+            if event.button == 1 and not (event.state & Gdk.ModifierType.SHIFT_MASK):
+                x, y = event.x, event.y
+
+                def cc_native():
+                    try:
+                        from .native import controls
+                        controls.on_click(self, x, y)
+                    except Exception as e:
+                        print("content control:", e)
+                    return False
+                GLib.timeout_add(60, cc_native)
             return False
         if event.button == 1 and not (event.state & Gdk.ModifierType.SHIFT_MASK):
             x, y = event.x, event.y

@@ -199,6 +199,11 @@ class NativeEngine(GObject.GObject):
             if ext == "pdf":
                 self.ed.export_pdf(path)
                 return True
+            try:
+                from . import docprops
+                docprops.stamp_saved(self.ed, self.author or _user_name())
+            except Exception as e:
+                print("properties:", e)
             if ext not in ("docx", "docm", "dotx"):
                 return self._save_converted(path, ext)
             self.ed.save(path)
@@ -624,6 +629,10 @@ class NativeEngine(GObject.GObject):
             out.append((0, y, int(w * 20), int(h * 20)))
             y += int(h * 20) + self.PAGE_GAP_TW
         return out
+
+    def render(self, x, y, w, h, width_px):
+        from .views import render
+        return render(self.win, x, y, w, h, width_px)
 
     def page_top_tw(self, page):
         r = self.page_rects()
