@@ -1716,7 +1716,7 @@ pub fn draw(cr: &cairo::Context, b: &MBox, x: f64, y: f64, face: &mut dyn FnMut(
                 fo.set_hint_metrics(cairo::HintMetrics::Off);
                 cr.set_font_options(&fo);
                 rgb(cr, *color);
-                cr.show_glyphs(&[cairo::Glyph::new(*gid as u64, x + gx, y + gy)]).ok();
+                cr.show_glyphs(&[cairo::Glyph::new(*gid as _, x + gx, y + gy)]).ok();
                 cr.restore().ok();
             }
             Draw::Rule { x: rx, y: ry, w, h, color } => {
