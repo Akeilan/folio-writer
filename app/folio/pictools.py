@@ -6,7 +6,8 @@ import tempfile
 
 from gi.repository import GdkPixbuf, GLib, Gtk
 
-from . import bridge, docapi, drawing
+from ._lazy import Lazy, bridge, docapi
+drawing = Lazy("folio.drawing")
 
 ORIGINALS = {}     # picture name -> original image file (for Reset / Discard)
 
@@ -249,6 +250,9 @@ def compress(obj, ppi, delete_cropped=True):
 
 
 def compress_dialog(win):
+    if getattr(win.engine, "native", False):
+        from .native import arrange
+        return arrange.compress_dialog(win)
     from .widgets import FDialog, heading
     m = win.engine.model
     if m is None:

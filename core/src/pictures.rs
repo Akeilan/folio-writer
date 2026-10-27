@@ -44,6 +44,12 @@ pub struct Pic {
     pub textpath: Option<(String, String, bool, bool)>,
     /// hidden (the Selection pane's eye): laid out, not drawn
     pub hidden: bool,
+    /// a picture cropped to a shape (Crop to Shape)
+    pub clip: Option<crate::shapes::Shape>,
+    /// linked text boxes: the chain's id and this box's place in it
+    pub link: Option<(String, u32)>,
+    /// WordArt text warp (a:prstTxWarp other than textNoShape)
+    pub warp: Option<String>,
 }
 
 impl PartialEq for Pic {
@@ -63,6 +69,9 @@ impl PartialEq for Pic {
             && self.fx == o.fx
             && self.textpath == o.textpath
             && self.hidden == o.hidden
+            && self.clip == o.clip
+            && self.link == o.link
+            && self.warp == o.warp
     }
 }
 
@@ -70,6 +79,58 @@ impl std::fmt::Debug for Pic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Pic({:?}, {}x{})", self.image.as_ref().map(|i| &i.part), self.w, self.h)
     }
+}
+
+/// The wps:txbx with chain id `id`.
+pub fn find_txbx(dom: &XmlDoc, n: NodeId, id: &str) -> Option<NodeId> {
+    for c in dom.elements(n) {
+        if dom.is(c, "wps:txbx") && dom.attr(c, "id") == Some(id) {
+            return Some(c);
+        }
+        if let Some(f) = find_txbx(dom, c, id) {
+            return Some(f);
+        }
+    }
+    None
+}
+
+/// The boxes of a text box chain, in order: (seq, width, height, insets).
+pub fn txbx_chain(dom: &XmlDoc, id: &str) -> Vec<(u32, f64, f64, [f64; 4])> {
+    fn walk(dom: &XmlDoc, n: NodeId, id: &str, out: &mut Vec<(u32, f64, f64, [f64; 4])>) {
+        for c in dom.elements(n) {
+            if dom.is(c, "wps:wsp") {
+                let seq = if dom.child(c, "wps:txbx").and_then(|t| dom.attr(t, "id")) == Some(id) {
+                    Some(0)
+                } else {
+                    dom.child(c, "wps:linkedTxbx").filter(|l| dom.attr(*l, "id") == Some(id))
+                        .map(|l| dom.attr(l, "seq").and_then(|v| v.parse::<u32>().ok()).unwrap_or(1))
+                };
+                if let Some(seq) = seq {
+                    let ext = dom.child(c, "wps:spPr").and_then(|s| dom.child(s, "a:xfrm")).and_then(|x| dom.child(x, "a:ext"));
+                    // the drawing's extent wins (a group member has only its xfrm)
+                    let mut up = Some(c);
+                    let mut extent = None;
+                    while let Some(k) = up {
+                        if dom.is(k, "wp:anchor") || dom.is(k, "wp:inline") {
+                            extent = dom.child(k, "wp:extent");
+                            break;
+                        }
+                        up = dom.parent(k);
+                    }
+                    let e = extent.or(ext);
+                    let n = |k: &str| e.and_then(|e| dom.attr(e, k)).and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0) / EMU;
+                    let bp = dom.child(c, "wps:bodyPr");
+                    let ins = |k: &str, d: f64| bp.and_then(|b| dom.attr(b, k)).and_then(|v| v.parse::<f64>().ok()).unwrap_or(d) / EMU;
+                    out.push((seq, n("cx"), n("cy"), [ins("lIns", 91440.0), ins("tIns", 45720.0), ins("rIns", 91440.0), ins("bIns", 45720.0)]));
+                }
+            }
+            walk(dom, c, id, out);
+        }
+    }
+    let mut out = Vec::new();
+    walk(dom, dom.root, id, &mut out);
+    out.sort_by_key(|b| b.0);
+    out
 }
 
 /// First descendant named `name` (depth first).
@@ -128,7 +189,7 @@ impl Pic {
     pub fn empty(w: f64, h: f64) -> Pic {
         Pic { image: None, crop: [0.0; 4], effect: [0.0; 4], w, h, rot: 0.0, flip_h: false, flip_v: false,
               line: None, kind: "object", shape: None, text: None, children: Vec::new(), fx: None,
-              textpath: None, hidden: false }
+              textpath: None, hidden: false, clip: None, link: None, warp: None }
     }
 }
 
@@ -166,6 +227,12 @@ fn member(dom: &XmlDoc, obj: NodeId, pic: &mut Pic, images: &HashMap<String, Ima
                     pic.line = Some((w, c));
                 }
             }
+            let geom = dom.child(sp, "a:prstGeom").and_then(|g| dom.attr(g, "prst")).unwrap_or("rect");
+            if geom != "rect" || dom.child(sp, "a:custGeom").is_some() {
+                let mut sh = crate::shapes::Shape::parse_sppr(dom, sp, colors);
+                sh.fill = None;
+                pic.clip = Some(sh);
+            }
         }
         let fx = crate::effects::parse(dom, sppr, find(dom, obj, "a:blip"), colors);
         if !fx.is_empty() {
@@ -178,7 +245,22 @@ fn member(dom: &XmlDoc, obj: NodeId, pic: &mut Pic, images: &HashMap<String, Ima
         if !fx.is_empty() {
             pic.fx = Some(Box::new(fx));
         }
-        if let Some(tb) = dom.child(obj, "wps:txbx") {
+        pic.warp = dom.child(obj, "wps:bodyPr").and_then(|b| dom.child(b, "a:prstTxWarp"))
+            .and_then(|w| dom.attr(w, "prst")).filter(|p| *p != "textNoShape").map(|p| p.to_string());
+        // a linked text box shows the rest of its chain's text
+        let linked = dom.child(obj, "wps:linkedTxbx").and_then(|l| {
+            let id = dom.attr(l, "id")?.to_string();
+            let seq = dom.attr(l, "seq").and_then(|v| v.parse::<u32>().ok()).unwrap_or(1);
+            let tb = find_txbx(dom, dom.root, &id)?;
+            Some((tb, id, seq))
+        });
+        let own = dom.child(obj, "wps:txbx");
+        if let Some((_, id, seq)) = &linked {
+            pic.link = Some((id.clone(), *seq));
+        } else if let Some(id) = own.and_then(|t| dom.attr(t, "id")) {
+            pic.link = Some((id.to_string(), 0));
+        }
+        if let Some(tb) = own.or(linked.as_ref().map(|l| l.0)) {
             if let Some(c) = dom.child(tb, "w:txbxContent") {
                 let bp = dom.child(obj, "wps:bodyPr");
                 let ins = |k: &str, d: f64| bp.and_then(|b| dom.attr(b, k)).and_then(|v| v.parse::<f64>().ok())

@@ -290,6 +290,7 @@ impl Editor {
     /// Select an object (None: back to the text). The caret goes to it.
     pub fn select_object(&mut self, node: Option<NodeId>) {
         self.sel_obj = node;
+        self.sel_more.clear();
         if let Some(n) = node {
             if let Some(info) = self.object_info(n) {
                 self.caret = info.pos;
@@ -1163,5 +1164,1146 @@ impl Editor {
         for (k, v) in ["l", "t", "r", "b"].iter().zip(e) {
             dom.set_attr(ee, k, &emu(v));
         }
+    }
+}
+
+// ------------------------------------------------------------- arranging
+const NS_WPG: &str = "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup";
+const URI_PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+
+fn graphic_obj(dom: &XmlDoc, drawing: NodeId) -> Option<(NodeId, NodeId)> {
+    let gd = crate::pictures::find(dom, drawing, "a:graphicData")?;
+    let obj = dom.elements(gd).next()?;
+    Some((gd, obj))
+}
+
+fn obj_sppr(dom: &XmlDoc, obj: NodeId) -> Option<NodeId> {
+    ["pic:spPr", "wps:spPr", "wpg:grpSpPr"].iter().find_map(|t| dom.child(obj, t))
+}
+
+/// The object's own a:xfrm (made if missing).
+fn ensure_xfrm(dom: &mut XmlDoc, obj: NodeId) -> Option<NodeId> {
+    let sp = obj_sppr(dom, obj)?;
+    Some(match dom.child(sp, "a:xfrm") {
+        Some(x) => x,
+        None => {
+            let x = dom.new_element("a:xfrm", &[]);
+            dom.insert(sp, 0, x);
+            x
+        }
+    })
+}
+
+fn set_off_ext(dom: &mut XmlDoc, xf: NodeId, x: f64, y: f64, w: f64, h: f64) {
+    for (tag, a, b) in [("a:off", x, y), ("a:ext", w, h)] {
+        let e = match dom.child(xf, tag) {
+            Some(e) => e,
+            None => {
+                let e = dom.new_element(tag, &[]);
+                if tag == "a:off" {
+                    dom.insert(xf, 0, e);
+                } else {
+                    let i = dom.child(xf, "a:off").and_then(|o| dom.index_in_parent(o)).map(|i| i + 1).unwrap_or(0);
+                    dom.insert(xf, i, e);
+                }
+                e
+            }
+        };
+        let (ka, kb) = if tag == "a:off" { ("x", "y") } else { ("cx", "cy") };
+        dom.set_attr(e, ka, &emu(a));
+        dom.set_attr(e, kb, &emu(b));
+    }
+}
+
+fn set_pos(dom: &mut XmlDoc, a: NodeId, tag: &str, rel: &str, v: f64) {
+    let ph = match dom.child(a, tag) {
+        Some(n) => n,
+        None => {
+            let n = dom.new_element(tag, &[]);
+            let i = dom.child(a, if tag == "wp:positionH" { "wp:simplePos" } else { "wp:positionH" })
+                .and_then(|o| dom.index_in_parent(o)).map(|i| i + 1).unwrap_or(0);
+            dom.insert(a, i, n);
+            n
+        }
+    };
+    dom.set_attr(ph, "relativeFrom", rel);
+    for c in dom.children(ph).to_vec() {
+        dom.detach(c);
+    }
+    let off = dom.new_element("wp:posOffset", &[]);
+    let t = dom.new_text(&emu(v));
+    dom.append(off, t);
+    dom.append(ph, off);
+}
+
+fn remove_drawing(dom: &mut XmlDoc, d: NodeId) {
+    let run = dom.parent(d);
+    dom.detach(d);
+    if let Some(r) = run {
+        if dom.is(r, "w:r") && dom.elements(r).all(|c| dom.is(c, "w:rPr")) {
+            dom.detach(r);
+        }
+    }
+}
+
+type Poly = geo::MultiPolygon<f64>;
+
+fn to_geo(rings: &[Vec<(f64, f64)>], dx: f64, dy: f64) -> Poly {
+    use geo::BooleanOps;
+    let mut acc: Option<Poly> = None;
+    for r in rings {
+        let pts: Vec<(f64, f64)> = r.iter().map(|&(x, y)| (x + dx, y + dy)).collect();
+        let p = geo::MultiPolygon::new(vec![geo::Polygon::new(geo::LineString::from(pts), vec![])]);
+        acc = Some(match acc {
+            None => p,
+            // rings inside rings are holes (even-odd)
+            Some(a) => a.xor(&p),
+        });
+    }
+    acc.unwrap_or_else(|| geo::MultiPolygon::new(vec![]))
+}
+
+impl Editor {
+    /// Every selected object, the main one first.
+    pub fn selected_nodes(&self) -> Vec<NodeId> {
+        let Some(m) = self.sel_obj else { return Vec::new() };
+        let mut v = vec![m];
+        for &n in &self.sel_more {
+            if !v.contains(&n) && self.object_info(n).is_some() {
+                v.push(n);
+            }
+        }
+        v
+    }
+
+    /// Shift+click: add an object to the selection, or take it out.
+    pub fn toggle_selected(&mut self, node: NodeId) {
+        match self.sel_obj {
+            None => self.select_object(Some(node)),
+            Some(m) if m == node => {
+                if self.sel_more.is_empty() {
+                    self.sel_obj = None;
+                } else {
+                    let n = self.sel_more.remove(0);
+                    self.sel_obj = Some(n);
+                }
+            }
+            Some(_) => {
+                if let Some(i) = self.sel_more.iter().position(|&n| n == node) {
+                    self.sel_more.remove(i);
+                } else {
+                    self.sel_more.push(node);
+                }
+            }
+        }
+    }
+
+    pub fn select_nodes_list(&mut self, nodes: &[NodeId]) {
+        self.select_object(nodes.first().copied());
+        for &n in nodes.iter().skip(1) {
+            self.sel_more.push(n);
+        }
+    }
+
+    /// Objects inside a rectangle of a page (Select Objects).
+    pub fn objects_in(&self, page: usize, x0: f64, y0: f64, x1: f64, y1: f64) -> Vec<NodeId> {
+        let (ax, bx) = (x0.min(x1), x0.max(x1));
+        let (ay, by) = (y0.min(y1), y0.max(y1));
+        let Some(pg) = self.layout.pages.get(page) else { return Vec::new() };
+        let dom = &self.doc.dom;
+        pg.floats.iter().filter(|fb| fb.x >= ax && fb.y >= ay && fb.x + fb.float.pic.w <= bx && fb.y + fb.float.pic.h <= by)
+            .filter_map(|fb| obj_root(dom, fb.float.node)).collect()
+    }
+
+    /// Move with Text ("paragraph") or Fix Position on Page ("page").
+    pub fn object_anchor_mode(&mut self, mode: &str) -> bool {
+        let Some(node) = self.sel_obj else { return false };
+        let Some(info) = self.object_info(node) else { return false };
+        if info.inline {
+            return false;
+        }
+        let Some(a) = self.anchor_element() else { return false };
+        self.begin_group("Position");
+        self.begin();
+        let dom = &mut self.doc.dom;
+        if mode == "page" {
+            set_pos(dom, a, "wp:positionH", "page", 0.0);
+            set_pos(dom, a, "wp:positionV", "page", 0.0);
+        } else {
+            let hrel = dom.child(a, "wp:positionH").and_then(|p| dom.attr(p, "relativeFrom")).unwrap_or("column").to_string();
+            set_pos(dom, a, "wp:positionH", if hrel == "page" { "column" } else { &hrel }, 0.0);
+            set_pos(dom, a, "wp:positionV", "paragraph", 0.0);
+        }
+        self.commit("Position", false);
+        self.sel_obj = Some(node);
+        let ok = self.object_move(info.x, info.y);
+        self.end_group();
+        ok
+    }
+
+    /// "paragraph" when the object moves with its text, "page" when it is
+    /// fixed on the page, "" for an inline object.
+    pub fn object_anchor_state(&self) -> String {
+        let Some(a) = self.anchor_element() else { return String::new() };
+        let dom = &self.doc.dom;
+        let v = dom.child(a, "wp:positionV").and_then(|p| dom.attr(p, "relativeFrom")).unwrap_or("paragraph");
+        if matches!(v, "paragraph" | "line") { "paragraph".into() } else { "page".into() }
+    }
+
+    /// Group the selected floating objects; the group ends up selected.
+    /// Err: why it can't.
+    pub fn object_group(&mut self) -> Result<NodeId, &'static str> {
+        let nodes = self.selected_nodes();
+        if nodes.len() < 2 {
+            return Err("Select two or more objects to group them.");
+        }
+        let mut infos = Vec::new();
+        for &n in &nodes {
+            let Some(i) = self.object_info(n) else { return Err("Select two or more objects to group them.") };
+            if i.inline || !self.doc.dom.is(n, "w:drawing") || self.doc.dom.child(n, "wp:anchor").is_none() {
+                return Err("To group objects, give each one text wrapping other than In Line with Text.");
+            }
+            if graphic_obj(&self.doc.dom, n).is_none() {
+                return Err("These objects can't be grouped.");
+            }
+            infos.push(i);
+        }
+        if infos.iter().any(|i| i.page != infos[0].page) {
+            return Err("Objects on different pages can't be grouped.");
+        }
+        let minx = infos.iter().map(|i| i.x).fold(f64::MAX, f64::min);
+        let miny = infos.iter().map(|i| i.y).fold(f64::MAX, f64::min);
+        let maxx = infos.iter().map(|i| i.x + i.w).fold(f64::MIN, f64::max);
+        let maxy = infos.iter().map(|i| i.y + i.h).fold(f64::MIN, f64::max);
+        let (bw, bh) = (maxx - minx, maxy - miny);
+        let id = self.next_docpr_id();
+        self.ensure_drawing_ns();
+        // back to front, as they stack now
+        let mut order: Vec<usize> = (0..nodes.len()).collect();
+        let z = |dom: &XmlDoc, n: NodeId| dom.child(n, "wp:anchor").and_then(|a| dom.attr(a, "relativeHeight"))
+            .and_then(|v| v.parse::<i64>().ok()).unwrap_or(0);
+        order.sort_by_key(|&k| z(&self.doc.dom, nodes[k]));
+        let top_z = nodes.iter().map(|&n| z(&self.doc.dom, n)).max().unwrap_or(0);
+        self.begin();
+        let first = nodes[0];
+        let dom = &mut self.doc.dom;
+        let old_a = dom.child(first, "wp:anchor").unwrap();
+        let a = dom.clone_node(old_a);
+        dom.set_attr(a, "relativeHeight", &top_z.to_string());
+        set_pos(dom, a, "wp:positionH", "page", minx);
+        set_pos(dom, a, "wp:positionV", "page", miny);
+        if let Some(e) = dom.child(a, "wp:extent") {
+            dom.set_attr(e, "cx", &emu(bw));
+            dom.set_attr(e, "cy", &emu(bh));
+        }
+        if let Some(e) = dom.child(a, "wp:effectExtent") {
+            for k in ["l", "t", "r", "b"] {
+                dom.set_attr(e, k, "0");
+            }
+        }
+        if let Some(dp) = dom.child(a, "wp:docPr") {
+            for k in ["descr", "title", "hidden"] {
+                dom.remove_attr(dp, k);
+            }
+            dom.set_attr(dp, "id", &id.to_string());
+            dom.set_attr(dp, "name", &format!("Group {id}"));
+        }
+        let (gd, _) = graphic_obj(dom, a).unwrap();
+        for c in dom.children(gd).to_vec() {
+            dom.detach(c);
+        }
+        dom.set_attr(gd, "uri", NS_WPG);
+        let wgp = dom.new_element("wpg:wgp", &[("xmlns:wpg", NS_WPG)]);
+        let cnv = dom.new_element("wpg:cNvGrpSpPr", &[]);
+        dom.append(wgp, cnv);
+        let gsp = dom.new_element("wpg:grpSpPr", &[]);
+        let xf = dom.new_element("a:xfrm", &[]);
+        dom.append(gsp, xf);
+        set_off_ext(dom, xf, 0.0, 0.0, bw, bh);
+        for (tag, ka, kb, va, vb) in [("a:chOff", "x", "y", 0.0, 0.0), ("a:chExt", "cx", "cy", bw, bh)] {
+            let e = dom.new_element(tag, &[(ka, &emu(va)), (kb, &emu(vb))]);
+            dom.append(xf, e);
+        }
+        dom.append(wgp, gsp);
+        for &k in &order {
+            let n = nodes[k];
+            let i = &infos[k];
+            let (_, obj) = graphic_obj(dom, n).unwrap();
+            let c = dom.clone_node(obj);
+            if dom.is(c, "wps:wsp") && dom.child(c, "wps:cNvPr").is_none() {
+                let name = dom.child(n, "wp:anchor").and_then(|a| dom.child(a, "wp:docPr"))
+                    .and_then(|d| dom.attr(d, "name")).unwrap_or("Shape").to_string();
+                let cp = dom.new_element("wps:cNvPr", &[("id", &(id + 1 + k as u32).to_string()), ("name", &name)]);
+                dom.insert(c, 0, cp);
+            }
+            if dom.is(c, "wpg:wgp") {
+                dom.rename(c, "wpg:grpSp");
+                if let Some(cn) = dom.child(c, "wpg:cNvGrpSpPr") {
+                    let cp = dom.new_element("wpg:cNvPr", &[("id", &(id + 1 + k as u32).to_string()), ("name", "Group")]);
+                    dom.insert(c, dom.index_in_parent(cn).unwrap_or(0), cp);
+                }
+            }
+            if let Some(xf) = ensure_xfrm(dom, c) {
+                set_off_ext(dom, xf, i.x - minx, i.y - miny, i.w, i.h);
+            }
+            dom.append(wgp, c);
+        }
+        dom.append(gd, wgp);
+        let idx = dom.index_in_parent(old_a).unwrap_or(0);
+        dom.detach(old_a);
+        dom.insert(first, idx, a);
+        for &n in &nodes[1..] {
+            remove_drawing(dom, n);
+        }
+        self.commit("Group", false);
+        self.select_object(Some(first));
+        Ok(first)
+    }
+
+    /// Ungroup the selected group: its members become objects of their own,
+    /// all selected.
+    pub fn object_ungroup(&mut self) -> Vec<NodeId> {
+        let Some(node) = self.sel_obj else { return Vec::new() };
+        let Some(info) = self.object_info(node) else { return Vec::new() };
+        let dom = &self.doc.dom;
+        let Some(a) = dom.child(node, "wp:anchor") else { return Vec::new() };
+        let Some((_gd, wgp)) = graphic_obj(dom, node) else { return Vec::new() };
+        if !dom.is(wgp, "wpg:wgp") {
+            return Vec::new();
+        }
+        let num = |e: Option<NodeId>, k: &str| e.and_then(|e| dom.attr(e, k)).and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0) / EMU;
+        let xf = dom.child(wgp, "wpg:grpSpPr").and_then(|s| dom.child(s, "a:xfrm"));
+        let cho = xf.and_then(|x| dom.child(x, "a:chOff"));
+        let che = xf.and_then(|x| dom.child(x, "a:chExt"));
+        let (cox, coy) = (num(cho, "x"), num(cho, "y"));
+        let (cew, ceh) = (num(che, "cx").max(1e-6), num(che, "cy").max(1e-6));
+        let (sx, sy) = (info.w / cew, info.h / ceh);
+        let kids: Vec<NodeId> = dom.elements(wgp).filter(|&c| matches!(dom.name(c), "wps:wsp" | "pic:pic" | "wpg:grpSp")).collect();
+        if kids.is_empty() {
+            return Vec::new();
+        }
+        let mut id = self.next_docpr_id();
+        self.begin();
+        let mut made = Vec::new();
+        let run = self.doc.dom.parent(node);
+        for c in kids {
+            let dom = &mut self.doc.dom;
+            let cx = ensure_xfrm(dom, c);
+            let off = cx.and_then(|x| dom.child(x, "a:off"));
+            let ext = cx.and_then(|x| dom.child(x, "a:ext"));
+            let n2 = |e: Option<NodeId>, k: &str| e.and_then(|e| dom.attr(e, k)).and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0) / EMU;
+            let (ox, oy, ow, oh) = (n2(off, "x"), n2(off, "y"), n2(ext, "cx"), n2(ext, "cy"));
+            let x = info.x + (ox - cox) * sx;
+            let y = info.y + (oy - coy) * sy;
+            let (w, h) = (ow * sx, oh * sy);
+            let na = dom.clone_node(a);
+            set_pos(dom, na, "wp:positionH", "page", x);
+            set_pos(dom, na, "wp:positionV", "page", y);
+            if let Some(e) = dom.child(na, "wp:extent") {
+                dom.set_attr(e, "cx", &emu(w));
+                dom.set_attr(e, "cy", &emu(h));
+            }
+            let (gd, old) = graphic_obj(dom, na).unwrap();
+            dom.detach(old);
+            let m = dom.clone_node(c);
+            let name = dom.child(m, "wps:cNvPr").or_else(|| dom.child(m, "wpg:cNvPr"))
+                .or_else(|| dom.child(m, "pic:nvPicPr").and_then(|n| dom.child(n, "pic:cNvPr")))
+                .and_then(|n| dom.attr(n, "name")).unwrap_or("Shape").to_string();
+            let uri = match dom.name(m) {
+                "pic:pic" => URI_PIC,
+                "wpg:grpSp" => {
+                    dom.rename(m, "wpg:wgp");
+                    if let Some(cp) = dom.child(m, "wpg:cNvPr") {
+                        dom.detach(cp);
+                    }
+                    NS_WPG
+                }
+                _ => {
+                    if let Some(cp) = dom.child(m, "wps:cNvPr") {
+                        dom.detach(cp);
+                    }
+                    NS_WPS
+                }
+            };
+            if dom.is(m, "pic:pic") && dom.attr(m, "xmlns:pic").is_none() {
+                dom.set_attr(m, "xmlns:pic", NS_PIC);
+            }
+            if dom.is(m, "wps:wsp") && dom.attr(m, "xmlns:wps").is_none() {
+                dom.set_attr(m, "xmlns:wps", NS_WPS);
+            }
+            if dom.is(m, "wpg:wgp") && dom.attr(m, "xmlns:wpg").is_none() {
+                dom.set_attr(m, "xmlns:wpg", NS_WPG);
+            }
+            if let Some(xf) = ensure_xfrm(dom, m) {
+                set_off_ext(dom, xf, 0.0, 0.0, w, h);
+            }
+            dom.set_attr(gd, "uri", uri);
+            dom.append(gd, m);
+            if let Some(dp) = dom.child(na, "wp:docPr") {
+                dom.set_attr(dp, "id", &id.to_string());
+                dom.set_attr(dp, "name", &name);
+            }
+            id += 1;
+            let d = dom.new_element("w:drawing", &[]);
+            dom.append(d, na);
+            let r = dom.new_element("w:r", &[]);
+            let rpr = dom.new_element("w:rPr", &[]);
+            let np = dom.new_element("w:noProof", &[]);
+            dom.append(rpr, np);
+            dom.append(r, rpr);
+            dom.append(r, d);
+            if let Some(run) = run {
+                let par = dom.parent(run).unwrap();
+                let i = dom.index_in_parent(run).unwrap_or(0) + 1 + made.len();
+                dom.insert(par, i, r);
+            }
+            made.push(d);
+        }
+        remove_drawing(&mut self.doc.dom, node);
+        self.commit("Ungroup", false);
+        self.select_nodes_list(&made);
+        made
+    }
+
+    // ------------------------------------------------------------ crop
+    fn src_rect(&self) -> Option<(NodeId, Option<NodeId>)> {
+        let node = self.sel_obj?;
+        let dom = &self.doc.dom;
+        let blip = crate::pictures::find(dom, node, "a:blip")?;
+        let bf = dom.parent(blip)?;
+        Some((bf, dom.child(bf, "a:srcRect")))
+    }
+
+    /// The selected picture's crop: fractions left, top, right, bottom.
+    pub fn object_crop(&self) -> Option<[f64; 4]> {
+        let (_bf, sr) = self.src_rect()?;
+        let dom = &self.doc.dom;
+        let f = |k: &str| sr.and_then(|s| dom.attr(s, k)).and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0) / 100000.0;
+        Some([f("l"), f("t"), f("r"), f("b")])
+    }
+
+    /// Crop the selected picture (fractions of the image); `keep_scale`
+    /// resizes it so what stays shows at the same size.
+    pub fn set_object_crop(&mut self, c: [f64; 4], keep_scale: bool) -> bool {
+        let Some(old) = self.object_crop() else { return false };
+        let Some(node) = self.sel_obj else { return false };
+        let Some(info) = self.object_info(node) else { return false };
+        let (bf, sr) = self.src_rect().unwrap();
+        let ow = (1.0 - old[0] - old[2]).max(1e-6);
+        let oh = (1.0 - old[1] - old[3]).max(1e-6);
+        let nw = (1.0 - c[0] - c[2]).max(0.01);
+        let nh = (1.0 - c[1] - c[3]).max(0.01);
+        self.begin_group("Crop");
+        self.begin();
+        let dom = &mut self.doc.dom;
+        let sr = match sr {
+            Some(s) => s,
+            None => {
+                let s = dom.new_element("a:srcRect", &[]);
+                let i = dom.children(bf).iter().position(|&k| dom.is(k, "a:blip")).map(|i| i + 1).unwrap_or(0);
+                dom.insert(bf, i, s);
+                s
+            }
+        };
+        for (k, v) in ["l", "t", "r", "b"].iter().zip(c.iter()) {
+            let v = (v * 100000.0).round() as i64;
+            if v == 0 {
+                dom.remove_attr(sr, k);
+            } else {
+                dom.set_attr(sr, k, &v.to_string());
+            }
+        }
+        self.commit("Crop", false);
+        if keep_scale {
+            self.sel_obj = Some(node);
+            let (w, h) = (info.w * nw / ow, info.h * nh / oh);
+            self.object_resize(w, h);
+            if !info.inline {
+                // the part that stays where it was
+                let x = info.x + (c[0] - old[0]) / ow * info.w;
+                let y = info.y + (c[1] - old[1]) / oh * info.h;
+                self.object_move(x, y);
+            }
+        }
+        self.end_group();
+        self.sel_obj = Some(node);
+        true
+    }
+
+    /// Crop to an aspect ratio (w:h), around the middle.
+    pub fn crop_to_ratio(&mut self, rw: f64, rh: f64) -> bool {
+        let Some(c) = self.object_crop() else { return false };
+        let Some(info) = self.sel_obj.and_then(|n| self.object_info(n)) else { return false };
+        let r = rw / rh.max(1e-6);
+        let (w, h) = (info.w, info.h);
+        let mut c2 = c;
+        let fw = 1.0 - c[0] - c[2];
+        let fh = 1.0 - c[1] - c[3];
+        if w / h > r {
+            let keep = h * r / w;
+            let d = fw * (1.0 - keep) / 2.0;
+            c2[0] += d;
+            c2[2] += d;
+        } else {
+            let keep = w / r / h;
+            let d = fh * (1.0 - keep) / 2.0;
+            c2[1] += d;
+            c2[3] += d;
+        }
+        self.set_object_crop(c2, true)
+    }
+
+    /// Fill (the picture covers its box, cropped) or Fit (all of it shows in
+    /// the box).
+    pub fn crop_aspect(&mut self, fit: bool) -> bool {
+        let Some((nw, nh)) = self.object_natural_size() else { return false };
+        let Some(info) = self.sel_obj.and_then(|n| self.object_info(n)) else { return false };
+        let a = nw / nh.max(1e-6);
+        let b = info.w / info.h.max(1e-6);
+        let mut c = [0.0; 4];
+        if !fit {
+            if a > b {
+                let k = (1.0 - b / a) / 2.0;
+                c[0] = k;
+                c[2] = k;
+            } else {
+                let k = (1.0 - a / b) / 2.0;
+                c[1] = k;
+                c[3] = k;
+            }
+        } else if a > b {
+            // shorter than the box: room above and below
+            let k = -((a / b) - 1.0) / 2.0;
+            c[1] = k;
+            c[3] = k;
+        } else {
+            let k = -((b / a) - 1.0) / 2.0;
+            c[0] = k;
+            c[2] = k;
+        }
+        self.set_object_crop(c, false)
+    }
+
+    // ------------------------------------------------------------ the image
+    /// The selected picture's image: (bytes, part name).
+    pub fn object_image(&self) -> Option<(Vec<u8>, String)> {
+        let node = self.sel_obj?;
+        let dom = &self.doc.dom;
+        let blip = crate::pictures::find(dom, node, "a:blip")?;
+        let rid = dom.attr(blip, "r:embed")?;
+        let img = self.doc.images.get(rid)?;
+        Some((img.bytes.to_vec(), img.part.clone()))
+    }
+
+    /// Give the selected picture a new image (Remove Background, Compress).
+    pub fn object_set_image(&mut self, bytes: &[u8], ext: &str) -> bool {
+        let Some(node) = self.sel_obj else { return false };
+        let Some(blip) = crate::pictures::find(&self.doc.dom, node, "a:blip") else { return false };
+        let (ext, ctype) = match ext {
+            "jpg" | "jpeg" => ("jpeg", "image/jpeg"),
+            _ => ("png", "image/png"),
+        };
+        let main = self.doc.main.clone();
+        let mut n = 1;
+        while self.doc.pkg.has(&format!("word/media/image{}.{}", n, ext)) {
+            n += 1;
+        }
+        let part = format!("word/media/image{}.{}", n, ext);
+        self.doc.pkg.put_raw(&part, bytes.to_vec());
+        self.doc.pkg.ensure_default(ext, ctype);
+        let target = crate::package::Package::relative_target(&main, &part);
+        let rid = self.doc.pkg.add_rel(&main, REL_IMAGE, &target);
+        self.doc.images.insert(rid.clone(), crate::pictures::ImageData { part, bytes: std::sync::Arc::new(bytes.to_vec()) });
+        self.begin();
+        self.doc.dom.set_attr(blip, "r:embed", &rid);
+        self.commit("Picture", false);
+        self.sel_obj = Some(node);
+        true
+    }
+
+    // ------------------------------------------------------------ shapes
+    fn shape_of(&self, node: NodeId) -> Option<(crate::shapes::Shape, ObjInfo)> {
+        let info = self.object_info(node)?;
+        let dom = &self.doc.dom;
+        let (_gd, obj) = graphic_obj(dom, node)?;
+        if !dom.is(obj, "wps:wsp") {
+            return None;
+        }
+        Some((crate::shapes::Shape::parse(dom, obj, &self.doc.styles.theme.colors), info))
+    }
+
+    /// Merge Shapes: union, combine, fragment, intersect, subtract.
+    pub fn merge_shapes(&mut self, op: &str) -> Result<usize, &'static str> {
+        use geo::BooleanOps;
+        let nodes = self.selected_nodes();
+        if nodes.len() < 2 {
+            return Err("Select two or more shapes to merge them.");
+        }
+        let mut polys: Vec<Poly> = Vec::new();
+        for &n in &nodes {
+            let Some((sh, info)) = self.shape_of(n) else { return Err("Only shapes can be merged.") };
+            if info.inline {
+                return Err("Only shapes can be merged.");
+            }
+            polys.push(to_geo(&sh.polygons(info.w, info.h), info.x, info.y));
+        }
+        let page = self.object_info(nodes[0]).map(|i| i.page).unwrap_or(0);
+        let results: Vec<Poly> = match op {
+            "union" => vec![polys[1..].iter().fold(polys[0].clone(), |a, b| a.union(b))],
+            "intersect" => vec![polys[1..].iter().fold(polys[0].clone(), |a, b| a.intersection(b))],
+            "combine" => vec![polys[1..].iter().fold(polys[0].clone(), |a, b| a.xor(b))],
+            "subtract" => {
+                let rest = polys[2..].iter().fold(polys[1].clone(), |a, b| a.union(b));
+                vec![polys[0].difference(&rest)]
+            }
+            "fragment" => {
+                let mut pieces: Vec<Poly> = vec![polys[0].clone()];
+                for b in &polys[1..] {
+                    let mut next = Vec::new();
+                    let mut covered = geo::MultiPolygon::new(vec![]);
+                    for p in &pieces {
+                        next.push(p.intersection(b));
+                        next.push(p.difference(b));
+                        covered = covered.union(p);
+                    }
+                    next.push(b.difference(&covered));
+                    pieces = next;
+                }
+                // each polygon its own shape
+                pieces.into_iter().flat_map(|mp| mp.0.into_iter().map(|p| geo::MultiPolygon::new(vec![p]))).collect()
+            }
+            _ => return Err("Unknown operation."),
+        };
+        let results: Vec<Poly> = results.into_iter().filter(|r| {
+            use geo::Area;
+            r.unsigned_area() > 0.5
+        }).collect();
+        if results.is_empty() {
+            return Err("The shapes don't overlap.");
+        }
+        let first = nodes[0];
+        let id0 = self.next_docpr_id();
+        self.begin();
+        let mut made = Vec::new();
+        for (k, mp) in results.iter().enumerate() {
+            use geo::BoundingRect;
+            let Some(bb) = mp.bounding_rect() else { continue };
+            let (x, y, w, h) = (bb.min().x, bb.min().y, bb.width().max(0.5), bb.height().max(0.5));
+            let mut cmds = Vec::new();
+            for p in &mp.0 {
+                for ring in std::iter::once(p.exterior()).chain(p.interiors().iter()) {
+                    let pts: Vec<_> = ring.points().collect();
+                    for (i, pt) in pts.iter().enumerate() {
+                        let (px, py) = ((pt.x() - x) * EMU, (pt.y() - y) * EMU);
+                        cmds.push(if i == 0 { crate::shapes::Cmd::Move(px, py) } else { crate::shapes::Cmd::Line(px, py) });
+                    }
+                    cmds.push(crate::shapes::Cmd::Close);
+                }
+            }
+            let path = crate::shapes::CustPath { w: w * EMU, h: h * EMU, fill: true, stroke: true, cmds };
+            let xml = crate::shapes::custom_xml(&[path]);
+            let dom = &mut self.doc.dom;
+            let d = dom.clone_node(first);
+            let a = dom.child(d, "wp:anchor").unwrap();
+            set_pos(dom, a, "wp:positionH", "page", x);
+            set_pos(dom, a, "wp:positionV", "page", y);
+            if let Some(e) = dom.child(a, "wp:extent") {
+                dom.set_attr(e, "cx", &emu(w));
+                dom.set_attr(e, "cy", &emu(h));
+            }
+            if let Some(dp) = dom.child(a, "wp:docPr") {
+                dom.set_attr(dp, "id", &(id0 + k as u32).to_string());
+                dom.set_attr(dp, "name", &format!("Freeform {}", id0 + k as u32));
+            }
+            let (_gd, obj) = graphic_obj(dom, d).unwrap();
+            if let Some(tx) = dom.child(obj, "wps:txbx") {
+                dom.detach(tx);
+            }
+            let sp = obj_sppr(dom, obj).unwrap();
+            for g in ["a:prstGeom", "a:custGeom"] {
+                if let Some(c) = dom.child(sp, g) {
+                    dom.detach(c);
+                }
+            }
+            if let Some(xf) = ensure_xfrm(dom, obj) {
+                for k2 in ["rot", "flipH", "flipV"] {
+                    dom.remove_attr(xf, k2);
+                }
+                set_off_ext(dom, xf, 0.0, 0.0, w, h);
+            }
+            let wrapped = format!("<root {NS_DECL}>{xml}</root>");
+            if let Ok(tmp) = XmlDoc::parse(wrapped.as_bytes()) {
+                if let Some(f) = tmp.elements(tmp.root).next() {
+                    let g = dom.import_node(&tmp, f);
+                    dom.remove_attr(g, "xmlns:a");
+                    dom.remove_attr(g, "xmlns:a14");
+                    insert_ordered(dom, sp, g, SPPR_ORDER);
+                }
+            }
+            let run = dom.new_element("w:r", &[]);
+            dom.append(run, d);
+            let orun = dom.parent(first).unwrap();
+            let par = dom.parent(orun).unwrap();
+            let i = dom.index_in_parent(orun).unwrap_or(0) + 1 + made.len();
+            dom.insert(par, i, run);
+            made.push(d);
+        }
+        for &n in &nodes {
+            remove_drawing(&mut self.doc.dom, n);
+        }
+        let _ = page;
+        self.commit("Merge Shapes", false);
+        self.select_nodes_list(&made);
+        Ok(made.len())
+    }
+
+    /// Edit Points: the selected shape's outline as point lists (points on
+    /// the page); a preset shape becomes a freeform first.
+    pub fn shape_points(&mut self) -> Vec<Vec<(f64, f64)>> {
+        let Some(node) = self.sel_obj else { return Vec::new() };
+        let Some((sh, info)) = self.shape_of(node) else { return Vec::new() };
+        let mut out = Vec::new();
+        if sh.geom == "custom" && sh.custom.iter().all(|p| p.cmds.iter().all(|c| matches!(c, crate::shapes::Cmd::Move(..) | crate::shapes::Cmd::Line(..) | crate::shapes::Cmd::Close))) {
+            for p in &sh.custom {
+                let sx = if p.w > 0.0 { info.w / p.w } else { 1.0 / EMU };
+                let sy = if p.h > 0.0 { info.h / p.h } else { 1.0 / EMU };
+                let mut cur = Vec::new();
+                for c in &p.cmds {
+                    match *c {
+                        crate::shapes::Cmd::Move(x, y) => {
+                            if !cur.is_empty() {
+                                out.push(std::mem::take(&mut cur));
+                            }
+                            cur.push((info.x + x * sx, info.y + y * sy));
+                        }
+                        crate::shapes::Cmd::Line(x, y) => cur.push((info.x + x * sx, info.y + y * sy)),
+                        _ => {}
+                    }
+                }
+                if !cur.is_empty() {
+                    out.push(cur);
+                }
+            }
+            return out;
+        }
+        use geo::Simplify;
+        for ring in sh.polygons(info.w, info.h) {
+            let ls = geo::LineString::from(ring.iter().map(|&(x, y)| (x, y)).collect::<Vec<_>>());
+            let s = ls.simplify(&0.75);
+            let mut pts: Vec<(f64, f64)> = s.points().map(|p| (info.x + p.x(), info.y + p.y())).collect();
+            if pts.len() > 1 && pts.first() == pts.last() {
+                pts.pop();
+            }
+            if pts.len() > 2 {
+                out.push(pts);
+            }
+        }
+        out
+    }
+
+    /// Set the selected shape's outline from point lists (page points): a
+    /// freeform, its box fitted round them.
+    pub fn set_shape_points(&mut self, rings: &[Vec<(f64, f64)>]) -> bool {
+        let Some(node) = self.sel_obj else { return false };
+        let Some((_sh, info)) = self.shape_of(node) else { return false };
+        let all: Vec<(f64, f64)> = rings.iter().flatten().copied().collect();
+        if all.len() < 2 {
+            return false;
+        }
+        let minx = all.iter().map(|p| p.0).fold(f64::MAX, f64::min);
+        let miny = all.iter().map(|p| p.1).fold(f64::MAX, f64::min);
+        let maxx = all.iter().map(|p| p.0).fold(f64::MIN, f64::max);
+        let maxy = all.iter().map(|p| p.1).fold(f64::MIN, f64::max);
+        let (w, h) = ((maxx - minx).max(0.5), (maxy - miny).max(0.5));
+        let mut cmds = Vec::new();
+        for r in rings {
+            for (i, &(x, y)) in r.iter().enumerate() {
+                let (px, py) = ((x - minx) * EMU, (y - miny) * EMU);
+                cmds.push(if i == 0 { crate::shapes::Cmd::Move(px, py) } else { crate::shapes::Cmd::Line(px, py) });
+            }
+            cmds.push(crate::shapes::Cmd::Close);
+        }
+        let xml = crate::shapes::custom_xml(&[crate::shapes::CustPath { w: w * EMU, h: h * EMU, fill: true, stroke: true, cmds }]);
+        self.begin_group("Edit Points");
+        self.begin();
+        let dom = &mut self.doc.dom;
+        let (_gd, obj) = graphic_obj(dom, node).unwrap();
+        let sp = obj_sppr(dom, obj).unwrap();
+        for g in ["a:prstGeom", "a:custGeom"] {
+            if let Some(c) = dom.child(sp, g) {
+                dom.detach(c);
+            }
+        }
+        if let Some(xf) = ensure_xfrm(dom, obj) {
+            for k in ["rot", "flipH", "flipV"] {
+                dom.remove_attr(xf, k);
+            }
+        }
+        let wrapped = format!("<root {NS_DECL}>{xml}</root>");
+        if let Ok(tmp) = XmlDoc::parse(wrapped.as_bytes()) {
+            if let Some(f) = tmp.elements(tmp.root).next() {
+                let g = dom.import_node(&tmp, f);
+                dom.remove_attr(g, "xmlns:a");
+                dom.remove_attr(g, "xmlns:a14");
+                insert_ordered(dom, sp, g, SPPR_ORDER);
+            }
+        }
+        self.commit("Edit Points", false);
+        self.sel_obj = Some(node);
+        self.object_resize(w, h);
+        if !info.inline {
+            self.object_move(minx, miny);
+        }
+        self.end_group();
+        self.sel_obj = Some(node);
+        true
+    }
+
+    // ------------------------------------------------------------ layout
+    /// The Layout dialog's values for the selected object.
+    pub fn object_layout(&self) -> Option<Vec<(String, String)>> {
+        let node = self.sel_obj?;
+        let info = self.object_info(node)?;
+        let dom = &self.doc.dom;
+        let mut v: Vec<(String, String)> = vec![("wrap".into(), info.wrap.into()), ("w".into(), format!("{:.3}", info.w)),
+                                               ("h".into(), format!("{:.3}", info.h)), ("rot".into(), format!("{:.3}", info.rot))];
+        let holder = dom.child(node, "wp:anchor").or_else(|| dom.child(node, "wp:inline"));
+        if let Some(a) = holder {
+            for k in ["distT", "distB", "distL", "distR", "allowOverlap", "locked", "layoutInCell", "behindDoc"] {
+                if let Some(x) = dom.attr(a, k) {
+                    v.push((k.into(), x.into()));
+                }
+            }
+            for tag in ["wp:positionH", "wp:positionV"] {
+                if let Some(p) = dom.child(a, tag) {
+                    let key = if tag.ends_with('H') { "h" } else { "v" };
+                    v.push((format!("{key}_rel"), dom.attr(p, "relativeFrom").unwrap_or("").into()));
+                    if let Some(al) = dom.child(p, "wp:align") {
+                        v.push((format!("{key}_align"), dom.text(al)));
+                    }
+                    if let Some(o) = dom.child(p, "wp:posOffset") {
+                        let pt = dom.text(o).trim().parse::<f64>().unwrap_or(0.0) / EMU;
+                        v.push((format!("{key}_off"), format!("{pt:.3}")));
+                    }
+                    if let Some(o) = dom.child(p, "wp14:pctPosHOffset").or_else(|| dom.child(p, "wp14:pctPosVOffset")) {
+                        v.push((format!("{key}_pct"), format!("{}", dom.text(o).trim().parse::<f64>().unwrap_or(0.0) / 1000.0)));
+                    }
+                }
+            }
+            if let Some(w) = dom.elements(a).find(|&c| dom.name(c).starts_with("wp:wrap")) {
+                if let Some(t) = dom.attr(w, "wrapText") {
+                    v.push(("side".into(), t.into()));
+                }
+            }
+        }
+        if let Some(fb) = self.float_box(node) {
+            v.push(("x".into(), format!("{:.3}", fb.x)));
+            v.push(("y".into(), format!("{:.3}", fb.y)));
+        }
+        if let Some((nw, nh)) = self.object_natural_size() {
+            v.push(("nat_w".into(), format!("{nw:.3}")));
+            v.push(("nat_h".into(), format!("{nh:.3}")));
+        }
+        if let Some(gfl) = crate::pictures::find(dom, node, "a:graphicFrameLocks") {
+            v.push(("lock_aspect".into(), dom.attr(gfl, "noChangeAspect").unwrap_or("0").into()));
+        }
+        Some(v)
+    }
+
+    /// Set the Layout dialog's values: position (h/v: relative-to, align or
+    /// offset in points), wrapping side, distances (points), options.
+    pub fn set_object_layout(&mut self, vals: &[(String, String)]) -> bool {
+        let Some(node) = self.sel_obj else { return false };
+        let get = |k: &str| vals.iter().find(|(a, _)| a == k).map(|(_, b)| b.as_str());
+        if let Some(w) = get("wrap") {
+            self.object_set_wrap(w);
+        }
+        let Some(a) = self.doc.dom.child(node, "wp:anchor") else { return true };
+        self.begin();
+        let dom = &mut self.doc.dom;
+        for key in ["h", "v"] {
+            let tag = if key == "h" { "wp:positionH" } else { "wp:positionV" };
+            let rel = get(&format!("{key}_rel"));
+            if let Some(al) = get(&format!("{key}_align")) {
+                let ph = match dom.child(a, tag) {
+                    Some(p) => p,
+                    None => continue,
+                };
+                if let Some(r) = rel {
+                    dom.set_attr(ph, "relativeFrom", r);
+                }
+                for c in dom.children(ph).to_vec() {
+                    dom.detach(c);
+                }
+                let e = dom.new_element("wp:align", &[]);
+                let t = dom.new_text(al);
+                dom.append(e, t);
+                dom.append(ph, e);
+            } else if let Some(off) = get(&format!("{key}_off")).and_then(|v| v.parse::<f64>().ok()) {
+                let cur = dom.child(a, tag).and_then(|p| dom.attr(p, "relativeFrom")).unwrap_or("page").to_string();
+                set_pos(dom, a, tag, rel.unwrap_or(&cur), off);
+            }
+        }
+        for k in ["distT", "distB", "distL", "distR"] {
+            if let Some(v) = get(k).and_then(|v| v.parse::<f64>().ok()) {
+                dom.set_attr(a, k, &emu(v));
+            }
+        }
+        for k in ["allowOverlap", "locked", "layoutInCell"] {
+            if let Some(v) = get(k) {
+                dom.set_attr(a, k, v);
+            }
+        }
+        if let Some(side) = get("side") {
+            let w = dom.elements(a).find(|&c| matches!(dom.name(c), "wp:wrapSquare" | "wp:wrapTight" | "wp:wrapThrough"));
+            if let Some(w) = w {
+                dom.set_attr(w, "wrapText", side);
+            }
+        }
+        self.commit("Layout", false);
+        self.sel_obj = Some(node);
+        true
+    }
+
+    /// The tight/through wrap outline: points as fractions of the box.
+    pub fn wrap_polygon(&self) -> Vec<(f64, f64)> {
+        let Some(a) = self.anchor_element() else { return Vec::new() };
+        let dom = &self.doc.dom;
+        let Some(poly) = crate::pictures::find(dom, a, "wp:wrapPolygon") else { return Vec::new() };
+        dom.elements(poly).map(|p| {
+            let n = |k: &str| dom.attr(p, k).and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0) / 21600.0;
+            (n("x"), n("y"))
+        }).collect()
+    }
+
+    pub fn set_wrap_polygon(&mut self, pts: &[(f64, f64)]) -> bool {
+        let Some(a) = self.anchor_element() else { return false };
+        let Some(poly) = crate::pictures::find(&self.doc.dom, a, "wp:wrapPolygon") else { return false };
+        self.begin();
+        let dom = &mut self.doc.dom;
+        for c in dom.children(poly).to_vec() {
+            dom.detach(c);
+        }
+        dom.set_attr(poly, "edited", "1");
+        let mut list: Vec<(f64, f64)> = pts.to_vec();
+        if list.first() != list.last() {
+            if let Some(&f) = list.first() {
+                list.push(f);
+            }
+        }
+        for (i, (x, y)) in list.iter().enumerate() {
+            let e = dom.new_element(if i == 0 { "wp:start" } else { "wp:lineTo" },
+                                    &[("x", &((x * 21600.0).round() as i64).to_string()), ("y", &((y * 21600.0).round() as i64).to_string())]);
+            dom.append(poly, e);
+        }
+        self.commit("Edit Wrap Points", false);
+        true
+    }
+}
+
+impl Editor {
+    /// Rotation in degrees clockwise (the Layout dialog).
+    pub fn object_set_rotation(&mut self, deg: f64) -> bool {
+        let Some(node) = self.sel_obj else { return false };
+        let Some((_gd, obj)) = graphic_obj(&self.doc.dom, node) else { return false };
+        self.begin();
+        let dom = &mut self.doc.dom;
+        if let Some(xf) = ensure_xfrm(dom, obj) {
+            let v = ((deg.rem_euclid(360.0)) * 60000.0).round() as i64;
+            if v == 0 {
+                dom.remove_attr(xf, "rot");
+            } else {
+                dom.set_attr(xf, "rot", &v.to_string());
+            }
+        }
+        self.commit("Rotate", false);
+        self.sel_obj = Some(node);
+        true
+    }
+}
+
+impl Editor {
+    fn wsp_of(&self, node: NodeId) -> Option<NodeId> {
+        let (_gd, obj) = graphic_obj(&self.doc.dom, node)?;
+        self.doc.dom.is(obj, "wps:wsp").then_some(obj)
+    }
+
+    /// "link" (Create Link can be used), "break" (it links on), or "".
+    pub fn textbox_link_state(&self) -> String {
+        let Some(node) = self.sel_obj else { return String::new() };
+        let Some(w) = self.wsp_of(node) else { return String::new() };
+        let dom = &self.doc.dom;
+        let (id, seq) = if let Some(t) = dom.child(w, "wps:txbx") {
+            match dom.attr(t, "id") {
+                Some(id) => (id.to_string(), 0),
+                None => return "link".into(),
+            }
+        } else if let Some(l) = dom.child(w, "wps:linkedTxbx") {
+            (dom.attr(l, "id").unwrap_or("").to_string(), dom.attr(l, "seq").and_then(|v| v.parse().ok()).unwrap_or(1))
+        } else {
+            return String::new();
+        };
+        let chain = crate::pictures::txbx_chain(dom, &id);
+        if chain.iter().any(|b| b.0 > seq) { "break".into() } else { "link".into() }
+    }
+
+    /// Create Link: text flows from text box `src` into the selected one
+    /// (which must be empty).
+    pub fn link_textboxes(&mut self, src: NodeId) -> Result<(), &'static str> {
+        let Some(dst) = self.sel_obj else { return Err("Select a text box first.") };
+        if dst == src {
+            return Err("A text box can't link to itself.");
+        }
+        let (Some(sw), Some(dw)) = (self.wsp_of(src), self.wsp_of(dst)) else { return Err("Select a text box first.") };
+        let dom = &self.doc.dom;
+        let Some(dtb) = dom.child(dw, "wps:txbx") else { return Err("That text box is already linked from another one.") };
+        if dom.attr(dtb, "id").is_some() {
+            return Err("That text box is already linked.");
+        }
+        let empty = dom.child(dtb, "w:txbxContent").map_or(true, |c| {
+            let mut v = Vec::new();
+            fn walk(dom: &XmlDoc, n: NodeId, v: &mut Vec<NodeId>) {
+                for k in dom.elements(n) {
+                    if dom.is(k, "w:t") || dom.is(k, "w:drawing") {
+                        v.push(k);
+                    }
+                    walk(dom, k, v);
+                }
+            }
+            walk(dom, c, &mut v);
+            v.iter().all(|&t| dom.is(t, "w:t") && dom.text(t).trim().is_empty())
+        });
+        if !empty {
+            return Err("The text box you want to link to must be empty.");
+        }
+        // the source's chain id (a new one) and the next place in it
+        let (id, next) = if let Some(t) = dom.child(sw, "wps:txbx") {
+            match dom.attr(t, "id") {
+                Some(id) => {
+                    let ch = crate::pictures::txbx_chain(dom, id);
+                    if ch.iter().any(|b| b.0 > 0) {
+                        return Err("This text box is already linked. Break the link first.");
+                    }
+                    (id.to_string(), 1)
+                }
+                None => {
+                    let mut n = 1;
+                    while crate::pictures::find_txbx(dom, dom.root, &n.to_string()).is_some() {
+                        n += 1;
+                    }
+                    (n.to_string(), 1)
+                }
+            }
+        } else if let Some(l) = dom.child(sw, "wps:linkedTxbx") {
+            let id = dom.attr(l, "id").unwrap_or("").to_string();
+            let seq: u32 = dom.attr(l, "seq").and_then(|v| v.parse().ok()).unwrap_or(1);
+            let ch = crate::pictures::txbx_chain(dom, &id);
+            if ch.iter().any(|b| b.0 > seq) {
+                return Err("This text box is already linked. Break the link first.");
+            }
+            (id, seq + 1)
+        } else {
+            return Err("Select a text box first.");
+        };
+        self.begin();
+        let dom = &mut self.doc.dom;
+        if let Some(t) = dom.child(sw, "wps:txbx") {
+            dom.set_attr(t, "id", &id);
+        }
+        let i = dom.index_in_parent(dtb).unwrap_or(0);
+        dom.detach(dtb);
+        let l = dom.new_element("wps:linkedTxbx", &[("id", &id), ("seq", &next.to_string())]);
+        dom.insert(dw, i, l);
+        self.commit("Create Text Box Link", false);
+        self.sel_obj = Some(dst);
+        Ok(())
+    }
+
+    /// Break Link: the selected box's text stops there; the boxes after it
+    /// become empty text boxes.
+    pub fn unlink_textbox(&mut self) -> bool {
+        let Some(node) = self.sel_obj else { return false };
+        let Some(w) = self.wsp_of(node) else { return false };
+        let dom = &self.doc.dom;
+        let (id, seq) = if let Some(t) = dom.child(w, "wps:txbx") {
+            match dom.attr(t, "id") {
+                Some(id) => (id.to_string(), 0u32),
+                None => return false,
+            }
+        } else if let Some(l) = dom.child(w, "wps:linkedTxbx") {
+            (dom.attr(l, "id").unwrap_or("").to_string(), dom.attr(l, "seq").and_then(|v| v.parse().ok()).unwrap_or(1))
+        } else {
+            return false;
+        };
+        fn later(dom: &XmlDoc, n: NodeId, id: &str, seq: u32, out: &mut Vec<NodeId>) {
+            for c in dom.elements(n) {
+                if dom.is(c, "wps:linkedTxbx") && dom.attr(c, "id") == Some(id)
+                    && dom.attr(c, "seq").and_then(|v| v.parse::<u32>().ok()).unwrap_or(1) > seq {
+                    out.push(c);
+                }
+                later(dom, c, id, seq, out);
+            }
+        }
+        let mut v = Vec::new();
+        later(dom, dom.root, &id, seq, &mut v);
+        if v.is_empty() {
+            return false;
+        }
+        self.begin();
+        let dom = &mut self.doc.dom;
+        for l in v {
+            let w = dom.parent(l).unwrap();
+            let i = dom.index_in_parent(l).unwrap_or(0);
+            dom.detach(l);
+            let tb = dom.new_element("wps:txbx", &[]);
+            let c = dom.new_element("w:txbxContent", &[]);
+            let p = dom.new_element("w:p", &[]);
+            dom.append(c, p);
+            dom.append(tb, c);
+            dom.insert(w, i, tb);
+        }
+        if seq == 0 {
+            if let Some(t) = dom.child(w, "wps:txbx") {
+                dom.remove_attr(t, "id");
+            }
+        }
+        self.commit("Break Text Box Link", false);
+        self.sel_obj = Some(node);
+        true
+    }
+}
+
+impl Editor {
+    /// WordArt Transform: the shape's text warp ("textNoShape": none).
+    pub fn object_warp(&mut self, prst: &str) -> bool {
+        let Some(node) = self.sel_obj else { return false };
+        let Some(w) = self.wsp_of(node) else { return false };
+        self.begin();
+        let dom = &mut self.doc.dom;
+        let bp = match dom.child(w, "wps:bodyPr") {
+            Some(b) => b,
+            None => {
+                let b = dom.new_element("wps:bodyPr", &[]);
+                dom.append(w, b);
+                b
+            }
+        };
+        if let Some(old) = dom.child(bp, "a:prstTxWarp") {
+            dom.detach(old);
+        }
+        let e = dom.new_element("a:prstTxWarp", &[("prst", prst)]);
+        let av = dom.new_element("a:avLst", &[]);
+        dom.append(e, av);
+        dom.insert(bp, 0, e);
+        self.commit("Transform", false);
+        self.sel_obj = Some(node);
+        true
+    }
+
+    pub fn object_warp_name(&self) -> String {
+        let Some(w) = self.sel_obj.and_then(|n| self.wsp_of(n)) else { return String::new() };
+        let dom = &self.doc.dom;
+        dom.child(w, "wps:bodyPr").and_then(|b| dom.child(b, "a:prstTxWarp")).and_then(|e| dom.attr(e, "prst"))
+            .unwrap_or("textNoShape").to_string()
     }
 }

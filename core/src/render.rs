@@ -623,6 +623,12 @@ impl Renderer {
             cr.rotate(pic.rot.to_radians());
             cr.translate(-(fb.x + pic.w / 2.0), -(fb.y + pic.h / 2.0));
         }
+        if let Some(w) = pic.warp.as_deref() {
+            if self.draw_warped(cr, layout, fb, fonts, w) {
+                cr.restore().ok();
+                return;
+            }
+        }
         for pl in &fb.lines {
             let p = &layout.paras[pl.para];
             let line = &p.lines[pl.line];
@@ -634,6 +640,89 @@ impl Renderer {
             self.draw_line(cr, p, line, pl.x, pl.y, fonts);
         }
         cr.restore().ok();
+    }
+
+    /// WordArt Transform: the text box's text drawn off the page, then bent to
+    /// the warp in thin strips across the shape.
+    fn draw_warped(&mut self, cr: &cairo::Context, layout: &Layout, fb: &crate::paginate::FloatBox,
+                   fonts: &mut FontCache, warp: &str) -> bool {
+        let pic = &fb.float.pic;
+        if fb.lines.is_empty() {
+            return false;
+        }
+        // the text's extent
+        let (mut x0, mut y0, mut x1, mut y1) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
+        for pl in &fb.lines {
+            let p = &layout.paras[pl.para];
+            let line = &p.lines[pl.line];
+            if line.end <= line.start {
+                continue;
+            }
+            let n = line.end - line.start;
+            let a = pl.x + line.xs[0];
+            let b = pl.x + line.xs[n - 1] + line.ws.get(n - 1).copied().unwrap_or(0.0);
+            x0 = x0.min(a);
+            x1 = x1.max(b);
+            y0 = y0.min(pl.y + line.skip);
+            y1 = y1.max(pl.y + line.skip + line.height);
+        }
+        if !(x1 > x0 && y1 > y0) {
+            return false;
+        }
+        let dev = cr.matrix().xx().abs().max(0.25);
+        let s = (dev * 3.0).min(12.0);
+        let (bw, bh) = (x1 - x0, y1 - y0);
+        let (iw, ih) = ((bw * s).ceil() as i32 + 2, (bh * s).ceil() as i32 + 2);
+        if iw <= 2 || ih <= 2 || iw > 8000 || ih > 8000 {
+            return false;
+        }
+        let Ok(surf) = cairo::ImageSurface::create(cairo::Format::ARgb32, iw, ih) else { return false };
+        {
+            let Ok(c2) = cairo::Context::new(&surf) else { return false };
+            c2.scale(s, s);
+            c2.translate(-x0, -y0);
+            for pl in &fb.lines {
+                let p = &layout.paras[pl.para];
+                let line = &p.lines[pl.line];
+                self.draw_line(&c2, p, line, pl.x, pl.y, fonts);
+            }
+        }
+        // the shape's box (insets kept)
+        let ins = pic.text.map(|t| t.1).unwrap_or([7.2, 3.6, 7.2, 3.6]);
+        let (bx, by) = (fb.x + ins[0], fb.y + ins[1]);
+        let (w, h) = ((pic.w - ins[0] - ins[2]).max(1.0), (pic.h - ins[1] - ins[3]).max(1.0));
+        let map = |u: f64, v: f64| -> (f64, f64) { let (px, py) = warp_point(warp, u, v, w, h); (bx + px, by + py) };
+        let n = ((bw * dev) / 2.0).clamp(24.0, 400.0) as usize;
+        for i in 0..n {
+            let (u0, u1) = (i as f64 / n as f64, (i + 1) as f64 / n as f64);
+            let p00 = map(u0, 0.0);
+            let p10 = map(u1, 0.0);
+            let p01 = map(u0, 1.0);
+            let p11 = map(u1, 1.0);
+            // source strip: pixels sx0..sx1, 0..ih
+            let sx0 = u0 * bw * s;
+            let sw = (u1 - u0) * bw * s;
+            let sh = bh * s;
+            // affine: source (sx, sy) -> p00 + (sx - sx0)/sw * (p10 - p00) + sy/sh * (p01 - p00)
+            let ax = ((p10.0 - p00.0) / sw, (p10.1 - p00.1) / sw);
+            let ay = ((p01.0 - p00.0) / sh, (p01.1 - p00.1) / sh);
+            let m = cairo::Matrix::new(ax.0, ax.1, ay.0, ay.1, p00.0 - ax.0 * sx0, p00.1 - ax.1 * sx0);
+            cr.save().ok();
+            // the strip's quad, a hair wider so strips meet
+            let e = 0.35 / dev;
+            cr.move_to(p00.0 - e, p00.1);
+            cr.line_to(p10.0 + e, p10.1);
+            cr.line_to(p11.0 + e, p11.1);
+            cr.line_to(p01.0 - e, p01.1);
+            cr.close_path();
+            cr.clip();
+            cr.transform(m);
+            cr.set_source_surface(&surf, 0.0, 0.0).ok();
+            cr.source().set_filter(cairo::Filter::Good);
+            cr.paint().ok();
+            cr.restore().ok();
+        }
+        true
     }
 
     /// Forget decoded pictures (a picture part was replaced).
@@ -680,7 +769,14 @@ impl Renderer {
             }
             rgb(cr, c);
             cr.set_line_width(lw);
-            cr.rectangle(-w / 2.0, -h / 2.0, w, h);
+            match &pic.clip {
+                Some(shape) => {
+                    cr.translate(-w / 2.0, -h / 2.0);
+                    cr.new_path();
+                    shape.outline(cr, w, h);
+                }
+                None => cr.rectangle(-w / 2.0, -h / 2.0, w, h),
+            }
             cr.stroke().ok();
             cr.restore().ok();
         }
@@ -748,13 +844,20 @@ impl Renderer {
                 let sw = (iw * (1.0 - cl - cr_)).max(1e-6);
                 let sh = (ih * (1.0 - ct - cb)).max(1e-6);
                 cr.save().ok();
-                cr.rectangle(0.0, 0.0, w, h);
+                match &pic.clip {
+                    Some(shape) => {
+                        cr.new_path();
+                        shape.outline(cr, w, h);
+                    }
+                    None => cr.rectangle(0.0, 0.0, w, h),
+                }
                 cr.clip();
                 cr.scale(w / sw, h / sh);
                 cr.set_source_surface(&s, -iw * cl, -ih * ct).ok();
                 let pat = cr.source();
                 pat.set_filter(cairo::Filter::Good);
-                pat.set_extend(cairo::Extend::Pad);
+                // a negative crop (Fit) leaves empty room, not stretched edges
+                pat.set_extend(if pic.crop.iter().any(|c| *c < -1e-6) { cairo::Extend::None } else { cairo::Extend::Pad });
                 cr.paint().ok();
                 cr.restore().ok();
             }
@@ -1179,4 +1282,53 @@ pub fn page_to_frame(frame: (f64, f64, u8), px: f64, py: f64) -> (f64, f64) {
 /// The body text's font (line numbers use it).
 fn layout_default_font(layout: &Layout) -> String {
     layout.paras.first().and_then(|p| p.shaped.first()).map(|sh| sh.font.family.clone()).unwrap_or_else(|| "Calibri".into())
+}
+
+/// Where the point (u, v) of the text (0..1 across, 0..1 down) goes in a w x h
+/// shape for a WordArt warp.
+pub fn warp_point(warp: &str, u: f64, v: f64, w: f64, h: f64) -> (f64, f64) {
+    use std::f64::consts::PI;
+    let band = |top: f64, bottom: f64| (u * w, top + v * (bottom - top));
+    let t = 2.0 * u - 1.0;
+    match warp {
+        "textArchUp" | "textArchUpPour" => {
+            let th = PI * (1.0 - u);
+            let k = 1.0 - 0.38 * v;
+            (w / 2.0 + w / 2.0 * k * th.cos(), h - h * k * th.sin())
+        }
+        "textArchDown" | "textArchDownPour" => {
+            let th = PI * (1.0 - u);
+            let k = 0.62 + 0.38 * v;
+            (w / 2.0 + w / 2.0 * k * th.cos(), h * k * th.sin())
+        }
+        "textCircle" | "textCirclePour" | "textButton" => {
+            let th = PI - 2.0 * PI * u + PI / 2.0;
+            let k = 1.0 - 0.3 * v;
+            (w / 2.0 + w / 2.0 * k * th.cos(), h / 2.0 - h / 2.0 * k * th.sin())
+        }
+        "textTriangle" => band(0.85 * h * t.abs(), h),
+        "textTriangleInverted" => band(0.0, h - 0.85 * h * t.abs()),
+        "textChevron" => band(0.35 * h * t.abs(), h - 0.35 * h * (1.0 - t.abs())),
+        "textChevronInverted" => band(0.35 * h * (1.0 - t.abs()), h - 0.35 * h * t.abs()),
+        "textWave1" | "textWave2" | "textWave4" | "textDoubleWave1" => {
+            let a = 0.12 * h;
+            let d = a * (2.0 * PI * u).sin();
+            band(a + d, h - a + d)
+        }
+        "textInflate" => band(0.3 * h * t * t, h - 0.3 * h * t * t),
+        "textDeflate" => band(0.3 * h * (1.0 - t * t), h - 0.3 * h * (1.0 - t * t)),
+        "textInflateTop" => band(0.3 * h * t * t, h),
+        "textDeflateTop" => band(0.3 * h * (1.0 - t * t), h),
+        "textInflateBottom" => band(0.0, h - 0.3 * h * t * t),
+        "textDeflateBottom" => band(0.0, h - 0.3 * h * (1.0 - t * t)),
+        "textSlantUp" => band(0.4 * h * (1.0 - u), 0.4 * h * (1.0 - u) + 0.6 * h),
+        "textSlantDown" => band(0.4 * h * u, 0.4 * h * u + 0.6 * h),
+        "textFadeRight" => band(0.3 * h * u, h - 0.3 * h * u),
+        "textFadeLeft" => band(0.3 * h * (1.0 - u), h - 0.3 * h * (1.0 - u)),
+        "textFadeUp" => (w * (0.5 + (u - 0.5) * (0.6 + 0.4 * v)), v * h),
+        "textFadeDown" => (w * (0.5 + (u - 0.5) * (1.0 - 0.4 * v)), v * h),
+        "textCanUp" => band(0.25 * h * (1.0 - t * t), h - 0.25 * h * (1.0 - t * t) * 0.0),
+        "textCanDown" => band(0.25 * h * t * t, h - 0.25 * h * t * t * 0.0),
+        _ => band(0.0, h),
+    }
 }

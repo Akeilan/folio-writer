@@ -1407,7 +1407,7 @@ def build_ribbon(win):
     def group_menu(keytip):
         return MenuButton(r, "Group", "cmd/sc_formatgroup", [
             ("Group", lambda: A.cmd(".uno:FormatGroup"), "cmd/sc_formatgroup"),
-            ("Regroup", lambda: A.cmd(".uno:FormatGroup")),
+            ("Regroup", lambda: A.cmd(".uno:Regroup" if getattr(win.engine, "native", False) else ".uno:FormatGroup")),
             ("Ungroup", lambda: A.cmd(".uno:FormatUngroup"), "cmd/sc_formatungroup")],
             size="small", keytip=keytip)
 

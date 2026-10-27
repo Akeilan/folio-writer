@@ -18,6 +18,136 @@ pub struct Shape {
     pub adj: Vec<f64>,
     /// arrowheads at the start and the end of a line
     pub ends: (bool, bool),
+    /// a:custGeom paths (geom is "custom")
+    pub custom: Vec<CustPath>,
+}
+
+/// One path of a custom geometry, in its own w x h coordinate space.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CustPath {
+    pub w: f64,
+    pub h: f64,
+    pub fill: bool,
+    pub stroke: bool,
+    pub cmds: Vec<Cmd>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Cmd {
+    Move(f64, f64),
+    Line(f64, f64),
+    Cubic(f64, f64, f64, f64, f64, f64),
+    Quad(f64, f64, f64, f64),
+    /// wR, hR, start angle, swing angle (degrees)
+    Arc(f64, f64, f64, f64),
+    Close,
+}
+
+/// The paths of an a:custGeom (guides are not evaluated: plain numbers only).
+pub fn parse_custom(dom: &XmlDoc, cg: NodeId) -> Vec<CustPath> {
+    let mut out = Vec::new();
+    let Some(pl) = dom.child(cg, "a:pathLst") else { return out };
+    let n = |e: NodeId, k: &str| dom.attr(e, k).and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0);
+    for p in dom.elements(pl) {
+        if !dom.is(p, "a:path") {
+            continue;
+        }
+        let mut cp = CustPath { w: n(p, "w"), h: n(p, "h"), fill: dom.attr(p, "fill") != Some("none"),
+                                stroke: !matches!(dom.attr(p, "stroke"), Some("0") | Some("false")), cmds: Vec::new() };
+        for c in dom.elements(p) {
+            let pts: Vec<(f64, f64)> = dom.elements(c).filter(|k| dom.is(*k, "a:pt")).map(|k| (n(k, "x"), n(k, "y"))).collect();
+            match dom.name(c) {
+                "a:moveTo" if !pts.is_empty() => cp.cmds.push(Cmd::Move(pts[0].0, pts[0].1)),
+                "a:lnTo" if !pts.is_empty() => cp.cmds.push(Cmd::Line(pts[0].0, pts[0].1)),
+                "a:cubicBezTo" if pts.len() >= 3 => cp.cmds.push(Cmd::Cubic(pts[0].0, pts[0].1, pts[1].0, pts[1].1, pts[2].0, pts[2].1)),
+                "a:quadBezTo" if pts.len() >= 2 => cp.cmds.push(Cmd::Quad(pts[0].0, pts[0].1, pts[1].0, pts[1].1)),
+                "a:arcTo" => cp.cmds.push(Cmd::Arc(n(c, "wR"), n(c, "hR"), n(c, "stAng") / 60000.0, n(c, "swAng") / 60000.0)),
+                "a:close" => cp.cmds.push(Cmd::Close),
+                _ => {}
+            }
+        }
+        out.push(cp);
+    }
+    out
+}
+
+/// An a:custGeom element for paths (each in its own coordinate space).
+pub fn custom_xml(paths: &[CustPath]) -> String {
+    let mut s = String::from("<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l=\"0\" t=\"0\" r=\"r\" b=\"b\"/><a:pathLst>");
+    let pt = |x: f64, y: f64| format!("<a:pt x=\"{}\" y=\"{}\"/>", x.round() as i64, y.round() as i64);
+    for p in paths {
+        s.push_str(&format!("<a:path w=\"{}\" h=\"{}\"{}>", p.w.round() as i64, p.h.round() as i64,
+                            if p.fill { "" } else { " fill=\"none\"" }));
+        for c in &p.cmds {
+            match *c {
+                Cmd::Move(x, y) => s.push_str(&format!("<a:moveTo>{}</a:moveTo>", pt(x, y))),
+                Cmd::Line(x, y) => s.push_str(&format!("<a:lnTo>{}</a:lnTo>", pt(x, y))),
+                Cmd::Cubic(a, b, c2, d, e, f) => s.push_str(&format!("<a:cubicBezTo>{}{}{}</a:cubicBezTo>", pt(a, b), pt(c2, d), pt(e, f))),
+                Cmd::Quad(a, b, c2, d) => s.push_str(&format!("<a:quadBezTo>{}{}</a:quadBezTo>", pt(a, b), pt(c2, d))),
+                Cmd::Arc(wr, hr, st, sw) => s.push_str(&format!("<a:arcTo wR=\"{}\" hR=\"{}\" stAng=\"{}\" swAng=\"{}\"/>",
+                    wr.round() as i64, hr.round() as i64, (st * 60000.0).round() as i64, (sw * 60000.0).round() as i64)),
+                Cmd::Close => s.push_str("<a:close/>"),
+            }
+        }
+        s.push_str("</a:path>");
+    }
+    s.push_str("</a:pathLst></a:custGeom>");
+    s
+}
+
+fn custom_path(cr: &cairo::Context, paths: &[CustPath], w: f64, h: f64) -> bool {
+    let mut closed = false;
+    for p in paths {
+        let sx = if p.w > 0.0 { w / p.w } else { 1.0 / 12700.0 };
+        let sy = if p.h > 0.0 { h / p.h } else { 1.0 / 12700.0 };
+        let (mut cx, mut cy) = (0.0, 0.0);
+        let (mut startx, mut starty) = (0.0, 0.0);
+        for c in &p.cmds {
+            match *c {
+                Cmd::Move(x, y) => {
+                    cr.move_to(x * sx, y * sy);
+                    (cx, cy, startx, starty) = (x, y, x, y);
+                }
+                Cmd::Line(x, y) => {
+                    cr.line_to(x * sx, y * sy);
+                    (cx, cy) = (x, y);
+                }
+                Cmd::Cubic(a, b, c2, d, e, f) => {
+                    cr.curve_to(a * sx, b * sy, c2 * sx, d * sy, e * sx, f * sy);
+                    (cx, cy) = (e, f);
+                }
+                Cmd::Quad(a, b, e, f) => {
+                    let (x0, y0) = (cx, cy);
+                    cr.curve_to((x0 + 2.0 * a) / 3.0 * sx, (y0 + 2.0 * b) / 3.0 * sy, (e + 2.0 * a) / 3.0 * sx,
+                                (f + 2.0 * b) / 3.0 * sy, e * sx, f * sy);
+                    (cx, cy) = (e, f);
+                }
+                Cmd::Arc(wr, hr, st, sw) => {
+                    // the arc starts at the current point
+                    let a0 = st.to_radians();
+                    let ocx = cx - wr * a0.cos();
+                    let ocy = cy - hr * a0.sin();
+                    let a1 = (st + sw).to_radians();
+                    cr.save().ok();
+                    cr.translate(ocx * sx, ocy * sy);
+                    cr.scale((wr * sx).max(1e-6), (hr * sy).max(1e-6));
+                    if sw >= 0.0 { cr.arc(0.0, 0.0, 1.0, a0, a1) } else { cr.arc_negative(0.0, 0.0, 1.0, a0, a1) }
+                    cr.restore().ok();
+                    cx = ocx + wr * a1.cos();
+                    cy = ocy + hr * a1.sin();
+                }
+                Cmd::Close => {
+                    cr.close_path();
+                    (cx, cy) = (startx, starty);
+                    closed = true;
+                }
+            }
+        }
+        if p.fill {
+            closed = true;
+        }
+    }
+    closed
 }
 
 fn hsl(c: u32) -> (f64, f64, f64) {
@@ -173,10 +303,19 @@ pub fn line_of(dom: &XmlDoc, ln: NodeId, colors: &HashMap<String, u32>) -> Optio
 
 impl Shape {
     /// A wps:wsp shape.
+    /// A picture's spPr (geometry and outline), as a shape.
+    pub fn parse_sppr(dom: &XmlDoc, sp: NodeId, colors: &HashMap<String, u32>) -> Shape {
+        Self::parse_parts(dom, Some(sp), None, colors)
+    }
+
     pub fn parse(dom: &XmlDoc, wsp: NodeId, colors: &HashMap<String, u32>) -> Shape {
         let sp = dom.child(wsp, "wps:spPr");
         let style = dom.child(wsp, "wps:style");
-        let mut sh = Shape { geom: "rect".into(), fill: None, line: None, adj: Vec::new(), ends: (false, false) };
+        Self::parse_parts(dom, sp, style, colors)
+    }
+
+    fn parse_parts(dom: &XmlDoc, sp: Option<NodeId>, style: Option<NodeId>, colors: &HashMap<String, u32>) -> Shape {
+        let mut sh = Shape { geom: "rect".into(), fill: None, line: None, adj: Vec::new(), ends: (false, false), custom: Vec::new() };
         let mut fill_set = false;
         let mut line_set = false;
         if let Some(sp) = sp {
@@ -190,8 +329,9 @@ impl Shape {
                         }
                     }
                 }
-            } else if dom.child(sp, "a:custGeom").is_some() {
-                sh.geom = "rect".into();
+            } else if let Some(cg) = dom.child(sp, "a:custGeom") {
+                sh.custom = parse_custom(dom, cg);
+                sh.geom = if sh.custom.is_empty() { "rect".into() } else { "custom".into() };
             }
             if dom.child(sp, "a:noFill").is_some() {
                 fill_set = true;
@@ -305,11 +445,51 @@ impl Shape {
         } else {
             None
         };
-        Shape { geom: geom.into(), fill, line, adj: Vec::new(), ends: (false, false) }
+        Shape { geom: geom.into(), fill, line, adj: Vec::new(), ends: (false, false), custom: Vec::new() }
     }
 
     /// Trace the outline in a w x h box at the origin.
+    /// The shape's outline as the current path (to clip a picture to it).
+    pub fn outline(&self, cr: &cairo::Context, w: f64, h: f64) -> bool {
+        self.path(cr, w, h)
+    }
+
+    /// The outline flattened to polygons (points in the w x h box).
+    pub fn polygons(&self, w: f64, h: f64) -> Vec<Vec<(f64, f64)>> {
+        let Ok(surf) = cairo::ImageSurface::create(cairo::Format::A8, 1, 1) else { return Vec::new() };
+        let Ok(cr) = cairo::Context::new(&surf) else { return Vec::new() };
+        cr.set_tolerance(0.05);
+        self.path(&cr, w, h);
+        let mut out: Vec<Vec<(f64, f64)>> = Vec::new();
+        let Ok(path) = cr.copy_path_flat() else { return out };
+        let mut cur: Vec<(f64, f64)> = Vec::new();
+        for seg in path.iter() {
+            match seg {
+                cairo::PathSegment::MoveTo((x, y)) => {
+                    if cur.len() > 2 {
+                        out.push(std::mem::take(&mut cur));
+                    }
+                    cur = vec![(x, y)];
+                }
+                cairo::PathSegment::LineTo((x, y)) => cur.push((x, y)),
+                cairo::PathSegment::ClosePath => {
+                    if cur.len() > 2 {
+                        out.push(std::mem::take(&mut cur));
+                    }
+                }
+                _ => {}
+            }
+        }
+        if cur.len() > 2 {
+            out.push(cur);
+        }
+        out
+    }
+
     fn path(&self, cr: &cairo::Context, w: f64, h: f64) -> bool {
+        if self.geom == "custom" {
+            return custom_path(cr, &self.custom, w, h);
+        }
         let adj = |i: usize, d: f64| self.adj.get(i).copied().unwrap_or(d) / 100000.0;
         let ss = w.min(h);
         let poly = |pts: &[(f64, f64)]| {

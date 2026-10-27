@@ -3,7 +3,8 @@ Break Link, which makes text that overflows one text box carry on in
 another, as in the original."""
 from gi.repository import Gdk, GLib
 
-from . import bridge, drawing
+from ._lazy import Lazy, bridge
+drawing = Lazy("folio.drawing")
 
 DIRECTIONS = [("Horizontal", 0), ("Rotate all text 90°", 2), ("Rotate all text 270°", 5)]
 ALIGN = [("Top", "TOP"), ("Middle", "CENTER"), ("Bottom", "BOTTOM")]
@@ -59,7 +60,23 @@ class Linker:
     def pending(self):
         return self.src is not None
 
+    def _native(self):
+        return getattr(self.win.engine, "native", False)
+
     def create(self):
+        if self._native():
+            ed = self.win.engine.ed
+            o = ed.selected_object()
+            if o is None or o["kind"] != "textbox":
+                self.win.dialogs.message("Select a text box first.")
+                return
+            if ed.textbox_link_state() == "break":
+                self.win.dialogs.message("This text box is already linked. Break the link first.")
+                return
+            self.src = ed.selected_objects()[0][0]
+            self._cursor(True)
+            self.win.status.flash("Click an empty text box to link to. Press Esc to cancel.")
+            return
         m = self.win.engine.model
         obj = drawing.selected_shape(m) if m is not None else None
         if not is_text_box(obj):
@@ -99,6 +116,24 @@ class Linker:
         return False
 
     def _finish(self, src_name):
+        if self._native():
+            ed = self.win.engine.ed
+            o = ed.selected_object()
+            if o is None or o["kind"] != "textbox":
+                if ed.story() == "textbox":
+                    ed.leave_textbox()
+                    o = ed.selected_object()
+            if o is None or o["kind"] != "textbox":
+                self.win.status.flash("")
+                return
+            msg = ed.link_textboxes(src_name)
+            self.win.engine.view.after_edit()
+            if msg:
+                self.win.dialogs.message(msg)
+            else:
+                self.win.status.flash("Text boxes linked.")
+            self.win.update_object_tabs()
+            return
         m = self.win.engine.model
         dst = drawing.selected_shape(m) if m is not None else None
         if not is_text_box(dst):
@@ -141,6 +176,13 @@ class Linker:
         self.win.update_object_tabs()
 
     def break_link(self):
+        if self._native():
+            ed = self.win.engine.ed
+            if ed.unlink_textbox():
+                self.win.engine.view.after_edit()
+                self.win.status.flash("Link broken.")
+                self.win.update_object_tabs()
+            return
         m = self.win.engine.model
         obj = drawing.selected_shape(m) if m is not None else None
         if not is_text_box(obj) or not getattr(obj, "ChainNextName", ""):
@@ -156,6 +198,9 @@ class Linker:
 
     def state(self):
         """'link' / 'break' / None for the ribbon button."""
+        if self._native():
+            ed = self.win.engine.ed
+            return (ed.textbox_link_state() or None) if ed is not None else None
         m = self.win.engine.model
         obj = drawing.selected_shape(m) if m is not None else None
         if not is_text_box(obj):

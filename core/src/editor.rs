@@ -170,6 +170,8 @@ pub struct Editor {
     group: Option<(String, usize)>,
     /// the selected picture / shape (its w:drawing or w:pict)
     pub sel_obj: Option<NodeId>,
+    /// more selected objects (Shift+click), with sel_obj
+    pub sel_more: Vec<NodeId>,
     /// what is being edited: the body, or a page's header and footer
     pub story: Story,
     /// paragraph -> layout index for the story being edited (not the body)
@@ -247,6 +249,7 @@ impl Editor {
             txn_before: None,
             group: None,
             sel_obj: None,
+            sel_more: Vec::new(),
             story: Story::Body,
             story_index: HashMap::new(),
             body_caret: None,

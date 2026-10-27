@@ -85,7 +85,7 @@ Home	Find (Ctrl+F) > Advanced Find...	replace	UI MODEL
 Home	Find (Ctrl+F) > Go To...	goto	UI
 Home	Replace (Ctrl+H)	replace	UI MODEL
 Home	Select > Select All		SAME
-Home	Select > Select Objects		NOT_YET
+Home	Select > Select Objects		SAME
 Home	Select > Select All Text With Similar Formatting	select-similar	SAME
 Home	Select > Selection Pane...	selection-pane	SAME
 Insert	Blank Page	blank-page	CHANGED MODEL
@@ -335,20 +335,20 @@ Layout	Wrap Text > Behind Text		NOT_YET
 Layout	Bring Forward	.uno:BringToFront	NOT_YET
 Layout	Send Backward	.uno:SendToBack	NOT_YET
 Layout	Selection Pane	selection-pane	UI
-Layout	Align > Align Left		SAME MODEL
-Layout	Align > Align Center		SAME MODEL
-Layout	Align > Align Right		SAME MODEL
-Layout	Align > Align Top		SAME MODEL
-Layout	Align > Align Middle		SAME MODEL
-Layout	Align > Align Bottom		SAME MODEL
-Layout	Align > Distribute Horizontally		SAME MODEL
-Layout	Align > Distribute Vertically		SAME MODEL
+Layout	Align > Align Left		SAME
+Layout	Align > Align Center		SAME
+Layout	Align > Align Right		SAME
+Layout	Align > Align Top		SAME
+Layout	Align > Align Middle		SAME
+Layout	Align > Align Bottom		SAME
+Layout	Align > Distribute Horizontally		SAME
+Layout	Align > Distribute Vertically		SAME
 Layout	Align > Align to Page		SAME
 Layout	Align > Align to Margin		SAME
 Layout	Align > Align Selected Objects		SAME
-Layout	Group > Group		NOT_YET MODEL
-Layout	Group > Regroup		NOT_YET
-Layout	Group > Ungroup		NOT_YET
+Layout	Group > Group		SAME MODEL
+Layout	Group > Regroup		SAME
+Layout	Group > Ungroup		SAME
 References	Table of Contents > Automatic Table 1  (Contents)	insert-toc	CHANGED
 References	Table of Contents > Automatic Table 2  (Table of Contents)	insert-toc-2	CHANGED
 References	Table of Contents > Custom Table of Contents...	toc-dialog	UI
@@ -545,7 +545,7 @@ Immersive Reader	Text Spacing	go	SAME
 Immersive Reader	Syllables	go	SAME
 Immersive Reader	Read Aloud	read-aloud	NOT_YET
 Immersive Reader	Close Immersive Reader	-	SKIP
-Picture Format	Remove Background	<lambda>	SAME MODEL
+Picture Format	Remove Background	<lambda>	CHANGED
 Picture Format	Corrections > Brightness: -40%  Contrast: -20%		CHANGED
 Picture Format	Corrections > Brightness: -40%  Contrast: +0%		CHANGED
 Picture Format	Corrections > Brightness: -40%  Contrast: +20%		CHANGED
@@ -562,8 +562,8 @@ Picture Format	Corrections > Brightness: +40%  Contrast: -20%		CHANGED
 Picture Format	Corrections > Brightness: +40%  Contrast: +0%		CHANGED
 Picture Format	Corrections > Brightness: +40%  Contrast: +20%		CHANGED
 Picture Format	Corrections > Picture Corrections Options...		SAME
-Picture Format	Color > No Recolor		CHANGED
-Picture Format	Color > Grayscale		CHANGED MODEL
+Picture Format	Color > No Recolor		CHANGED MODEL
+Picture Format	Color > Grayscale		CHANGED
 Picture Format	Color > Black and White		CHANGED
 Picture Format	Color > Washout		CHANGED
 Picture Format	Transparency > 0%		SAME
@@ -573,7 +573,7 @@ Picture Format	Transparency > 50%		CHANGED
 Picture Format	Transparency > 65%		CHANGED
 Picture Format	Transparency > 80%		CHANGED
 Picture Format	Transparency > 95%		CHANGED
-Picture Format	Compress Pictures	<lambda>	SAME MODEL
+Picture Format	Compress Pictures	<lambda>	UI
 Picture Format	Change Picture	<lambda>	SAME
 Picture Format	Reset Picture	<lambda>	SAME
 Picture Format	Reset Picture > Reset Picture		SAME
@@ -590,8 +590,8 @@ Picture Format	Weight > 6 pt		CHANGED
 Picture Format	Picture Effects > No Shadow		CHANGED
 Picture Format	Picture Effects > Offset: Bottom Right		CHANGED
 Picture Format	Picture Effects > Offset: Bottom		CHANGED
-Picture Format	Picture Effects > Offset: Bottom Left		CHANGED
-Picture Format	Picture Effects > Offset: Right		CHANGED MODEL
+Picture Format	Picture Effects > Offset: Bottom Left		CHANGED MODEL
+Picture Format	Picture Effects > Offset: Right		CHANGED
 Picture Format	Picture Effects > Offset: Center		CHANGED
 Picture Format	Picture Effects > Offset: Left		CHANGED
 Picture Format	Picture Effects > Offset: Top Right		CHANGED
@@ -656,7 +656,7 @@ Picture Format	Position > Position in Middle Right		CHANGED
 Picture Format	Position > Position in Bottom Left		CHANGED
 Picture Format	Position > Position in Bottom Center		CHANGED
 Picture Format	Position > Position in Bottom Right		CHANGED
-Picture Format	Position > More Layout Options...		SAME MODEL
+Picture Format	Position > More Layout Options...		UI
 Picture Format	Wrap Text > In Line with Text		CHANGED
 Picture Format	Wrap Text > Square		CHANGED
 Picture Format	Wrap Text > Tight		CHANGED
@@ -664,60 +664,60 @@ Picture Format	Wrap Text > Through		CHANGED
 Picture Format	Wrap Text > Top and Bottom		CHANGED
 Picture Format	Wrap Text > Behind Text		CHANGED
 Picture Format	Wrap Text > In Front of Text		CHANGED
-Picture Format	Wrap Text > Edit Wrap Points		SAME MODEL
-Picture Format	Wrap Text > Move with Text		NOT_YET
-Picture Format	Wrap Text > Fix Position on Page		NOT_YET
-Picture Format	Wrap Text > More Layout Options...		SAME MODEL
+Picture Format	Wrap Text > Edit Wrap Points		CHANGED
+Picture Format	Wrap Text > Move with Text		CHANGED
+Picture Format	Wrap Text > Fix Position on Page		CHANGED
+Picture Format	Wrap Text > More Layout Options...		UI
 Picture Format	Bring Forward	<lambda>	CHANGED
-Picture Format	Send Backward	<lambda>	CHANGED
-Picture Format	Delete	<lambda>	CHANGED MODEL
+Picture Format	Send Backward	<lambda>	CHANGED MODEL
+Picture Format	Delete	<lambda>	CHANGED
 Picture Format	Selection Pane	selection-pane	SAME
-Picture Format	Align > Align Left		SAME MODEL
-Picture Format	Align > Align Center		SAME MODEL
-Picture Format	Align > Align Right		SAME MODEL
-Picture Format	Align > Align Top		SAME MODEL
-Picture Format	Align > Align Middle		SAME MODEL
-Picture Format	Align > Align Bottom		SAME MODEL
-Picture Format	Align > Distribute Horizontally		SAME MODEL
-Picture Format	Align > Distribute Vertically		SAME MODEL
+Picture Format	Align > Align Left		CHANGED
+Picture Format	Align > Align Center		CHANGED
+Picture Format	Align > Align Right		CHANGED
+Picture Format	Align > Align Top		CHANGED
+Picture Format	Align > Align Middle		CHANGED
+Picture Format	Align > Align Bottom		CHANGED
+Picture Format	Align > Distribute Horizontally		SAME
+Picture Format	Align > Distribute Vertically		SAME
 Picture Format	Align > Align to Page		SAME
 Picture Format	Align > Align to Margin		SAME
 Picture Format	Align > Align Selected Objects		SAME
-Picture Format	Group > Group		NOT_YET
-Picture Format	Group > Regroup		NOT_YET
-Picture Format	Group > Ungroup		NOT_YET
+Picture Format	Group > Group		SAME
+Picture Format	Group > Regroup		SAME
+Picture Format	Group > Ungroup		SAME
 Picture Format	Rotate > Rotate Right 90°		CHANGED
 Picture Format	Rotate > Rotate Left 90°		CHANGED
 Picture Format	Rotate > Flip Vertical		CHANGED
 Picture Format	Rotate > Flip Horizontal		CHANGED
-Picture Format	Crop	<lambda>	SAME MODEL
-Picture Format	Crop > Crop		SAME MODEL
-Picture Format	Crop > Crop...		SAME
-Picture Format	Crop > Square  1:1		NOT_YET
-Picture Format	Crop > Landscape  4:3		NOT_YET
-Picture Format	Crop > Landscape  3:2		NOT_YET
-Picture Format	Crop > Landscape  16:9		NOT_YET
-Picture Format	Crop > Portrait  3:4		NOT_YET
-Picture Format	Crop > Portrait  2:3		NOT_YET
-Picture Format	Crop > Rectangle		SAME MODEL
-Picture Format	Crop > Rounded Rectangle		SAME MODEL
-Picture Format	Crop > Oval		SAME MODEL
-Picture Format	Crop > Triangle		SAME MODEL
-Picture Format	Crop > Right Triangle		SAME MODEL
-Picture Format	Crop > Diamond		SAME MODEL
-Picture Format	Crop > Pentagon		SAME MODEL
-Picture Format	Crop > Hexagon		SAME MODEL
-Picture Format	Crop > Octagon		SAME MODEL
-Picture Format	Crop > Parallelogram		SAME MODEL
-Picture Format	Crop > Trapezoid		SAME MODEL
-Picture Format	Crop > Star: 5 Points		SAME MODEL
-Picture Format	Crop > Heart		SAME MODEL
-Picture Format	Crop > Cloud		SAME MODEL
-Picture Format	Crop > Arrow: Right		SAME MODEL
-Picture Format	Crop > Chevron		SAME MODEL
-Picture Format	Crop > Fill		NOT_YET
-Picture Format	Crop > Fit		NOT_YET
-Picture Format	Size Settings	object-size	NOT_YET MODEL
+Picture Format	Crop	<lambda>	SAME
+Picture Format	Crop > Crop		SAME
+Picture Format	Crop > Crop...		UI
+Picture Format	Crop > Square  1:1		CHANGED
+Picture Format	Crop > Landscape  4:3		CHANGED
+Picture Format	Crop > Landscape  3:2		CHANGED
+Picture Format	Crop > Landscape  16:9		CHANGED
+Picture Format	Crop > Portrait  3:4		CHANGED
+Picture Format	Crop > Portrait  2:3		CHANGED
+Picture Format	Crop > Rectangle		CHANGED
+Picture Format	Crop > Rounded Rectangle		CHANGED
+Picture Format	Crop > Oval		CHANGED
+Picture Format	Crop > Triangle		CHANGED
+Picture Format	Crop > Right Triangle		CHANGED
+Picture Format	Crop > Diamond		CHANGED
+Picture Format	Crop > Pentagon		CHANGED
+Picture Format	Crop > Hexagon		CHANGED
+Picture Format	Crop > Octagon		CHANGED
+Picture Format	Crop > Parallelogram		CHANGED
+Picture Format	Crop > Trapezoid		CHANGED
+Picture Format	Crop > Star: 5 Points		CHANGED
+Picture Format	Crop > Heart		CHANGED
+Picture Format	Crop > Cloud		CHANGED
+Picture Format	Crop > Arrow: Right		CHANGED
+Picture Format	Crop > Chevron		CHANGED
+Picture Format	Crop > Fill		CHANGED
+Picture Format	Crop > Fit		CHANGED
+Picture Format	Size Settings	object-size	UI
 Shape Format	Shapes > Line	('draw-shape', 'line')	SAME
 Shape Format	Shapes > Arrow	('draw-shape', 'arrow-line')	SAME
 Shape Format	Shapes > Connector: Elbow	('draw-shape', 'elbow-connector')	SAME
@@ -816,13 +816,13 @@ Shape Format	Edit Shape > Speech Bubble: Rectangle		CHANGED
 Shape Format	Edit Shape > Speech Bubble: Rounded Rectangle		CHANGED
 Shape Format	Edit Shape > Speech Bubble: Oval		CHANGED
 Shape Format	Edit Shape > Thought Bubble: Cloud		CHANGED
-Shape Format	Edit Shape > Edit Points		SAME MODEL
+Shape Format	Edit Shape > Edit Points		SAME
 Shape Format	Draw Text Box	('draw-shape', 'textbox')	SAME
-Shape Format	Merge Shapes > Union		SAME MODEL
-Shape Format	Merge Shapes > Combine		SAME MODEL
-Shape Format	Merge Shapes > Fragment		SAME MODEL
-Shape Format	Merge Shapes > Intersect		SAME MODEL
-Shape Format	Merge Shapes > Subtract		SAME MODEL
+Shape Format	Merge Shapes > Union		SAME
+Shape Format	Merge Shapes > Combine		SAME
+Shape Format	Merge Shapes > Fragment		SAME
+Shape Format	Merge Shapes > Intersect		SAME
+Shape Format	Merge Shapes > Subtract		SAME
 Shape Format	Weight > ¼ pt		CHANGED
 Shape Format	Weight > ½ pt		CHANGED
 Shape Format	Weight > ¾ pt		CHANGED
@@ -890,32 +890,32 @@ Shape Format	Shape Effects > Divot		CHANGED
 Shape Format	Shape Effects > Riblet		CHANGED
 Shape Format	Shape Effects > Hard Edge		CHANGED
 Shape Format	Shape Effects > Art Deco		CHANGED
-Shape Format	Text Effects > Arch		SAME MODEL
-Shape Format	Text Effects > Arch: Down		SAME MODEL
-Shape Format	Text Effects > Circle		SAME MODEL
-Shape Format	Text Effects > Square		SAME MODEL
-Shape Format	Text Effects > Triangle: Up		SAME MODEL
-Shape Format	Text Effects > Triangle: Down		SAME MODEL
-Shape Format	Text Effects > Chevron: Up		SAME MODEL
-Shape Format	Text Effects > Chevron: Down		SAME MODEL
-Shape Format	Text Effects > Wave: Up		SAME MODEL
-Shape Format	Text Effects > Inflate		SAME MODEL
-Shape Format	Text Effects > Deflate		SAME MODEL
-Shape Format	Text Effects > Slant Up		SAME MODEL
-Shape Format	Text Effects > Slant Down		SAME MODEL
-Shape Format	Text Effects > Fade: Right		SAME MODEL
-Shape Format	Text Effects > Fade: Left		SAME MODEL
-Shape Format	Text Effects > Fade: Up		SAME MODEL
-Shape Format	Text Effects > Fade: Down		SAME MODEL
-Shape Format	Text Effects > No Transform		SAME MODEL
+Shape Format	Text Effects > Arch		CHANGED
+Shape Format	Text Effects > Arch: Down		CHANGED
+Shape Format	Text Effects > Circle		CHANGED
+Shape Format	Text Effects > Square		CHANGED
+Shape Format	Text Effects > Triangle: Up		CHANGED
+Shape Format	Text Effects > Triangle: Down		CHANGED
+Shape Format	Text Effects > Chevron: Up		CHANGED
+Shape Format	Text Effects > Chevron: Down		CHANGED
+Shape Format	Text Effects > Wave: Up		CHANGED
+Shape Format	Text Effects > Inflate		CHANGED
+Shape Format	Text Effects > Deflate		CHANGED
+Shape Format	Text Effects > Slant Up		CHANGED
+Shape Format	Text Effects > Slant Down		CHANGED
+Shape Format	Text Effects > Fade: Right		CHANGED
+Shape Format	Text Effects > Fade: Left		CHANGED
+Shape Format	Text Effects > Fade: Up		CHANGED
+Shape Format	Text Effects > Fade: Down		CHANGED
+Shape Format	Text Effects > No Transform		CHANGED
 Shape Format	Text Direction > Horizontal		CHANGED
 Shape Format	Text Direction > Rotate all text 90°		CHANGED
 Shape Format	Text Direction > Rotate all text 270°		CHANGED
 Shape Format	Align Text > Top		CHANGED
 Shape Format	Align Text > Middle		CHANGED
 Shape Format	Align Text > Bottom		CHANGED
-Shape Format	Create Link	<lambda>	SAME MODEL
-Shape Format	Break Link	<lambda>	SAME MODEL
+Shape Format	Create Link	<lambda>	SAME
+Shape Format	Break Link	<lambda>	SAME
 Shape Format	Position > In Line with Text		CHANGED
 Shape Format	Position > Position in Top Left		CHANGED
 Shape Format	Position > Position in Top Center		CHANGED
@@ -926,7 +926,7 @@ Shape Format	Position > Position in Middle Right		CHANGED
 Shape Format	Position > Position in Bottom Left		CHANGED
 Shape Format	Position > Position in Bottom Center		CHANGED
 Shape Format	Position > Position in Bottom Right		CHANGED
-Shape Format	Position > More Layout Options...		SAME MODEL
+Shape Format	Position > More Layout Options...		UI
 Shape Format	Wrap Text > In Line with Text		CHANGED
 Shape Format	Wrap Text > Square		CHANGED
 Shape Format	Wrap Text > Tight		CHANGED
@@ -934,30 +934,30 @@ Shape Format	Wrap Text > Through		CHANGED
 Shape Format	Wrap Text > Top and Bottom		CHANGED
 Shape Format	Wrap Text > Behind Text		CHANGED
 Shape Format	Wrap Text > In Front of Text		CHANGED
-Shape Format	Wrap Text > Edit Wrap Points		SAME MODEL
-Shape Format	Wrap Text > Move with Text		NOT_YET
-Shape Format	Wrap Text > Fix Position on Page		NOT_YET
-Shape Format	Wrap Text > More Layout Options...		SAME MODEL
+Shape Format	Wrap Text > Edit Wrap Points		CHANGED
+Shape Format	Wrap Text > Move with Text		CHANGED
+Shape Format	Wrap Text > Fix Position on Page		CHANGED
+Shape Format	Wrap Text > More Layout Options...		UI
 Shape Format	Bring Forward	<lambda>	CHANGED
 Shape Format	Send Backward	<lambda>	CHANGED
 Shape Format	Delete	<lambda>	CHANGED
 Shape Format	Selection Pane	selection-pane	UI
-Shape Format	Align > Align Left		SAME MODEL
-Shape Format	Align > Align Center		SAME MODEL
-Shape Format	Align > Align Right		SAME MODEL
-Shape Format	Align > Align Top		SAME MODEL
-Shape Format	Align > Align Middle		SAME MODEL
-Shape Format	Align > Align Bottom		SAME MODEL
-Shape Format	Align > Distribute Horizontally		SAME MODEL
-Shape Format	Align > Distribute Vertically		SAME MODEL
+Shape Format	Align > Align Left		CHANGED MODEL
+Shape Format	Align > Align Center		CHANGED
+Shape Format	Align > Align Right		CHANGED
+Shape Format	Align > Align Top		CHANGED
+Shape Format	Align > Align Middle		CHANGED
+Shape Format	Align > Align Bottom		CHANGED
+Shape Format	Align > Distribute Horizontally		SAME
+Shape Format	Align > Distribute Vertically		SAME
 Shape Format	Align > Align to Page		SAME
 Shape Format	Align > Align to Margin		SAME
 Shape Format	Align > Align Selected Objects		SAME
-Shape Format	Group > Group		NOT_YET
-Shape Format	Group > Regroup		NOT_YET
-Shape Format	Group > Ungroup		NOT_YET
+Shape Format	Group > Group		SAME
+Shape Format	Group > Regroup		SAME
+Shape Format	Group > Ungroup		SAME
 Shape Format	Rotate > Rotate Right 90°		CHANGED
-Shape Format	Rotate > Rotate Left 90°		CHANGED MODEL
+Shape Format	Rotate > Rotate Left 90°		CHANGED
 Shape Format	Rotate > Flip Vertical		CHANGED
 Shape Format	Rotate > Flip Horizontal		CHANGED
-Shape Format	Size Settings	object-size	NOT_YET
+Shape Format	Size Settings	object-size	UI
