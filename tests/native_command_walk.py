@@ -168,6 +168,8 @@ PICPOS = {}
 
 def sel_picture():
     e = win.engine.ed
+    if e.story() != "body":
+        e.edit_notes(None)
     if not PICPOS:
         e.move_caret("doc_end", False)
         e.type_text("\n")
@@ -195,6 +197,8 @@ walk(items_of(tabs=("Picture Format",)), setup=sel_picture)
 # a shape
 def sel_shape():
     e = win.engine.ed
+    if e.story() != "body":
+        e.edit_notes(None)
     if e.selected_object() is None or e.selected_object()["kind"] == "picture":
         e.deselect_object()
         e.insert_shape("rect", 0, 300, 300, 100, 60, "Rectangle", False)
