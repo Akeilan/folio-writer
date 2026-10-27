@@ -29,8 +29,107 @@ Home	Underline (Ctrl+U) > More Underlines...	font-dialog	UI
 Home	Strikethrough	.uno:Strikeout	SAME
 Home	Subscript (Ctrl+=)	.uno:SubScript	SAME
 Home	Superscript (Ctrl+Shift+=)	.uno:SuperScript	SAME
+Home	Text Effects and Typography > Fill: Black, Text color 1; Outline: White		SAME
+Home	Text Effects and Typography > Fill: Blue, Accent color 5; Outline: White		SAME
+Home	Text Effects and Typography > Fill: Green, Accent color 6; Outline		SAME
+Home	Text Effects and Typography > Fill: Gray, Accent color 3; Sharp Bevel		SAME
+Home	Text Effects and Typography > Fill: Gold, Accent color 4; Soft Bevel		SAME
+Home	Text Effects and Typography > Fill: White; Outline: Blue, Accent color 1; Shadow		SAME
+Home	Text Effects and Typography > Fill: Orange, Accent color 2; Outline: Orange		SAME
+Home	Text Effects and Typography > Fill: Blue, Accent color 1; Shadow		SAME
+Home	Text Effects and Typography > Fill: Black, Text color 1; Shadow		SAME
+Home	Text Effects and Typography > Outline		SAME
+Home	Text Effects and Typography > Shadow		SAME
 Home	Text Highlight Color	highlight	SAME
+Home	Text Highlight Color > Black		SAME
+Home	Text Highlight Color > Gray 25%		SAME
+Home	Text Highlight Color > Gray 50%		SAME
+Home	Text Highlight Color > Dark Yellow		SAME
+Home	Text Highlight Color > Dark Red		SAME
+Home	Text Highlight Color > Violet		SAME
+Home	Text Highlight Color > Green		SAME
+Home	Text Highlight Color > Teal		SAME
+Home	Text Highlight Color > Dark Blue		SAME
+Home	Text Highlight Color > Red		SAME
+Home	Text Highlight Color > Blue		SAME
+Home	Text Highlight Color > Pink		SAME
+Home	Text Highlight Color > Turquoise		SAME
+Home	Text Highlight Color > Bright Green		SAME
+Home	Text Highlight Color > Yellow		SAME
+Home	Text Highlight Color > No Color		SAME
 Home	Font Color	font-color	SAME
+Home	Font Color > Automatic		SAME
+Home	Font Color > #385623		SAME
+Home	Font Color > #548135		SAME
+Home	Font Color > #A9CD90		SAME
+Home	Font Color > #C5DEB5		SAME
+Home	Font Color > #E2EEDA		SAME
+Home	Font Color > #70AD47		SAME
+Home	Font Color > #2D4D6A		SAME
+Home	Font Color > #44749F		SAME
+Home	Font Color > #9CC3E5		SAME
+Home	Font Color > #BDD7EE		SAME
+Home	Font Color > #DEEBF6		SAME
+Home	Font Color > #5B9BD5		SAME
+Home	Font Color > #7F6000		SAME
+Home	Font Color > #BF9000		SAME
+Home	Font Color > #FFD966		SAME
+Home	Font Color > #FFE599		SAME
+Home	Font Color > #FFF2CC		SAME
+Home	Font Color > #FFC000		SAME
+Home	Font Color > #525252		SAME
+Home	Font Color > #7B7B7B		SAME
+Home	Font Color > #C9C9C9		SAME
+Home	Font Color > #DBDBDB		SAME
+Home	Font Color > #EDEDED		SAME
+Home	Font Color > #A5A5A5		SAME
+Home	Font Color > #763E18		SAME
+Home	Font Color > #B15D24		SAME
+Home	Font Color > #F4B183		SAME
+Home	Font Color > #F7CBAC		SAME
+Home	Font Color > #FBE5D5		SAME
+Home	Font Color > #ED7D31		SAME
+Home	Font Color > #223962		SAME
+Home	Font Color > #335593		SAME
+Home	Font Color > #8EAADB		SAME
+Home	Font Color > #B4C6E7		SAME
+Home	Font Color > #D9E2F3		SAME
+Home	Font Color > #4472C4		SAME
+Home	Font Color > #222A35		SAME
+Home	Font Color > #333F4F		SAME
+Home	Font Color > #8E98A5		SAME
+Home	Font Color > #B4BAC3		SAME
+Home	Font Color > #D9DCE1		SAME
+Home	Font Color > #44546A		SAME
+Home	Font Color > #737373		SAME
+Home	Font Color > #ADACAC		SAME
+Home	Font Color > #F0F0F0		SAME
+Home	Font Color > #F5F5F5		SAME
+Home	Font Color > #FAFAFA		SAME
+Home	Font Color > #E7E6E6		SAME
+Home	Font Color > #595959		SAME
+Home	Font Color > #7F7F7F		SAME
+Home	Font Color > #666666		SAME
+Home	Font Color > #999999		SAME
+Home	Font Color > #CCCCCC		SAME
+Home	Font Color > #000000		SAME
+Home	Font Color > #7F7F7F		SAME
+Home	Font Color > #BFBFBF		SAME
+Home	Font Color > #D8D8D8		SAME
+Home	Font Color > #E5E5E5		SAME
+Home	Font Color > #F2F2F2		SAME
+Home	Font Color > #FFFFFF		SAME
+Home	Font Color > #C00000		SAME
+Home	Font Color > #FF0000		SAME
+Home	Font Color > #FFC000		SAME
+Home	Font Color > #FFFF00		SAME
+Home	Font Color > #92D050		SAME
+Home	Font Color > #00B050		SAME
+Home	Font Color > #00B0F0		SAME
+Home	Font Color > #0070C0		SAME
+Home	Font Color > #002060		SAME
+Home	Font Color > #7030A0		SAME
+Home	Font Color > More Colors...		UI
 Home	Font Settings	font-dialog	UI
 Home	Bullets	bullets	CHANGED
 Home	Bullets > •  Filled bullet		CHANGED MODEL
@@ -46,6 +145,16 @@ Home	Numbering > I.  II.  III.		CHANGED
 Home	Numbering > i.  ii.  iii.		CHANGED
 Home	Numbering > None		CHANGED
 Home	Numbering > Set Numbering Value...		SAME MODEL
+Home	Multilevel List > None		SAME
+Home	Multilevel List > 1.  a.  i.		CHANGED MODEL
+Home	Multilevel List > 1)  a)  i)		CHANGED
+Home	Multilevel List > 1.  1.1.  1.1.1.		CHANGED
+Home	Multilevel List > •  ◦  ▪		CHANGED
+Home	Multilevel List > Article I.  Section 1.01  (a)		CHANGED
+Home	Multilevel List > I.  A.  1.  a)		CHANGED
+Home	Multilevel List > 1 Heading 1, 1.1 Heading 2		CHANGED
+Home	Multilevel List > Chapter 1 Heading 1		CHANGED
+Home	Multilevel List > Define New Multilevel List...		UI
 Home	Decrease Indent	outdent	CHANGED
 Home	Increase Indent	indent	CHANGED
 Home	Sort	sort-dialog	UI
@@ -63,6 +172,77 @@ Home	Line and Paragraph Spacing > 3.0		CHANGED
 Home	Line and Paragraph Spacing > Line Spacing Options...	paragraph-dialog	UI
 Home	Line and Paragraph Spacing > Add Space Before Paragraph		CHANGED
 Home	Line and Paragraph Spacing > Remove Space After Paragraph		CHANGED
+Home	Shading > No Color		SAME
+Home	Shading > #385623		CHANGED MODEL
+Home	Shading > #548135		CHANGED
+Home	Shading > #A9CD90		CHANGED
+Home	Shading > #C5DEB5		CHANGED
+Home	Shading > #E2EEDA		CHANGED
+Home	Shading > #70AD47		CHANGED
+Home	Shading > #2D4D6A		CHANGED
+Home	Shading > #44749F		CHANGED
+Home	Shading > #9CC3E5		CHANGED
+Home	Shading > #BDD7EE		CHANGED
+Home	Shading > #DEEBF6		CHANGED
+Home	Shading > #5B9BD5		CHANGED
+Home	Shading > #7F6000		CHANGED
+Home	Shading > #BF9000		CHANGED
+Home	Shading > #FFD966		CHANGED
+Home	Shading > #FFE599		CHANGED
+Home	Shading > #FFF2CC		CHANGED
+Home	Shading > #FFC000		CHANGED
+Home	Shading > #525252		CHANGED
+Home	Shading > #7B7B7B		CHANGED
+Home	Shading > #C9C9C9		CHANGED
+Home	Shading > #DBDBDB		CHANGED
+Home	Shading > #EDEDED		CHANGED
+Home	Shading > #A5A5A5		CHANGED
+Home	Shading > #763E18		CHANGED
+Home	Shading > #B15D24		CHANGED
+Home	Shading > #F4B183		CHANGED
+Home	Shading > #F7CBAC		CHANGED
+Home	Shading > #FBE5D5		CHANGED
+Home	Shading > #ED7D31		CHANGED
+Home	Shading > #223962		CHANGED
+Home	Shading > #335593		CHANGED
+Home	Shading > #8EAADB		CHANGED
+Home	Shading > #B4C6E7		CHANGED
+Home	Shading > #D9E2F3		CHANGED
+Home	Shading > #4472C4		CHANGED
+Home	Shading > #222A35		CHANGED
+Home	Shading > #333F4F		CHANGED
+Home	Shading > #8E98A5		CHANGED
+Home	Shading > #B4BAC3		CHANGED
+Home	Shading > #D9DCE1		CHANGED
+Home	Shading > #44546A		CHANGED
+Home	Shading > #737373		CHANGED
+Home	Shading > #ADACAC		CHANGED
+Home	Shading > #F0F0F0		CHANGED
+Home	Shading > #F5F5F5		CHANGED
+Home	Shading > #FAFAFA		CHANGED
+Home	Shading > #E7E6E6		CHANGED
+Home	Shading > #595959		CHANGED
+Home	Shading > #7F7F7F		CHANGED
+Home	Shading > #666666		CHANGED
+Home	Shading > #999999		CHANGED
+Home	Shading > #CCCCCC		CHANGED
+Home	Shading > #000000		CHANGED
+Home	Shading > #7F7F7F		CHANGED
+Home	Shading > #BFBFBF		CHANGED
+Home	Shading > #D8D8D8		CHANGED
+Home	Shading > #E5E5E5		CHANGED
+Home	Shading > #F2F2F2		CHANGED
+Home	Shading > #FFFFFF		CHANGED
+Home	Shading > #C00000		CHANGED
+Home	Shading > #FF0000		CHANGED
+Home	Shading > #FFC000		CHANGED
+Home	Shading > #FFFF00		CHANGED
+Home	Shading > #92D050		CHANGED
+Home	Shading > #00B050		CHANGED
+Home	Shading > #00B0F0		CHANGED
+Home	Shading > #0070C0		CHANGED
+Home	Shading > #002060		CHANGED
+Home	Shading > #7030A0		CHANGED
 Home	Borders > Bottom Border		CHANGED
 Home	Borders > Top Border		CHANGED
 Home	Borders > Left Border		CHANGED
@@ -73,8 +253,10 @@ Home	Borders > Outside Borders		CHANGED
 Home	Borders > Inside Borders		CHANGED
 Home	Borders > Inside Horizontal Border		CHANGED
 Home	Borders > Inside Vertical Border		SAME
-Home	Borders > Horizontal Line		CHANGED MODEL
-Home	Borders > Draw Table		SAME
+Home	Borders > Diagonal Down Border		SAME MODEL
+Home	Borders > Diagonal Up Border		SAME
+Home	Borders > Horizontal Line		CHANGED
+Home	Borders > Draw Table		SAME MODEL
 Home	Borders > View Gridlines		SAME
 Home	Borders > Borders and Shading...	paragraph-borders	UI
 Home	Paragraph Settings	paragraph-dialog	UI
@@ -88,8 +270,26 @@ Home	Select > Select All		SAME
 Home	Select > Select Objects		SAME MODEL
 Home	Select > Select All Text With Similar Formatting	select-similar	SAME
 Home	Select > Selection Pane...	selection-pane	SAME
+Insert	Cover Page > Simple		CHANGED MODEL
+Insert	Cover Page > Banded		CHANGED MODEL
+Insert	Cover Page > Grid		CHANGED
+Insert	Cover Page > Facet		CHANGED
+Insert	Cover Page > Ion (Dark)		CHANGED
+Insert	Cover Page > Ion (Light)		CHANGED
+Insert	Cover Page > Motion		CHANGED
+Insert	Cover Page > Retrospect		CHANGED
+Insert	Cover Page > Semaphore		CHANGED
+Insert	Cover Page > Sideline		CHANGED
+Insert	Cover Page > Slice (Dark)		CHANGED
+Insert	Cover Page > Whisp		CHANGED
+Insert	Cover Page > Remove Current Cover Page		CHANGED MODEL
+Insert	Cover Page > Save Selection to Cover Page Gallery...	-	SKIP
 Insert	Blank Page	blank-page	CHANGED MODEL
 Insert	Page Break (Ctrl+Enter)	.uno:InsertPagebreak	CHANGED MODEL
+Insert	Add a Table > Insert Table...		UI MODEL
+Insert	Add a Table > Draw Table		SAME
+Insert	Add a Table > Convert Text to Table...		SAME
+Insert	Add a Table > Quick Tables		UI
 Insert	Pictures	insert-picture	UI
 Insert	Shapes > Line	('draw-shape', 'line')	SAME
 Insert	Shapes > Arrow	('draw-shape', 'arrow-line')	SAME
@@ -126,6 +326,12 @@ Insert	Shapes > Up-Down Arrow	('draw-shape', 'up-down-arrow')	SAME
 Insert	Shapes > Notched Right Arrow	('draw-shape', 'notched-right-arrow')	SAME
 Insert	Shapes > Chevron	('draw-shape', 'chevron')	SAME
 Insert	Shapes > Circular Arrow	('draw-shape', 'circular-arrow')	SAME
+Insert	Shapes > Plus Sign	('draw-shape', 'math-plus')	SAME
+Insert	Shapes > Minus Sign	('draw-shape', 'math-minus')	SAME
+Insert	Shapes > Multiplication Sign	('draw-shape', 'math-multiply')	SAME
+Insert	Shapes > Division Sign	('draw-shape', 'math-divide')	SAME
+Insert	Shapes > Equal	('draw-shape', 'math-equal')	SAME
+Insert	Shapes > Not Equal	('draw-shape', 'math-not-equal')	SAME
 Insert	Shapes > Process	('draw-shape', 'flowchart-process')	SAME
 Insert	Shapes > Decision	('draw-shape', 'flowchart-decision')	SAME
 Insert	Shapes > Terminator	('draw-shape', 'flowchart-terminator')	SAME
@@ -143,6 +349,7 @@ Insert	Shapes > Speech Bubble: Rounded Rectangle	('draw-shape', 'callout')	SAME
 Insert	Shapes > Speech Bubble: Oval	('draw-shape', 'oval-callout')	SAME
 Insert	Shapes > Thought Bubble: Cloud	('draw-shape', 'cloud-callout')	SAME
 Insert	Shapes > Text Box	('draw-shape', 'textbox')	SAME
+Insert	Shapes > New Drawing Canvas	('draw-shape', 'canvas')	CHANGED
 Insert	Icons	<lambda>	UI
 Insert	SmartArt	<lambda>	UI
 Insert	Chart	<lambda>	UI
@@ -152,11 +359,83 @@ Insert	Insert Link (Ctrl+K)	hyperlink	UI
 Insert	Bookmark	bookmark	UI
 Insert	Cross-reference	cross-reference	UI
 Insert	New Comment (Ctrl+Alt+M)	comment	UI
+Insert	Header > Blank		CHANGED MODEL
+Insert	Header > Blank (Three Columns)		CHANGED
+Insert	Header > Austin		CHANGED
+Insert	Header > Banded		CHANGED
+Insert	Header > Facet		CHANGED
+Insert	Header > Grid		CHANGED
+Insert	Header > Integral		CHANGED
+Insert	Header > Ion		CHANGED
+Insert	Header > Retrospect		CHANGED
+Insert	Header > Sideline		CHANGED
+Insert	Header > Whisp		CHANGED
+Insert	Header > Edit Header	header	SAME
+Insert	Header > Remove Header	remove-header	UI MODEL
+Insert	Header > Save Selection to Header Gallery...	-	SKIP
+Insert	Footer > Blank		CHANGED
+Insert	Footer > Blank (Three Columns)		CHANGED MODEL
+Insert	Footer > Austin		CHANGED
+Insert	Footer > Banded		CHANGED
+Insert	Footer > Facet		CHANGED
+Insert	Footer > Integral		CHANGED
+Insert	Footer > Ion		CHANGED
+Insert	Footer > Retrospect		CHANGED
+Insert	Footer > Semaphore		CHANGED
+Insert	Footer > Sideline		CHANGED
+Insert	Footer > Edit Footer	footer	SAME
+Insert	Footer > Remove Footer	remove-footer	CHANGED MODEL
+Insert	Footer > Save Selection to Footer Gallery...	-	SKIP
+Insert	Page Number > Top of Page		SAME
+Insert	Page Number > Plain Number 1		CHANGED
+Insert	Page Number > Plain Number 2		CHANGED
+Insert	Page Number > Plain Number 3		CHANGED
+Insert	Page Number > Bold Numbers		CHANGED
+Insert	Page Number > Page X of Y		CHANGED
+Insert	Page Number > Bottom of Page		SAME
+Insert	Page Number > Plain Number 1		CHANGED
+Insert	Page Number > Plain Number 2		CHANGED
+Insert	Page Number > Plain Number 3		CHANGED
+Insert	Page Number > Bold Numbers		CHANGED
+Insert	Page Number > Page X of Y		CHANGED
+Insert	Page Number > Page Margins		SAME
+Insert	Page Number > Circle, Right		CHANGED MODEL
+Insert	Page Number > Plain Number, Right		CHANGED MODEL
+Insert	Page Number > Plain Number, Left		CHANGED
+Insert	Page Number > Current Position		SAME
+Insert	Page Number > Plain Number		CHANGED
+Insert	Page Number > Page X of Y		CHANGED
+Insert	Page Number > Top of Page		SAME
+Insert	Page Number > Bottom of Page		SAME
+Insert	Page Number > Page Margins		SAME
+Insert	Page Number > Current Position		SAME
+Insert	Page Number > Format Page Numbers...		SAME MODEL
+Insert	Page Number > Remove Page Numbers	remove-page-numbers	CHANGED MODEL
 Insert	Text Box > Simple Text Box		CHANGED
 Insert	Text Box > Sidebar		CHANGED
 Insert	Text Box > Quote		CHANGED
 Insert	Text Box > Banded		CHANGED
 Insert	Text Box > Draw Text Box	('draw-shape', 'textbox')	SAME
+Insert	Text Box > Save Selection to Text Box Gallery...	-	SKIP
+Insert	Quick Parts > Author		CHANGED
+Insert	Quick Parts > Title		CHANGED
+Insert	Quick Parts > Subject		CHANGED
+Insert	Quick Parts > Company		CHANGED
+Insert	Quick Parts > Keywords		CHANGED
+Insert	Quick Parts > Comments		CHANGED
+Insert	Quick Parts > Status		CHANGED
+Insert	Quick Parts > Field...	field-dialog	UI MODEL
+Insert	Quick Parts > Building Blocks Organizer...		UI
+Insert	Quick Parts > Save Selection to Quick Part Gallery...	-	SKIP
+Insert	WordArt > Fill: Black, Text color 1; Outline: White		CHANGED
+Insert	WordArt > Fill: Blue, Accent color 5; Outline: White		CHANGED
+Insert	WordArt > Fill: Green, Accent color 6; Outline		CHANGED
+Insert	WordArt > Fill: Gray, Accent color 3; Sharp Bevel		CHANGED
+Insert	WordArt > Fill: Gold, Accent color 4; Soft Bevel		CHANGED
+Insert	WordArt > Fill: White; Outline: Blue, Accent color 1; Shadow		CHANGED
+Insert	WordArt > Fill: Orange, Accent color 2; Outline: Orange		CHANGED
+Insert	WordArt > Fill: Blue, Accent color 1; Shadow		CHANGED
+Insert	WordArt > Fill: Black, Text color 1; Shadow		CHANGED
 Insert	Date & Time	date-time	UI
 Insert	Field	field-dialog	UI MODEL
 Insert	Drop Cap > None		SAME
@@ -167,6 +446,43 @@ Insert	Signature Line > Signature Line...		UI MODEL
 Insert	Object > Object...		UI MODEL
 Insert	Object > Text from File...	text-from-file	UI
 Insert	Equation (Alt+=)	equation	CHANGED
+Insert	Equation (Alt+=) > Area of Circle		CHANGED
+Insert	Equation (Alt+=) > Binomial Theorem		CHANGED
+Insert	Equation (Alt+=) > Expansion of a Sum		CHANGED
+Insert	Equation (Alt+=) > Fourier Series		CHANGED
+Insert	Equation (Alt+=) > Pythagorean Theorem		CHANGED
+Insert	Equation (Alt+=) > Quadratic Formula		CHANGED
+Insert	Equation (Alt+=) > Taylor Expansion		CHANGED
+Insert	Equation (Alt+=) > Trig Identity 1		CHANGED
+Insert	Equation (Alt+=) > Trig Identity 2		CHANGED
+Insert	Equation (Alt+=) > Euler's Identity		CHANGED
+Insert	Equation (Alt+=) > Gaussian Integral		CHANGED
+Insert	Equation (Alt+=) > Normal Distribution		CHANGED
+Insert	Equation (Alt+=) > Bayes' Theorem		CHANGED
+Insert	Equation (Alt+=) > Definition of Derivative		CHANGED
+Insert	Equation (Alt+=) > Save Selection to Equation Gallery...	-	SKIP
+Insert	Equation (Alt+=) > Insert New Equation		CHANGED
+Insert	Symbol > √		CHANGED
+Insert	Symbol > ∑		CHANGED
+Insert	Symbol > Ω		CHANGED
+Insert	Symbol > π		CHANGED
+Insert	Symbol > β		CHANGED
+Insert	Symbol > α		CHANGED
+Insert	Symbol > µ		CHANGED
+Insert	Symbol > ∞		CHANGED
+Insert	Symbol > ×		CHANGED
+Insert	Symbol > ÷		CHANGED
+Insert	Symbol > ≥		CHANGED
+Insert	Symbol > ≤		CHANGED
+Insert	Symbol > ≠		CHANGED
+Insert	Symbol > ±		CHANGED
+Insert	Symbol > ™		CHANGED
+Insert	Symbol > ®		CHANGED
+Insert	Symbol > ©		CHANGED
+Insert	Symbol > ¥		CHANGED
+Insert	Symbol > £		CHANGED
+Insert	Symbol > €		CHANGED
+Insert	Symbol > More Symbols...		UI
 Draw	Select	<lambda>	SAME
 Draw	Eraser	<lambda>	SAME
 Draw	Pen	<lambda>	SAME
@@ -220,7 +536,7 @@ Draw	Highlighter > 2 mm		SAME
 Draw	Highlighter > 3.5 mm		SAME
 Draw	Highlighter > 5 mm		SAME
 Draw	Highlighter > 8 mm		SAME
-Draw	Ink to Math	ink-equation	NOT_YET
+Draw	Ink to Math	<lambda>	UI
 Design	Themes > Default	('doc-theme', 'Default')	CHANGED MODEL
 Design	Themes > Default 2023	('doc-theme', 'Default 2023')	CHANGED MODEL
 Design	Themes > Classic	('doc-theme', 'Classic')	CHANGED MODEL
@@ -289,6 +605,79 @@ Design	Watermark > SAMPLE	('watermark', 'SAMPLE')	CHANGED
 Design	Watermark > URGENT	('watermark', 'URGENT')	CHANGED
 Design	Watermark > Custom Watermark...	watermark-dialog	UI
 Design	Watermark > Remove Watermark	('watermark', '')	CHANGED
+Design	Page Color > No Color	('page-color', None)	CHANGED
+Design	Page Color > #385623	('page-color', 3692067)	CHANGED
+Design	Page Color > #548135	('page-color', 5538101)	CHANGED
+Design	Page Color > #A9CD90	('page-color', 11128208)	CHANGED
+Design	Page Color > #C5DEB5	('page-color', 12967605)	CHANGED
+Design	Page Color > #E2EEDA	('page-color', 14872282)	CHANGED
+Design	Page Color > #70AD47	('page-color', 7384391)	CHANGED
+Design	Page Color > #2D4D6A	('page-color', 2968938)	CHANGED
+Design	Page Color > #44749F	('page-color', 4486303)	CHANGED
+Design	Page Color > #9CC3E5	('page-color', 10273765)	CHANGED
+Design	Page Color > #BDD7EE	('page-color', 12441582)	CHANGED
+Design	Page Color > #DEEBF6	('page-color', 14609398)	CHANGED
+Design	Page Color > #5B9BD5	('page-color', 6003669)	CHANGED
+Design	Page Color > #7F6000	('page-color', 8347648)	CHANGED
+Design	Page Color > #BF9000	('page-color', 12554240)	CHANGED
+Design	Page Color > #FFD966	('page-color', 16767334)	CHANGED
+Design	Page Color > #FFE599	('page-color', 16770457)	CHANGED
+Design	Page Color > #FFF2CC	('page-color', 16773836)	CHANGED
+Design	Page Color > #FFC000	('page-color', 16760832)	CHANGED
+Design	Page Color > #525252	('page-color', 5395026)	CHANGED
+Design	Page Color > #7B7B7B	('page-color', 8092539)	CHANGED
+Design	Page Color > #C9C9C9	('page-color', 13224393)	CHANGED
+Design	Page Color > #DBDBDB	('page-color', 14408667)	CHANGED
+Design	Page Color > #EDEDED	('page-color', 15592941)	CHANGED
+Design	Page Color > #A5A5A5	('page-color', 10855845)	CHANGED
+Design	Page Color > #763E18	('page-color', 7749144)	CHANGED
+Design	Page Color > #B15D24	('page-color', 11623716)	CHANGED
+Design	Page Color > #F4B183	('page-color', 16036227)	CHANGED
+Design	Page Color > #F7CBAC	('page-color', 16239532)	CHANGED
+Design	Page Color > #FBE5D5	('page-color', 16508373)	CHANGED
+Design	Page Color > #ED7D31	('page-color', 15564081)	CHANGED
+Design	Page Color > #223962	('page-color', 2242914)	CHANGED
+Design	Page Color > #335593	('page-color', 3364243)	CHANGED
+Design	Page Color > #8EAADB	('page-color', 9349851)	CHANGED
+Design	Page Color > #B4C6E7	('page-color', 11847399)	CHANGED
+Design	Page Color > #D9E2F3	('page-color', 14279411)	CHANGED
+Design	Page Color > #4472C4	('page-color', 4485828)	CHANGED
+Design	Page Color > #222A35	('page-color', 2239029)	CHANGED
+Design	Page Color > #333F4F	('page-color', 3358543)	CHANGED
+Design	Page Color > #8E98A5	('page-color', 9345189)	CHANGED
+Design	Page Color > #B4BAC3	('page-color', 11844291)	CHANGED
+Design	Page Color > #D9DCE1	('page-color', 14277857)	CHANGED
+Design	Page Color > #44546A	('page-color', 4478058)	CHANGED
+Design	Page Color > #737373	('page-color', 7566195)	CHANGED
+Design	Page Color > #ADACAC	('page-color', 11381932)	CHANGED
+Design	Page Color > #F0F0F0	('page-color', 15790320)	CHANGED
+Design	Page Color > #F5F5F5	('page-color', 16119285)	CHANGED
+Design	Page Color > #FAFAFA	('page-color', 16448250)	CHANGED
+Design	Page Color > #E7E6E6	('page-color', 15197926)	CHANGED
+Design	Page Color > #595959	('page-color', 5855577)	CHANGED
+Design	Page Color > #7F7F7F	('page-color', 8355711)	CHANGED
+Design	Page Color > #666666	('page-color', 6710886)	CHANGED
+Design	Page Color > #999999	('page-color', 10066329)	CHANGED
+Design	Page Color > #CCCCCC	('page-color', 13421772)	CHANGED
+Design	Page Color > #000000	('page-color', 0)	CHANGED
+Design	Page Color > #7F7F7F	('page-color', 8355711)	CHANGED
+Design	Page Color > #BFBFBF	('page-color', 12566463)	CHANGED
+Design	Page Color > #D8D8D8	('page-color', 14211288)	CHANGED
+Design	Page Color > #E5E5E5	('page-color', 15066597)	CHANGED
+Design	Page Color > #F2F2F2	('page-color', 15921906)	CHANGED
+Design	Page Color > #FFFFFF	('page-color', 16777215)	CHANGED
+Design	Page Color > #C00000	('page-color', 12582912)	CHANGED
+Design	Page Color > #FF0000	('page-color', 16711680)	CHANGED
+Design	Page Color > #FFC000	('page-color', 16760832)	CHANGED
+Design	Page Color > #FFFF00	('page-color', 16776960)	CHANGED
+Design	Page Color > #92D050	('page-color', 9621584)	CHANGED
+Design	Page Color > #00B050	('page-color', 45136)	CHANGED
+Design	Page Color > #00B0F0	('page-color', 45296)	CHANGED
+Design	Page Color > #0070C0	('page-color', 28864)	CHANGED
+Design	Page Color > #002060	('page-color', 8288)	CHANGED
+Design	Page Color > #7030A0	('page-color', 7352480)	CHANGED
+Design	Page Color > More Colors...		UI
+Design	Page Color > Fill Effects...		UI
 Design	Page Borders	page-borders	UI
 Layout	Margins > Normal  (Top 1", Bottom 1", Left 1", Right 1")	('margins', (2540, 2540, 2540, 2540))	CHANGED
 Layout	Margins > Narrow  (0.5" all sides)	('margins', (1270, 1270, 1270, 1270))	CHANGED
@@ -324,23 +713,23 @@ Layout	Line Numbers > Suppress for Current Paragraph	('line-numbers', 'suppress'
 Layout	Line Numbers > Line Numbering Options...	line-numbers	UI
 Layout	Hyphenation > None	('hyphenation', False)	SAME
 Layout	Hyphenation > Automatic	('hyphenation', True)	CHANGED MODEL
-Layout	Hyphenation > Manual...		SAME
+Layout	Hyphenation > Manual...		SAME MODEL
 Layout	Hyphenation > Hyphenation Options...		UI
 Layout	Page Setup Settings	page-setup	UI
 Layout	Paragraph Settings	paragraph-dialog	UI
-Layout	Wrap Text > In Line with Text		CHANGED MODEL
-Layout	Wrap Text > Square		NOT_YET MODEL
-Layout	Wrap Text > Tight		NOT_YET
-Layout	Wrap Text > Behind Text		NOT_YET
-Layout	Bring Forward	.uno:BringToFront	NOT_YET
-Layout	Send Backward	.uno:SendToBack	NOT_YET
+Layout	Wrap Text > In Line with Text		CHANGED
+Layout	Wrap Text > Square		CHANGED
+Layout	Wrap Text > Tight		CHANGED
+Layout	Wrap Text > Behind Text		CHANGED
+Layout	Bring Forward	.uno:BringToFront	CHANGED
+Layout	Send Backward	.uno:SendToBack	CHANGED
 Layout	Selection Pane	selection-pane	UI
-Layout	Align > Align Left		SAME
-Layout	Align > Align Center		SAME
-Layout	Align > Align Right		SAME
-Layout	Align > Align Top		SAME
-Layout	Align > Align Middle		SAME
-Layout	Align > Align Bottom		SAME
+Layout	Align > Align Left		CHANGED
+Layout	Align > Align Center		CHANGED
+Layout	Align > Align Right		CHANGED
+Layout	Align > Align Top		CHANGED
+Layout	Align > Align Middle		CHANGED
+Layout	Align > Align Bottom		CHANGED
 Layout	Align > Distribute Horizontally		SAME
 Layout	Align > Distribute Vertically		SAME
 Layout	Align > Align to Page		SAME
@@ -367,11 +756,14 @@ References	Next Footnote > Next Endnote	next-endnote	SAME
 References	Next Footnote > Previous Endnote	prev-endnote	SAME
 References	Show Notes	show-notes	SAME
 References	Footnotes Settings	footnote-dialog	UI MODEL
+References	Insert Citation > Add New Source...		UI
+References	Insert Citation > Add New Placeholder...		SAME
 References	Manage Sources	<lambda>	UI
 References	Bibliography > Bibliography		CHANGED
 References	Bibliography > References		SAME MODEL
 References	Bibliography > Works Cited		SAME
 References	Bibliography > Insert Bibliography		SAME
+References	Bibliography > Save Selection to Bibliography Gallery...	-	SKIP
 References	Insert Caption	caption	UI MODEL
 References	Insert Table of Figures	table-of-figures	UI
 References	Update Table	update-toc	CHANGED
@@ -387,10 +779,13 @@ Mailings	Labels	<lambda>	UI
 Mailings	Start Mail Merge > Letters		CHANGED MODEL
 Mailings	Start Mail Merge > Envelopes...		UI
 Mailings	Start Mail Merge > Labels...		UI
+Mailings	Start Mail Merge > E-mail Messages		SAME
 Mailings	Start Mail Merge > Directory		CHANGED MODEL
-Mailings	Start Mail Merge > Normal Document		CHANGED MODEL
+Mailings	Start Mail Merge > Normal Word Document		CHANGED MODEL
+Mailings	Start Mail Merge > Step-by-Step Mail Merge Wizard...		UI
 Mailings	Select Recipients > Type a New List...		UI
 Mailings	Select Recipients > Use an Existing List...		UI
+Mailings	Select Recipients > Choose from Outlook Contacts...		SAME
 Mailings	Edit Recipient List	<lambda>	SAME
 Mailings	Highlight Merge Fields	highlight-merge-fields	SAME
 Mailings	Address Block	<lambda>	SAME MODEL
@@ -415,6 +810,7 @@ Mailings	Find Recipient	find-recipient	SAME MODEL
 Mailings	Auto Check for Errors	<lambda>	UI MODEL
 Mailings	Finish & Merge > Edit Individual Documents...		SAME
 Mailings	Finish & Merge > Print Documents...	-	SKIP
+Mailings	Finish & Merge > Send Email Messages...		SAME
 Review	Spelling & Grammar (F7)	spelling	UI
 Review	Thesaurus (Shift+F7)	thesaurus	SAME
 Review	Word Count (Ctrl+Shift+G)	word-count	UI
@@ -434,6 +830,7 @@ Review	Next	next-comment	SAME
 Review	Show Comments	<lambda>	SAME
 Review	Track Changes (Ctrl+Shift+E)	.uno:TrackChanges	CHANGED
 Review	Track Changes (Ctrl+Shift+E) > For Everyone		CHANGED MODEL
+Review	Track Changes (Ctrl+Shift+E) > Just Mine		SAME
 Review	Track Changes (Ctrl+Shift+E) > Lock Tracking		UI
 Review	Show Markup > Comments		SAME
 Review	Show Markup > Insertions and Deletions		SAME
@@ -470,7 +867,7 @@ View	Print Layout	-	SKIP
 View	Web Layout	web-layout	SAME MODEL
 View	Outline	outline-view	UI MODEL
 View	Draft	draft-view	UI MODEL
-View	Focus	focus-mode	SAME MODEL
+View	Focus	focus-mode	SAME
 View	Immersive Reader	immersive-reader	UI MODEL
 View	Vertical	<lambda>	SAME MODEL
 View	Side to Side	side-to-side	UI
@@ -488,6 +885,7 @@ View	Split	split	SAME
 View	View Side by Side	side-by-side	SAME
 View	Synchronous Scrolling	sync-scrolling	SAME
 View	Reset Window Position	reset-window-position	SAME
+View	Switch Windows > ✓ 1 Document1		SAME
 View	Macros (Alt+F8)	-	SKIP
 View	Macros (Alt+F8) > View Macros	-	SKIP
 View	Macros (Alt+F8) > Record Macro...	-	SKIP
@@ -518,8 +916,8 @@ Outlining	Show Text Formatting	go	SAME
 Outlining	Show First Line Only	go	SAME
 Outlining	Close Outline View	-	SKIP
 Developer	Rich Text Content Control	<lambda>	CHANGED
-Developer	Plain Text Content Control	<lambda>	SAME MODEL
-Developer	Picture Content Control	<lambda>	SAME
+Developer	Plain Text Content Control	<lambda>	SAME
+Developer	Picture Content Control	<lambda>	SAME MODEL
 Developer	Check Box Content Control	<lambda>	SAME
 Developer	Combo Box Content Control	<lambda>	SAME
 Developer	Drop-Down List Content Control	<lambda>	SAME
@@ -578,6 +976,77 @@ Picture Format	Change Picture	<lambda>	SAME
 Picture Format	Reset Picture	<lambda>	SAME
 Picture Format	Reset Picture > Reset Picture		SAME
 Picture Format	Reset Picture > Reset Picture & Size		CHANGED
+Picture Format	Picture Border > No Outline		CHANGED
+Picture Format	Picture Border > #385623		CHANGED
+Picture Format	Picture Border > #548135		CHANGED
+Picture Format	Picture Border > #A9CD90		CHANGED
+Picture Format	Picture Border > #C5DEB5		CHANGED
+Picture Format	Picture Border > #E2EEDA		CHANGED
+Picture Format	Picture Border > #70AD47		CHANGED
+Picture Format	Picture Border > #2D4D6A		CHANGED
+Picture Format	Picture Border > #44749F		CHANGED
+Picture Format	Picture Border > #9CC3E5		CHANGED
+Picture Format	Picture Border > #BDD7EE		CHANGED
+Picture Format	Picture Border > #DEEBF6		CHANGED
+Picture Format	Picture Border > #5B9BD5		CHANGED
+Picture Format	Picture Border > #7F6000		CHANGED
+Picture Format	Picture Border > #BF9000		CHANGED
+Picture Format	Picture Border > #FFD966		CHANGED
+Picture Format	Picture Border > #FFE599		CHANGED
+Picture Format	Picture Border > #FFF2CC		CHANGED
+Picture Format	Picture Border > #FFC000		CHANGED
+Picture Format	Picture Border > #525252		CHANGED
+Picture Format	Picture Border > #7B7B7B		CHANGED
+Picture Format	Picture Border > #C9C9C9		CHANGED
+Picture Format	Picture Border > #DBDBDB		CHANGED
+Picture Format	Picture Border > #EDEDED		CHANGED
+Picture Format	Picture Border > #A5A5A5		CHANGED
+Picture Format	Picture Border > #763E18		CHANGED
+Picture Format	Picture Border > #B15D24		CHANGED
+Picture Format	Picture Border > #F4B183		CHANGED
+Picture Format	Picture Border > #F7CBAC		CHANGED
+Picture Format	Picture Border > #FBE5D5		CHANGED
+Picture Format	Picture Border > #ED7D31		CHANGED
+Picture Format	Picture Border > #223962		CHANGED
+Picture Format	Picture Border > #335593		CHANGED
+Picture Format	Picture Border > #8EAADB		CHANGED
+Picture Format	Picture Border > #B4C6E7		CHANGED
+Picture Format	Picture Border > #D9E2F3		CHANGED
+Picture Format	Picture Border > #4472C4		CHANGED
+Picture Format	Picture Border > #222A35		CHANGED
+Picture Format	Picture Border > #333F4F		CHANGED
+Picture Format	Picture Border > #8E98A5		CHANGED
+Picture Format	Picture Border > #B4BAC3		CHANGED
+Picture Format	Picture Border > #D9DCE1		CHANGED
+Picture Format	Picture Border > #44546A		CHANGED
+Picture Format	Picture Border > #737373		CHANGED
+Picture Format	Picture Border > #ADACAC		CHANGED
+Picture Format	Picture Border > #F0F0F0		CHANGED
+Picture Format	Picture Border > #F5F5F5		CHANGED
+Picture Format	Picture Border > #FAFAFA		CHANGED
+Picture Format	Picture Border > #E7E6E6		CHANGED
+Picture Format	Picture Border > #595959		CHANGED
+Picture Format	Picture Border > #7F7F7F		CHANGED
+Picture Format	Picture Border > #666666		CHANGED
+Picture Format	Picture Border > #999999		CHANGED
+Picture Format	Picture Border > #CCCCCC		CHANGED
+Picture Format	Picture Border > #000000		CHANGED
+Picture Format	Picture Border > #7F7F7F		CHANGED
+Picture Format	Picture Border > #BFBFBF		CHANGED
+Picture Format	Picture Border > #D8D8D8		CHANGED
+Picture Format	Picture Border > #E5E5E5		CHANGED
+Picture Format	Picture Border > #F2F2F2		CHANGED
+Picture Format	Picture Border > #FFFFFF		CHANGED
+Picture Format	Picture Border > #C00000		CHANGED
+Picture Format	Picture Border > #FF0000		CHANGED
+Picture Format	Picture Border > #FFC000		CHANGED
+Picture Format	Picture Border > #FFFF00		CHANGED
+Picture Format	Picture Border > #92D050		CHANGED
+Picture Format	Picture Border > #00B050		CHANGED
+Picture Format	Picture Border > #00B0F0		CHANGED
+Picture Format	Picture Border > #0070C0		CHANGED
+Picture Format	Picture Border > #002060		CHANGED
+Picture Format	Picture Border > #7030A0		CHANGED
 Picture Format	Weight > ¼ pt		CHANGED
 Picture Format	Weight > ½ pt		CHANGED
 Picture Format	Weight > ¾ pt		CHANGED
@@ -645,10 +1114,28 @@ Picture Format	Picture Effects > Divot		CHANGED
 Picture Format	Picture Effects > Riblet		CHANGED
 Picture Format	Picture Effects > Hard Edge		CHANGED
 Picture Format	Picture Effects > Art Deco		CHANGED
+Picture Format	Picture Effects > No Rotation		CHANGED
+Picture Format	Picture Effects > Isometric: Left Down		CHANGED
+Picture Format	Picture Effects > Isometric: Right Up		CHANGED
+Picture Format	Picture Effects > Isometric: Top Up		CHANGED
+Picture Format	Picture Effects > Isometric: Bottom Down		CHANGED
+Picture Format	Picture Effects > Off Axis 1: Left		CHANGED
+Picture Format	Picture Effects > Off Axis 1: Right		CHANGED
+Picture Format	Picture Effects > Off Axis 2: Left		CHANGED
+Picture Format	Picture Effects > Off Axis 2: Right		CHANGED
+Picture Format	Picture Effects > Perspective: Left		CHANGED
+Picture Format	Picture Effects > Perspective: Right		CHANGED
+Picture Format	Picture Effects > Perspective: Below		CHANGED
+Picture Format	Picture Effects > Perspective: Above		CHANGED
+Picture Format	Picture Effects > Perspective: Relaxed		CHANGED
+Picture Format	Picture Effects > Oblique: Top Left		CHANGED
+Picture Format	Picture Effects > Oblique: Top Right		CHANGED
+Picture Format	Picture Effects > Oblique: Bottom Left		CHANGED
+Picture Format	Picture Effects > Oblique: Bottom Right		CHANGED
 Picture Format	Alt Text	<lambda>	SAME
 Picture Format	Position > In Line with Text		SAME
 Picture Format	Position > Position in Top Left		CHANGED MODEL
-Picture Format	Position > Position in Top Center		CHANGED
+Picture Format	Position > Position in Top Center		CHANGED MODEL
 Picture Format	Position > Position in Top Right		CHANGED
 Picture Format	Position > Position in Middle Left		CHANGED
 Picture Format	Position > Position in Middle Center		CHANGED
@@ -753,6 +1240,12 @@ Shape Format	Shapes > Up-Down Arrow	('draw-shape', 'up-down-arrow')	SAME
 Shape Format	Shapes > Notched Right Arrow	('draw-shape', 'notched-right-arrow')	SAME
 Shape Format	Shapes > Chevron	('draw-shape', 'chevron')	SAME
 Shape Format	Shapes > Circular Arrow	('draw-shape', 'circular-arrow')	SAME
+Shape Format	Shapes > Plus Sign	('draw-shape', 'math-plus')	SAME
+Shape Format	Shapes > Minus Sign	('draw-shape', 'math-minus')	SAME
+Shape Format	Shapes > Multiplication Sign	('draw-shape', 'math-multiply')	SAME
+Shape Format	Shapes > Division Sign	('draw-shape', 'math-divide')	SAME
+Shape Format	Shapes > Equal	('draw-shape', 'math-equal')	SAME
+Shape Format	Shapes > Not Equal	('draw-shape', 'math-not-equal')	SAME
 Shape Format	Shapes > Process	('draw-shape', 'flowchart-process')	SAME
 Shape Format	Shapes > Decision	('draw-shape', 'flowchart-decision')	SAME
 Shape Format	Shapes > Terminator	('draw-shape', 'flowchart-terminator')	SAME
@@ -770,6 +1263,7 @@ Shape Format	Shapes > Speech Bubble: Rounded Rectangle	('draw-shape', 'callout')
 Shape Format	Shapes > Speech Bubble: Oval	('draw-shape', 'oval-callout')	SAME
 Shape Format	Shapes > Thought Bubble: Cloud	('draw-shape', 'cloud-callout')	SAME
 Shape Format	Shapes > Text Box	('draw-shape', 'textbox')	SAME
+Shape Format	Shapes > New Drawing Canvas	('draw-shape', 'canvas')	CHANGED
 Shape Format	Edit Shape > Rectangle		CHANGED
 Shape Format	Edit Shape > Rounded Rectangle		CHANGED
 Shape Format	Edit Shape > Oval		CHANGED
@@ -823,6 +1317,149 @@ Shape Format	Merge Shapes > Combine		SAME
 Shape Format	Merge Shapes > Fragment		SAME
 Shape Format	Merge Shapes > Intersect		SAME
 Shape Format	Merge Shapes > Subtract		SAME
+Shape Format	Shape Fill > No Fill		CHANGED
+Shape Format	Shape Fill > #385623		CHANGED
+Shape Format	Shape Fill > #548135		CHANGED
+Shape Format	Shape Fill > #A9CD90		CHANGED
+Shape Format	Shape Fill > #C5DEB5		CHANGED
+Shape Format	Shape Fill > #E2EEDA		CHANGED
+Shape Format	Shape Fill > #70AD47		CHANGED
+Shape Format	Shape Fill > #2D4D6A		CHANGED
+Shape Format	Shape Fill > #44749F		CHANGED
+Shape Format	Shape Fill > #9CC3E5		CHANGED
+Shape Format	Shape Fill > #BDD7EE		CHANGED
+Shape Format	Shape Fill > #DEEBF6		CHANGED
+Shape Format	Shape Fill > #5B9BD5		CHANGED
+Shape Format	Shape Fill > #7F6000		CHANGED
+Shape Format	Shape Fill > #BF9000		CHANGED
+Shape Format	Shape Fill > #FFD966		CHANGED
+Shape Format	Shape Fill > #FFE599		CHANGED
+Shape Format	Shape Fill > #FFF2CC		CHANGED
+Shape Format	Shape Fill > #FFC000		CHANGED
+Shape Format	Shape Fill > #525252		CHANGED
+Shape Format	Shape Fill > #7B7B7B		CHANGED
+Shape Format	Shape Fill > #C9C9C9		CHANGED
+Shape Format	Shape Fill > #DBDBDB		CHANGED
+Shape Format	Shape Fill > #EDEDED		CHANGED
+Shape Format	Shape Fill > #A5A5A5		CHANGED
+Shape Format	Shape Fill > #763E18		CHANGED
+Shape Format	Shape Fill > #B15D24		CHANGED
+Shape Format	Shape Fill > #F4B183		CHANGED
+Shape Format	Shape Fill > #F7CBAC		CHANGED
+Shape Format	Shape Fill > #FBE5D5		CHANGED
+Shape Format	Shape Fill > #ED7D31		CHANGED
+Shape Format	Shape Fill > #223962		CHANGED
+Shape Format	Shape Fill > #335593		CHANGED
+Shape Format	Shape Fill > #8EAADB		CHANGED
+Shape Format	Shape Fill > #B4C6E7		CHANGED
+Shape Format	Shape Fill > #D9E2F3		CHANGED
+Shape Format	Shape Fill > #4472C4		CHANGED
+Shape Format	Shape Fill > #222A35		CHANGED
+Shape Format	Shape Fill > #333F4F		CHANGED
+Shape Format	Shape Fill > #8E98A5		CHANGED
+Shape Format	Shape Fill > #B4BAC3		CHANGED
+Shape Format	Shape Fill > #D9DCE1		CHANGED
+Shape Format	Shape Fill > #44546A		CHANGED
+Shape Format	Shape Fill > #737373		CHANGED
+Shape Format	Shape Fill > #ADACAC		CHANGED
+Shape Format	Shape Fill > #F0F0F0		CHANGED
+Shape Format	Shape Fill > #F5F5F5		CHANGED
+Shape Format	Shape Fill > #FAFAFA		CHANGED
+Shape Format	Shape Fill > #E7E6E6		CHANGED
+Shape Format	Shape Fill > #595959		CHANGED
+Shape Format	Shape Fill > #7F7F7F		CHANGED
+Shape Format	Shape Fill > #666666		CHANGED
+Shape Format	Shape Fill > #999999		CHANGED
+Shape Format	Shape Fill > #CCCCCC		CHANGED
+Shape Format	Shape Fill > #000000		CHANGED
+Shape Format	Shape Fill > #7F7F7F		CHANGED
+Shape Format	Shape Fill > #BFBFBF		CHANGED
+Shape Format	Shape Fill > #D8D8D8		CHANGED
+Shape Format	Shape Fill > #E5E5E5		CHANGED
+Shape Format	Shape Fill > #F2F2F2		CHANGED
+Shape Format	Shape Fill > #FFFFFF		CHANGED
+Shape Format	Shape Fill > #C00000		CHANGED
+Shape Format	Shape Fill > #FF0000		CHANGED
+Shape Format	Shape Fill > #FFC000		CHANGED
+Shape Format	Shape Fill > #FFFF00		CHANGED
+Shape Format	Shape Fill > #92D050		CHANGED
+Shape Format	Shape Fill > #00B050		CHANGED
+Shape Format	Shape Fill > #00B0F0		CHANGED
+Shape Format	Shape Fill > #0070C0		CHANGED
+Shape Format	Shape Fill > #002060		CHANGED
+Shape Format	Shape Fill > #7030A0		CHANGED
+Shape Format	Shape Fill > More Colors...		UI
+Shape Format	Shape Outline > No Outline		CHANGED
+Shape Format	Shape Outline > #385623		CHANGED
+Shape Format	Shape Outline > #548135		CHANGED
+Shape Format	Shape Outline > #A9CD90		CHANGED
+Shape Format	Shape Outline > #C5DEB5		CHANGED
+Shape Format	Shape Outline > #E2EEDA		CHANGED
+Shape Format	Shape Outline > #70AD47		CHANGED
+Shape Format	Shape Outline > #2D4D6A		CHANGED
+Shape Format	Shape Outline > #44749F		CHANGED
+Shape Format	Shape Outline > #9CC3E5		CHANGED
+Shape Format	Shape Outline > #BDD7EE		CHANGED
+Shape Format	Shape Outline > #DEEBF6		CHANGED
+Shape Format	Shape Outline > #5B9BD5		CHANGED
+Shape Format	Shape Outline > #7F6000		CHANGED
+Shape Format	Shape Outline > #BF9000		CHANGED
+Shape Format	Shape Outline > #FFD966		CHANGED
+Shape Format	Shape Outline > #FFE599		CHANGED
+Shape Format	Shape Outline > #FFF2CC		CHANGED
+Shape Format	Shape Outline > #FFC000		CHANGED
+Shape Format	Shape Outline > #525252		CHANGED
+Shape Format	Shape Outline > #7B7B7B		CHANGED
+Shape Format	Shape Outline > #C9C9C9		CHANGED
+Shape Format	Shape Outline > #DBDBDB		CHANGED
+Shape Format	Shape Outline > #EDEDED		CHANGED
+Shape Format	Shape Outline > #A5A5A5		CHANGED
+Shape Format	Shape Outline > #763E18		CHANGED
+Shape Format	Shape Outline > #B15D24		CHANGED
+Shape Format	Shape Outline > #F4B183		CHANGED
+Shape Format	Shape Outline > #F7CBAC		CHANGED
+Shape Format	Shape Outline > #FBE5D5		CHANGED
+Shape Format	Shape Outline > #ED7D31		CHANGED
+Shape Format	Shape Outline > #223962		CHANGED
+Shape Format	Shape Outline > #335593		CHANGED
+Shape Format	Shape Outline > #8EAADB		CHANGED
+Shape Format	Shape Outline > #B4C6E7		CHANGED
+Shape Format	Shape Outline > #D9E2F3		CHANGED
+Shape Format	Shape Outline > #4472C4		CHANGED
+Shape Format	Shape Outline > #222A35		CHANGED
+Shape Format	Shape Outline > #333F4F		CHANGED
+Shape Format	Shape Outline > #8E98A5		CHANGED
+Shape Format	Shape Outline > #B4BAC3		CHANGED
+Shape Format	Shape Outline > #D9DCE1		CHANGED
+Shape Format	Shape Outline > #44546A		CHANGED
+Shape Format	Shape Outline > #737373		CHANGED
+Shape Format	Shape Outline > #ADACAC		CHANGED
+Shape Format	Shape Outline > #F0F0F0		CHANGED
+Shape Format	Shape Outline > #F5F5F5		CHANGED
+Shape Format	Shape Outline > #FAFAFA		CHANGED
+Shape Format	Shape Outline > #E7E6E6		CHANGED
+Shape Format	Shape Outline > #595959		CHANGED
+Shape Format	Shape Outline > #7F7F7F		CHANGED
+Shape Format	Shape Outline > #666666		CHANGED
+Shape Format	Shape Outline > #999999		CHANGED
+Shape Format	Shape Outline > #CCCCCC		CHANGED
+Shape Format	Shape Outline > #000000		CHANGED
+Shape Format	Shape Outline > #7F7F7F		CHANGED
+Shape Format	Shape Outline > #BFBFBF		CHANGED
+Shape Format	Shape Outline > #D8D8D8		CHANGED
+Shape Format	Shape Outline > #E5E5E5		CHANGED
+Shape Format	Shape Outline > #F2F2F2		CHANGED
+Shape Format	Shape Outline > #FFFFFF		CHANGED
+Shape Format	Shape Outline > #C00000		CHANGED
+Shape Format	Shape Outline > #FF0000		CHANGED
+Shape Format	Shape Outline > #FFC000		CHANGED
+Shape Format	Shape Outline > #FFFF00		CHANGED
+Shape Format	Shape Outline > #92D050		CHANGED
+Shape Format	Shape Outline > #00B050		CHANGED
+Shape Format	Shape Outline > #00B0F0		CHANGED
+Shape Format	Shape Outline > #0070C0		CHANGED
+Shape Format	Shape Outline > #002060		CHANGED
+Shape Format	Shape Outline > #7030A0		CHANGED
 Shape Format	Weight > ¼ pt		CHANGED
 Shape Format	Weight > ½ pt		CHANGED
 Shape Format	Weight > ¾ pt		CHANGED
@@ -890,8 +1527,167 @@ Shape Format	Shape Effects > Divot		CHANGED
 Shape Format	Shape Effects > Riblet		CHANGED
 Shape Format	Shape Effects > Hard Edge		CHANGED
 Shape Format	Shape Effects > Art Deco		CHANGED
+Shape Format	Shape Effects > No Rotation		CHANGED
+Shape Format	Shape Effects > Isometric: Left Down		CHANGED
+Shape Format	Shape Effects > Isometric: Right Up		CHANGED
+Shape Format	Shape Effects > Isometric: Top Up		CHANGED
+Shape Format	Shape Effects > Isometric: Bottom Down		CHANGED
+Shape Format	Shape Effects > Off Axis 1: Left		CHANGED
+Shape Format	Shape Effects > Off Axis 1: Right		CHANGED
+Shape Format	Shape Effects > Off Axis 2: Left		CHANGED
+Shape Format	Shape Effects > Off Axis 2: Right		CHANGED
+Shape Format	Shape Effects > Perspective: Left		CHANGED
+Shape Format	Shape Effects > Perspective: Right		CHANGED
+Shape Format	Shape Effects > Perspective: Below		CHANGED
+Shape Format	Shape Effects > Perspective: Above		CHANGED
+Shape Format	Shape Effects > Perspective: Relaxed		CHANGED
+Shape Format	Shape Effects > Oblique: Top Left		CHANGED
+Shape Format	Shape Effects > Oblique: Top Right		CHANGED
+Shape Format	Shape Effects > Oblique: Bottom Left		CHANGED
+Shape Format	Shape Effects > Oblique: Bottom Right		CHANGED
+Shape Format	Text Fill > #385623		SAME
+Shape Format	Text Fill > #548135		SAME MODEL
+Shape Format	Text Fill > #A9CD90		SAME
+Shape Format	Text Fill > #C5DEB5		SAME
+Shape Format	Text Fill > #E2EEDA		SAME
+Shape Format	Text Fill > #70AD47		SAME
+Shape Format	Text Fill > #2D4D6A		SAME
+Shape Format	Text Fill > #44749F		SAME
+Shape Format	Text Fill > #9CC3E5		SAME
+Shape Format	Text Fill > #BDD7EE		SAME
+Shape Format	Text Fill > #DEEBF6		SAME
+Shape Format	Text Fill > #5B9BD5		SAME
+Shape Format	Text Fill > #7F6000		SAME
+Shape Format	Text Fill > #BF9000		SAME
+Shape Format	Text Fill > #FFD966		SAME
+Shape Format	Text Fill > #FFE599		SAME
+Shape Format	Text Fill > #FFF2CC		SAME
+Shape Format	Text Fill > #FFC000		SAME
+Shape Format	Text Fill > #525252		SAME
+Shape Format	Text Fill > #7B7B7B		SAME
+Shape Format	Text Fill > #C9C9C9		SAME
+Shape Format	Text Fill > #DBDBDB		SAME
+Shape Format	Text Fill > #EDEDED		SAME
+Shape Format	Text Fill > #A5A5A5		SAME
+Shape Format	Text Fill > #763E18		SAME
+Shape Format	Text Fill > #B15D24		SAME
+Shape Format	Text Fill > #F4B183		SAME
+Shape Format	Text Fill > #F7CBAC		SAME
+Shape Format	Text Fill > #FBE5D5		SAME
+Shape Format	Text Fill > #ED7D31		SAME
+Shape Format	Text Fill > #223962		SAME
+Shape Format	Text Fill > #335593		SAME
+Shape Format	Text Fill > #8EAADB		SAME
+Shape Format	Text Fill > #B4C6E7		SAME
+Shape Format	Text Fill > #D9E2F3		SAME
+Shape Format	Text Fill > #4472C4		SAME
+Shape Format	Text Fill > #222A35		SAME
+Shape Format	Text Fill > #333F4F		SAME
+Shape Format	Text Fill > #8E98A5		SAME
+Shape Format	Text Fill > #B4BAC3		SAME
+Shape Format	Text Fill > #D9DCE1		SAME
+Shape Format	Text Fill > #44546A		SAME
+Shape Format	Text Fill > #737373		SAME
+Shape Format	Text Fill > #ADACAC		SAME
+Shape Format	Text Fill > #F0F0F0		SAME
+Shape Format	Text Fill > #F5F5F5		SAME
+Shape Format	Text Fill > #FAFAFA		SAME
+Shape Format	Text Fill > #E7E6E6		SAME
+Shape Format	Text Fill > #595959		SAME
+Shape Format	Text Fill > #7F7F7F		SAME
+Shape Format	Text Fill > #666666		SAME
+Shape Format	Text Fill > #999999		SAME
+Shape Format	Text Fill > #CCCCCC		SAME
+Shape Format	Text Fill > #000000		SAME
+Shape Format	Text Fill > #7F7F7F		SAME
+Shape Format	Text Fill > #BFBFBF		SAME
+Shape Format	Text Fill > #D8D8D8		SAME
+Shape Format	Text Fill > #E5E5E5		SAME
+Shape Format	Text Fill > #F2F2F2		SAME
+Shape Format	Text Fill > #FFFFFF		SAME
+Shape Format	Text Fill > #C00000		SAME
+Shape Format	Text Fill > #FF0000		SAME
+Shape Format	Text Fill > #FFC000		SAME
+Shape Format	Text Fill > #FFFF00		SAME
+Shape Format	Text Fill > #92D050		SAME
+Shape Format	Text Fill > #00B050		SAME
+Shape Format	Text Fill > #00B0F0		SAME
+Shape Format	Text Fill > #0070C0		SAME
+Shape Format	Text Fill > #002060		SAME
+Shape Format	Text Fill > #7030A0		SAME
+Shape Format	Text Outline > No Outline		SAME
+Shape Format	Text Outline > #385623		SAME
+Shape Format	Text Outline > #548135		SAME
+Shape Format	Text Outline > #A9CD90		SAME
+Shape Format	Text Outline > #C5DEB5		SAME
+Shape Format	Text Outline > #E2EEDA		SAME
+Shape Format	Text Outline > #70AD47		SAME
+Shape Format	Text Outline > #2D4D6A		SAME
+Shape Format	Text Outline > #44749F		SAME
+Shape Format	Text Outline > #9CC3E5		SAME
+Shape Format	Text Outline > #BDD7EE		SAME
+Shape Format	Text Outline > #DEEBF6		SAME
+Shape Format	Text Outline > #5B9BD5		SAME
+Shape Format	Text Outline > #7F6000		SAME
+Shape Format	Text Outline > #BF9000		SAME
+Shape Format	Text Outline > #FFD966		SAME
+Shape Format	Text Outline > #FFE599		SAME
+Shape Format	Text Outline > #FFF2CC		SAME
+Shape Format	Text Outline > #FFC000		SAME
+Shape Format	Text Outline > #525252		SAME
+Shape Format	Text Outline > #7B7B7B		SAME
+Shape Format	Text Outline > #C9C9C9		SAME
+Shape Format	Text Outline > #DBDBDB		SAME
+Shape Format	Text Outline > #EDEDED		SAME
+Shape Format	Text Outline > #A5A5A5		SAME
+Shape Format	Text Outline > #763E18		SAME
+Shape Format	Text Outline > #B15D24		SAME
+Shape Format	Text Outline > #F4B183		SAME
+Shape Format	Text Outline > #F7CBAC		SAME
+Shape Format	Text Outline > #FBE5D5		SAME
+Shape Format	Text Outline > #ED7D31		SAME
+Shape Format	Text Outline > #223962		SAME
+Shape Format	Text Outline > #335593		SAME
+Shape Format	Text Outline > #8EAADB		SAME
+Shape Format	Text Outline > #B4C6E7		SAME
+Shape Format	Text Outline > #D9E2F3		SAME
+Shape Format	Text Outline > #4472C4		SAME
+Shape Format	Text Outline > #222A35		SAME
+Shape Format	Text Outline > #333F4F		SAME
+Shape Format	Text Outline > #8E98A5		SAME
+Shape Format	Text Outline > #B4BAC3		SAME
+Shape Format	Text Outline > #D9DCE1		SAME
+Shape Format	Text Outline > #44546A		SAME
+Shape Format	Text Outline > #737373		SAME
+Shape Format	Text Outline > #ADACAC		SAME
+Shape Format	Text Outline > #F0F0F0		SAME
+Shape Format	Text Outline > #F5F5F5		SAME
+Shape Format	Text Outline > #FAFAFA		SAME
+Shape Format	Text Outline > #E7E6E6		SAME
+Shape Format	Text Outline > #595959		SAME
+Shape Format	Text Outline > #7F7F7F		SAME
+Shape Format	Text Outline > #666666		SAME
+Shape Format	Text Outline > #999999		SAME
+Shape Format	Text Outline > #CCCCCC		SAME
+Shape Format	Text Outline > #000000		SAME
+Shape Format	Text Outline > #7F7F7F		SAME
+Shape Format	Text Outline > #BFBFBF		SAME
+Shape Format	Text Outline > #D8D8D8		SAME
+Shape Format	Text Outline > #E5E5E5		SAME
+Shape Format	Text Outline > #F2F2F2		SAME
+Shape Format	Text Outline > #FFFFFF		SAME
+Shape Format	Text Outline > #C00000		SAME
+Shape Format	Text Outline > #FF0000		SAME
+Shape Format	Text Outline > #FFC000		SAME
+Shape Format	Text Outline > #FFFF00		SAME
+Shape Format	Text Outline > #92D050		SAME
+Shape Format	Text Outline > #00B050		SAME
+Shape Format	Text Outline > #00B0F0		SAME
+Shape Format	Text Outline > #0070C0		SAME
+Shape Format	Text Outline > #002060		SAME
+Shape Format	Text Outline > #7030A0		SAME
 Shape Format	Text Effects > Arch		CHANGED
-Shape Format	Text Effects > Arch: Down		CHANGED
+Shape Format	Text Effects > Arch: Down		CHANGED MODEL
 Shape Format	Text Effects > Circle		CHANGED
 Shape Format	Text Effects > Square		CHANGED
 Shape Format	Text Effects > Triangle: Up		CHANGED
@@ -917,10 +1713,10 @@ Shape Format	Align Text > Bottom		CHANGED
 Shape Format	Create Link	<lambda>	SAME
 Shape Format	Break Link	<lambda>	SAME
 Shape Format	Position > In Line with Text		CHANGED
-Shape Format	Position > Position in Top Left		CHANGED
-Shape Format	Position > Position in Top Center		CHANGED
-Shape Format	Position > Position in Top Right		CHANGED
-Shape Format	Position > Position in Middle Left		CHANGED
+Shape Format	Position > Position in Top Left		CHANGED MODEL
+Shape Format	Position > Position in Top Center		CHANGED MODEL
+Shape Format	Position > Position in Top Right		CHANGED MODEL
+Shape Format	Position > Position in Middle Left		CHANGED MODEL
 Shape Format	Position > Position in Middle Center		CHANGED
 Shape Format	Position > Position in Middle Right		CHANGED
 Shape Format	Position > Position in Bottom Left		CHANGED
