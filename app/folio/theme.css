@@ -280,6 +280,11 @@ popover.folio-keytip-pop { padding: 0; border: none; background: transparent; bo
 .folio-avatar { background: #c0504d; color: #ffffff; border-radius: 12px; min-width: 24px;
   min-height: 24px; font-size: 0.8em; font-weight: bold; }
 .folio-balloon-btn { padding: 0 6px; min-height: 20px; font-size: 0.85em; color: #2e6b3f; }
+.folio-balloon label { color: #262626; }
+.folio-balloon label.dim-label { color: #6a6a6a; }
+.folio-balloon textview.folio-comment-edit, .folio-balloon textview.folio-comment-edit text {
+  background: #ffffff; color: #1a1a1a; caret-color: #1a1a1a; }
+.folio-balloon textview.folio-comment-edit { border: 1px solid #2e6b3f; padding: 3px; }
 
 .folio-titlebar button.folio-qat-arrow { min-width: 14px; padding: 0 1px; }
 .folio-undo-sel { background: #c8dccb; }
