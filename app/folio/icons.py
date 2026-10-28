@@ -1,5 +1,7 @@
-"""Icons for the ribbon: Folio's own, then the open-licensed Colibre set
-(MPL 2.0 / CC BY-SA 4.0) shipped with Writer, recoloured in Writer's green."""
+"""Icons for the ribbon: Folio's own (the SVGs in icons/, then the vector set drawn in
+wicons.py), then the open-licensed Colibre set (MPL 2.0 / CC BY-SA 4.0) shipped with Writer,
+recoloured in Writer's green, for anything not yet drawn."""
+import re
 import os
 import zipfile
 
@@ -10,9 +12,6 @@ from . import SHARE
 ARCHIVES = [
     (os.path.join(SHARE, "iconset", "colibre_svg.zip"), "svg"),
     (os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "share", "iconset", "colibre_svg.zip"), "svg"),
-    ("/usr/lib/libreoffice/share/config/images_colibre_svg.zip", "svg"),
-    ("/usr/share/libreoffice/share/config/images_colibre_svg.zip", "svg"),
-    ("/usr/lib/libreoffice/share/config/images_colibre.zip", "png"),
 ]
 OWN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons")
 
@@ -132,6 +131,8 @@ def pixbuf(name, size):
             pb = loader.get_pixbuf()
         except Exception:
             pb = None
+    if pb is None:
+        pb = drawn(base, size)
     if pb is None and _zip is not None:
         prefix = "lc_" if size > 20 else "sc_"
         if "/" in base:
@@ -172,6 +173,33 @@ def pixbuf(name, size):
                 pb = None
     _cache[key] = pb
     return pb
+
+
+def drawn_name(base):
+    from . import wicons
+    b = re.sub(r"^cmd/(lc|sc)_", "", base)
+    return b if b in wicons.ICONS else None
+
+
+def drawn(base, size):
+    """Writer's own cairo-drawn icon for a command, as a size x size pixbuf (or None)."""
+    name = drawn_name(base)
+    if name is None:
+        return None
+    import cairo
+    from gi.repository import Gdk
+    from . import wicons
+    surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
+    cr = cairo.Context(surf)
+    cr.scale(size / 24.0, size / 24.0)
+    cr.set_line_width(1.0 if size >= 24 else 1.35)
+    cr.set_line_join(cairo.LINE_JOIN_ROUND)
+    try:
+        wicons.ICONS[name](cr)
+    except Exception:
+        return None
+    surf.flush()
+    return Gdk.pixbuf_get_from_surface(surf, 0, 0, size, size)
 
 
 def exists(name):
