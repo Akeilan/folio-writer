@@ -26,6 +26,9 @@ pub struct Renderer {
     pics: HashMap<String, Option<cairo::ImageSurface>>,
     /// longest side pictures are decoded at
     pub max_px: u32,
+    /// shaded areas of the page being drawn (cells, paragraphs): for "automatic" text colour
+    bgs: Vec<(f64, f64, f64, f64, u32)>,
+    page_bg: u32,
 }
 
 impl Default for Renderer {
@@ -52,7 +55,8 @@ pub struct Overlay {
 
 impl Renderer {
     pub fn new() -> Renderer {
-        Renderer { lib: freetype::Library::init().ok(), faces: HashMap::new(), pics: HashMap::new(), max_px: 2400 }
+        Renderer { lib: freetype::Library::init().ok(), faces: HashMap::new(), pics: HashMap::new(), max_px: 2400,
+                   bgs: Vec::new(), page_bg: 0xFFFFFF }
     }
 
     fn face(&mut self, f: &Font) -> Option<cairo::FontFace> {
@@ -94,6 +98,19 @@ impl Renderer {
         for &i in &order {
             if page.floats[i].float.behind {
                 self.draw_float(cr, layout, &page.floats[i], fonts);
+            }
+        }
+        // what the text sits on: automatic text colour turns white on dark shading
+        self.page_bg = page.background.unwrap_or(0xFFFFFF);
+        self.bgs.clear();
+        for c in page.cells.iter().chain(page.hf_cells.iter()) {
+            if let Some(col) = c.shading {
+                self.bgs.push((c.x, c.y, c.w, c.h, col));
+            }
+        }
+        for b in &page.boxes {
+            if let Some(c) = layout.paras[b.para].props.shading {
+                self.bgs.push((b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0, c));
             }
         }
         // table cells: shading, then borders (gridlines where there are none)
@@ -321,7 +338,23 @@ impl Renderer {
     fn draw_run(&mut self, cr: &cairo::Context, p: &ParaLayout, line: &Line, sh: &Shaped, a: usize, b: usize,
                 x0: f64, base_y: f64) {
         let st = &sh.style;
-        let color = if st.change != 0 { CHANGE_COLOR } else { st.color.unwrap_or(0) };
+        let color = if st.change != 0 {
+            CHANGE_COLOR
+        } else {
+            match st.color {
+                Some(c) => c,
+                None => {
+                    // automatic: black, or white on a dark background, as Word draws it
+                    let x = x0 + line.xs.get(a.saturating_sub(line.start)).copied().unwrap_or(0.0) + 1.0;
+                    let bg = st.highlight.or(st.shading).or_else(|| {
+                        self.bgs.iter().rev().find(|(bx, by, bw, bh, _)| x >= *bx && x <= bx + bw && base_y - 1.0 >= *by
+                                                       && base_y - 1.0 <= by + bh).map(|b| b.4)
+                    }).unwrap_or(self.page_bg);
+                    let (r, g, b) = (((bg >> 16) & 255) as f64, ((bg >> 8) & 255) as f64, (bg & 255) as f64);
+                    if 0.299 * r + 0.587 * g + 0.114 * b < 150.0 { 0xFFFFFF } else { 0 }
+                }
+            }
+        };
         let y = base_y - st.raise;
         let mut glyphs: Vec<cairo::Glyph> = Vec::new();
         for k in a..b {
