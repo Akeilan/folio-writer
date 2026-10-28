@@ -362,6 +362,7 @@ impl Counter {
             }
         }
         let counts = *counts;
+        let seen_now = *seen;
         let bullet = lvl.fmt == "bullet";
         let mut rpr = mark.clone();
         // the number keeps none of the mark's underline etc. that the
@@ -393,7 +394,9 @@ impl Counter {
                             levels[i].as_ref().map(|l| l.fmt.clone()).unwrap_or_else(|| "decimal".into())
                         };
                         let fmt = if lvl.is_lgl { "decimal".to_string() } else { fmt };
-                        out.push_str(&format_number(counts[i].max(0), &fmt));
+                        // a level above not used yet shows its start value (1.1.1, not 0.0.1)
+                        let v = if i < ilvl && !seen_now[i] { counts[i] + 1 } else { counts[i] };
+                        out.push_str(&format_number(v.max(0), &fmt));
                         continue;
                     }
                 }
