@@ -61,6 +61,12 @@ def _float(s, default=0.0):
 
 def para_margins(engine):
     """Current paragraph indents in 1/100 mm: (left, right, first)."""
+    ed = getattr(engine, "ed", None)
+    if ed is not None:
+        v = ed.para_values()
+        k = 2540.0 / 1440.0
+        return (int(round(v.get("ind_left", 0) * k)), int(round(v.get("ind_right", 0) * k)),
+                int(round(v.get("ind_first", 0) * k)))
     m = getattr(engine, "model", None)
     if m is not None:
         try:
@@ -199,12 +205,6 @@ class Actions:
         else:
             self.cmd(".uno:Repeat")
 
-    def _can_redo(self):
-        m = self.eng.model
-        try:
-            return bool(m and m.getUndoManager().isRedoPossible())
-        except Exception:
-            return False
 
     def do_repeat(self):
         self.cmd(".uno:Repeat")

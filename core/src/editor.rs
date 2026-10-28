@@ -957,6 +957,24 @@ impl Editor {
             Story::HeaderFooter(pg) | Story::Notes(pg) | Story::TextBox(pg, _) => {
                 let mut v: Vec<usize> = self.story_lines(pg).iter().map(|l| l.para).collect();
                 v.dedup();
+                if let Story::HeaderFooter(_) = self.story {
+                    // the header and the footer are separate stories, as in the original:
+                    // only the one holding the caret
+                    let root = |n: NodeId| {
+                        let dom = &self.doc.dom;
+                        let mut cur = Some(n);
+                        while let Some(c) = cur {
+                            if dom.is(c, "w:hdr") || dom.is(c, "w:ftr") {
+                                return Some(c);
+                            }
+                            cur = dom.parent(c);
+                        }
+                        None
+                    };
+                    if let Some(r) = root(self.caret.para) {
+                        v.retain(|&i| root(self.layout.paras[i].node) == Some(r));
+                    }
+                }
                 v
             }
         }
@@ -1001,7 +1019,14 @@ impl Editor {
                 self.story = Story::HeaderFooter(pg);
                 self.relayout();
                 let page = &self.layout.pages[pg];
-                let want = if footer { page.footer } else { page.header };
+                let mut want = if footer { page.footer } else { page.header };
+                if want.is_none() {
+                    // a header / footer made inside an undo group isn't in the sections yet
+                    self.doc.scan();
+                    self.relayout();
+                    let page = &self.layout.pages[pg];
+                    want = if footer { page.footer } else { page.header };
+                }
                 let root = want.map(|i| self.doc.parts[i].root);
                 let first = self.layout.pages[pg].hf_lines.iter().find(|l| {
                     let n = self.layout.paras[l.para].node;
@@ -1011,6 +1036,14 @@ impl Editor {
                     let p = Pos { para: self.layout.paras[l.para].node, off: 0 };
                     self.caret = p;
                     self.anchor = p;
+                } else if let Some(r) = root {
+                    // not laid out on this page (yet): its first paragraph all the same, so
+                    // the caret is in the part asked for and not left in the other one
+                    let dom = &self.doc.dom;
+                    if let Some(p) = dom.children_named(r, "w:p").next() {
+                        self.caret = Pos { para: p, off: 0 };
+                        self.anchor = self.caret;
+                    }
                 }
             }
         }
@@ -2090,6 +2123,11 @@ impl Editor {
         if self.content_locked_here() {
             return;
         }
+        // a whole table selected: Backspace / Delete removes the table, as in the original
+        if self.has_selection() && self.whole_table_selected() {
+            self.delete_table();
+            return;
+        }
         self.begin();
         let had_sel = self.has_selection();
         if !self.has_selection() {
@@ -2720,6 +2758,22 @@ impl Editor {
         true
     }
 
+    /// Does the selection run from the start of a table's first cell to the end of its last?
+    fn whole_table_selected(&self) -> bool {
+        let (a, b) = self.selection();
+        let (Some((ta, _, _)), Some((tb, _, _))) = (self.cell_of(a.para), self.cell_of(b.para)) else { return false };
+        if ta != tb || a.off != 0 || b.off != self.para_len(b.para) {
+            return false;
+        }
+        let dom = &self.doc.dom;
+        let rows: Vec<NodeId> = dom.children_named(ta, "w:tr").collect();
+        let first = rows.first().and_then(|&r| dom.children_named(r, "w:tc").next())
+            .and_then(|c| dom.children_named(c, "w:p").next());
+        let last = rows.last().and_then(|&r| dom.children_named(r, "w:tc").last())
+            .and_then(|c| dom.children_named(c, "w:p").last());
+        first == Some(a.para) && last == Some(b.para)
+    }
+
     pub fn delete_table(&mut self) -> bool {
         let (a, _) = self.selection();
         let Some((tbl, _, _)) = self.cell_of(a.para) else { return false };
@@ -3085,6 +3139,9 @@ impl Editor {
     pub fn set_borders(&mut self, target: &str, sides: &[(String, Option<Vec<(String, String)>>)]) -> bool {
         const ORDER: &[&str] = &["w:top", "w:left", "w:start", "w:bottom", "w:right", "w:end", "w:between",
             "w:bar", "w:insideH", "w:insideV", "w:tl2br", "w:tr2bl"];
+        if target == "cells" && sides.iter().any(|(s, _)| s == "insideH" || s == "insideV") {
+            return self.set_inside_cell_borders(sides);
+        }
         let targets: Vec<(NodeId, &str, &str, &[&str])> = match target {
             "paras" => {
                 let (a, b) = self.selection();
@@ -3114,6 +3171,56 @@ impl Editor {
                 let name = format!("w:{side}");
                 let e = PropEdit { name, attrs: attrs.clone() };
                 set_prop_child(dom, set, &e, ORDER);
+            }
+        }
+        self.commit("Borders", false);
+        true
+    }
+
+    /// Inside borders on a cell selection, as the original applies them: insideH becomes the
+    /// top of every selected cell below the first selected row and the bottom of every one
+    /// above the last; insideV the same with left / right. Other sides go on every cell.
+    fn set_inside_cell_borders(&mut self, sides: &[(String, Option<Vec<(String, String)>>)]) -> bool {
+        let Some((tbl, rows, _)) = self.selected_cells() else { return false };
+        let (_, g0, g1) = self.selected_cols().unwrap_or((tbl, 0, usize::MAX));
+        let mut per: Vec<(NodeId, Vec<(String, Option<Vec<(String, String)>>)>)> = Vec::new();
+        let last_row = rows.len().saturating_sub(1);
+        for (ri, r) in rows.iter().enumerate() {
+            let cells: Vec<(NodeId, usize, usize)> = self.row_cells(*r).into_iter().filter(|c| c.1 < g1 && c.2 > g0).collect();
+            let n = cells.len();
+            for (ci, (tc, _, _)) in cells.into_iter().enumerate() {
+                let mut v = Vec::new();
+                for (side, attrs) in sides {
+                    match side.as_str() {
+                        "insideH" => {
+                            if ri > 0 { v.push(("top".to_string(), attrs.clone())); }
+                            if ri < last_row { v.push(("bottom".to_string(), attrs.clone())); }
+                        }
+                        "insideV" => {
+                            if ci > 0 { v.push(("left".to_string(), attrs.clone())); }
+                            if ci + 1 < n { v.push(("right".to_string(), attrs.clone())); }
+                        }
+                        _ => v.push((side.clone(), attrs.clone())),
+                    }
+                }
+                per.push((tc, v));
+            }
+        }
+        const ORDER: &[&str] = &["w:top", "w:left", "w:start", "w:bottom", "w:right", "w:end",
+            "w:insideH", "w:insideV", "w:tl2br", "w:tr2bl"];
+        self.begin();
+        for (tc, v) in per {
+            let dom = &mut self.doc.dom;
+            let pr = ensure_child_first(dom, tc, "w:tcPr");
+            let set = match dom.child(pr, "w:tcBorders") {
+                Some(n) => n,
+                None => {
+                    set_prop_child(dom, pr, &PropEdit::set("w:tcBorders", &[]), TCPR_ORDER);
+                    dom.child(pr, "w:tcBorders").unwrap()
+                }
+            };
+            for (side, attrs) in v {
+                set_prop_child(dom, set, &PropEdit { name: format!("w:{side}"), attrs }, ORDER);
             }
         }
         self.commit("Borders", false);

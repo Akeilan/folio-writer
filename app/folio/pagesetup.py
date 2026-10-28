@@ -4,7 +4,7 @@ even / first page, header and footer distance from edge, vertical
 alignment), Apply to, and Set As Default."""
 from gi.repository import Gtk
 
-from . import bridge, docapi
+from . import docapi
 from .widgets import FDialog, LengthSpin, Preview, combo, grid, heading
 
 PAPER = [("Letter", 21590, 27940), ("Legal", 21590, 35560), ("Executive", 18415, 26670),
@@ -23,18 +23,6 @@ def _layout(ps):
         return "ALL"
 
 
-def _set_layout(ps, value):
-    try:
-        ps.PageStyleLayout = bridge.enum("com.sun.star.style.PageStyleLayout", value)
-    except Exception as e:
-        print("page layout:", e)
-
-
-def _doc_settings(m):
-    try:
-        return m.createInstance("com.sun.star.text.DocumentSettings")
-    except Exception:
-        return None
 
 
 def used_page_styles(m):
@@ -60,113 +48,7 @@ def section_start_of(m, ps):
     return 2
 
 
-def read(m):
-    ps = docapi.page_style(m)
-    info = docapi.page_setup(m)
-    info["mirror"] = _layout(ps) == "MIRRORED"
-    try:
-        info["valign"] = ps.TextVerticalAdjust.value
-    except Exception:
-        info["valign"] = "TOP"
-    info["diff_odd_even"] = bool(ps.HeaderIsOn and not ps.HeaderIsShared) or \
-        bool(ps.FooterIsOn and not ps.FooterIsShared)
-    info["diff_first"] = not bool(getattr(ps, "FirstIsShared", True))
-    info["header_edge"] = ps.TopMargin if ps.HeaderIsOn else 1270
-    info["footer_edge"] = ps.BottomMargin if ps.FooterIsOn else 1270
-    s = _doc_settings(m)
-    info["gutter_top"] = bool(getattr(s, "GutterAtTop", False)) if s is not None else False
-    info["start"] = section_start_of(m, ps)
-    return info
 
-
-def apply(m, ps, v):
-    """Apply the dialog's values (a dict) to one page style."""
-    if v["landscape"] != bool(ps.IsLandscape):
-        w, h = ps.Width, ps.Height
-        ps.IsLandscape = v["landscape"]
-        if (v["landscape"] and w < h) or (not v["landscape"] and w > h):
-            ps.Width, ps.Height = h, w
-    width, height = v["width"], v["height"]
-    if ps.IsLandscape:
-        width, height = max(width, height), min(width, height)
-    else:
-        width, height = min(width, height), max(width, height)
-    ps.Width, ps.Height = int(width), int(height)
-    ps.LeftMargin, ps.RightMargin = int(v["left"]), int(v["right"])
-    try:
-        ps.GutterMargin = int(v["gutter"])
-    except Exception:
-        pass
-    # headers and footers: distance from the edge, the body margin kept
-    for key, side, edge in (("Header", "top", v["header_edge"]),
-                            ("Footer", "bottom", v["footer_edge"])):
-        body = v["top"] if side == "top" else v["bottom"]
-        margin = "TopMargin" if side == "top" else "BottomMargin"
-        if getattr(ps, key + "IsOn"):
-            e = min(int(edge), max(0, int(body) - 300))
-            setattr(ps, margin, e)
-            setattr(ps, key + "Height", max(300, int(body) - e))
-        else:
-            setattr(ps, margin, int(body))
-    # odd / even and first page
-    for key in ("Header", "Footer"):
-        if getattr(ps, key + "IsOn"):
-            setattr(ps, key + "IsShared", not v["diff_odd_even"])
-    try:
-        ps.FirstIsShared = not v["diff_first"]
-    except Exception as e:
-        print("first page:", e)
-    # layout: mirror margins / section start on even or odd page
-    if v["mirror"]:
-        _set_layout(ps, "MIRRORED")
-    elif v["start"] == 3:
-        _set_layout(ps, "LEFT")
-    elif v["start"] == 4:
-        _set_layout(ps, "RIGHT")
-    elif _layout(ps) in ("MIRRORED", "LEFT", "RIGHT"):
-        _set_layout(ps, "ALL")
-    try:
-        ps.TextVerticalAdjust = bridge.enum("com.sun.star.drawing.TextVerticalAdjust",
-                                            v["valign"])
-    except Exception as e:
-        print("vertical alignment:", e)
-    if v.get("columns") is not None:
-        tc = ps.TextColumns
-        if tc.getColumnCount() != v["columns"]:
-            tc.setColumnCount(max(1, int(v["columns"])))
-            try:
-                tc.AutomaticDistance = 1270
-            except Exception:
-                pass
-            ps.TextColumns = tc
-
-
-def apply_to(m, v, where):
-    um = m.getUndoManager()
-    um.enterUndoContext("Page Setup")
-    try:
-        if where == 0:
-            styles = used_page_styles(m)
-        elif where == 2:
-            kind = {3: "even", 4: "odd"}.get(v["start"], "next-page")
-            if v["start"] == 0:
-                kind = "continuous"
-            name = docapi.insert_section_break(m, kind)
-            fam = m.getStyleFamilies().getByName("PageStyles")
-            styles = [fam.getByName(name)] if isinstance(name, str) and \
-                fam.hasByName(name) else [docapi.page_style(m)]
-        else:
-            styles = [docapi.page_style(m)]
-        for ps in styles:
-            apply(m, ps, v)
-        s = _doc_settings(m)
-        if s is not None:
-            try:
-                s.GutterAtTop = bool(v["gutter_top"])
-            except Exception:
-                pass
-    finally:
-        um.leaveUndoContext()
 
 
 def dialog(win, tab=0):
@@ -398,20 +280,3 @@ def dialog(win, tab=0):
     win.focus_document()
 
 
-def set_default(win, v):
-    def fn(doc):
-        fam = doc.getStyleFamilies().getByName("PageStyles")
-        for name in ("Standard", "Default Page Style"):
-            if fam.hasByName(name):
-                apply(doc, fam.getByName(name), dict(v, start=2))
-                break
-    try:
-        win.app._edit_normal_template(fn)
-    except Exception as e:
-        print("page default:", e)
-
-
-def mirrored_margins(m):
-    ps = docapi.page_style(m)
-    docapi.set_page(m, top=2540, bottom=2540, left=3175, right=2540)
-    _set_layout(ps, "MIRRORED")

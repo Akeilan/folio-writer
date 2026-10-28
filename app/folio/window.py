@@ -1469,26 +1469,6 @@ class DocWindow(Gtk.ApplicationWindow):
 
     in_original = False
 
-    def enter_original(self):
-        """The document as it was before the tracked changes: every change
-        is taken back for display (one undo step, undone on leaving), and
-        the document can't be edited meanwhile."""
-        if self.in_original or self.engine.model is None:
-            return
-        m = self.engine.model
-        self._orig_modified = m.isModified()
-        self.engine.command(".uno:RejectAllTrackedChanges")
-        self.in_original = True
-
-        def lock():
-            self.engine.view.set_edit(False)
-            if not self._orig_modified:
-                m.setModified(False)
-        self.engine.sync(lock)
-        if not getattr(self, "_orig_hooked", False):
-            self._orig_hooked = True
-            self.engine.save_hooks = tuple(self.engine.save_hooks) + (
-                (self._orig_before_save, lambda: None),)
 
     def _orig_before_save(self):
         if self.in_original:
@@ -1737,7 +1717,6 @@ class DocWindow(Gtk.ApplicationWindow):
             self.merge_go(k)
 
     def act_highlight_merge_fields(self):
-        from . import mailings
         self.merge_highlight = not self.merge_highlight
         from .native import mailmerge
         mailmerge.highlight(self, self.merge_highlight)
@@ -2048,29 +2027,19 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def ruler_move_tab(self, old, new, align="LEFT"):
         """Add (old None), move, or remove (new None) a tab stop of the
-        selected paragraphs."""
-        m = self.engine.model
-        if m is None:
-            return
-        from . import bridge
-        vc = docapi.view_cursor(m)
-        stops = [t for t in (vc.ParaTabStops or ())
-                 if getattr(t.Alignment, "value", "") != "DEFAULT" and
-                 (old is None or abs(t.Position - old) > 5) and
-                 (new is None or abs(t.Position - new) > 50)]
+        selected paragraphs (positions in 1/100 mm)."""
+        ed = self.engine.ed
+        tw = lambda v: int(round(v * 1440.0 / 2540.0))
+        stops = [(p, k, l) for p, k, l in ed.para_values().get("tabs") or []
+                 if (old is None or abs(p - tw(old)) > 3) and (new is None or abs(p - tw(new)) > 28)]
         if new is not None:
-            ts = bridge.struct("com.sun.star.style.TabStop")
-            ts.Position = int(new)
-            ts.Alignment = bridge.enum("com.sun.star.style.TabAlign", align)
-            ts.FillChar = " "
-            ts.DecimalChar = "."
-            stops.append(ts)
-        um = m.getUndoManager()
-        um.enterUndoContext("Tabs")
+            stops.append((tw(new), align.lower(), "none"))
+        ed.begin_group("Tabs")
         try:
-            vc.ParaTabStops = tuple(sorted(stops, key=lambda t: t.Position))
+            ed.set_tabs(sorted(stops))
         finally:
-            um.leaveUndoContext()
+            ed.end_group()
+        self.engine.view.after_edit()
         self.rulers.refresh()
 
     def act_paragraph_borders(self):
@@ -2122,28 +2091,6 @@ class DocWindow(Gtk.ApplicationWindow):
             return None
         return None
 
-    def _margin_select(self, hit, count):
-        x, y = hit
-        self.engine.click_at(x + 20, y)
-        m = self.engine.model
-
-        def select():
-            if m is None:
-                return
-            if count >= 3:
-                self.engine.command(".uno:SelectAll")
-                return
-            vc = docapi.view_cursor(m)
-            if count == 2:
-                cur = vc.getText().createTextCursorByRange(vc.getStart())
-                cur.gotoStartOfParagraph(False)
-                cur.gotoEndOfParagraph(True)
-                vc.gotoRange(cur.getStart(), False)
-                vc.gotoRange(cur.getEnd(), True)
-            else:
-                vc.gotoStartOfLine(False)
-                vc.gotoEndOfLine(True)
-        self.engine.sync(select)
 
     def on_doc_motion(self, view, event):
         want = "margin" if self._in_left_margin(event.x, event.y) else "text"
@@ -2406,51 +2353,6 @@ class DocWindow(Gtk.ApplicationWindow):
         self.engine.post_key(code)
         return True
 
-    def _table_tab(self, event, back=False):
-        """Tab / Shift+Tab in a table: the next cell's text comes selected."""
-        m = self.engine.model
-        if m is None:
-            return False
-        try:
-            if docapi.view_cursor(m).Cell is None:
-                return False
-        except Exception:
-            return False
-        handled = False
-        if back:
-            try:
-                vc = docapi.view_cursor(m)
-                names = list(vc.TextTable.getCellNames())
-                i = names.index(vc.Cell.CellName)
-                if i > 0:
-                    cell = vc.TextTable.getCellByName(names[i - 1])
-                    cur = cell.getText().createTextCursor()
-                    cur.gotoStart(False)
-                    cur.gotoEnd(True)
-                    if cur.getString():
-                        docapi.controller(m).select(cur)
-                    else:
-                        vc.gotoRange(cur.getStart(), False)
-            except Exception as e:
-                print("shift+tab:", e)
-            return True
-
-        def pick():
-            try:
-                vc = docapi.view_cursor(m)
-                cell = vc.Cell
-                if cell is None:
-                    return False
-                cur = cell.getText().createTextCursor()
-                cur.gotoStart(False)
-                cur.gotoEnd(True)
-                if cur.getString():
-                    docapi.controller(m).select(cur)
-            except Exception:
-                pass
-            return False
-        self.engine.sync(lambda: GLib.timeout_add(40, pick))
-        return handled
 
     # ---------------------------------------------------------- keys
     def on_key(self, widget, event):

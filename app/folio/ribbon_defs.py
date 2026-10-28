@@ -24,18 +24,18 @@ STANDARD_COLORS = [0xC00000, 0xFF0000, 0xFFC000, 0xFFFF00, 0x92D050, 0x00B050,
 GALLERY = [
     ("Normal", "size='11pt'"),
     ("No Spacing", "size='11pt'"),
-    ("Heading 1", "size='14pt' foreground='#2f5496'"),
-    ("Heading 2", "size='12pt' foreground='#2f5496'"),
+    ("Heading 1", "size='14pt' foreground='#2e6b3f'"),
+    ("Heading 2", "size='12pt' foreground='#2e6b3f'"),
     ("Title", "size='18pt'"),
     ("Subtitle", "size='11pt' foreground='#5a5a5a'"),
     ("Subtle Emphasis", "size='11pt' style='italic' foreground='#404040'"),
     ("Emphasis", "size='11pt' style='italic'"),
-    ("Intense Emphasis", "size='11pt' style='italic' foreground='#2f5496'"),
+    ("Intense Emphasis", "size='11pt' style='italic' foreground='#2e6b3f'"),
     ("Strong", "size='11pt' weight='bold'"),
     ("Quote", "size='11pt' style='italic' foreground='#404040'"),
-    ("Intense Quote", "size='11pt' style='italic' foreground='#2f5496'"),
+    ("Intense Quote", "size='11pt' style='italic' foreground='#2e6b3f'"),
     ("Subtle Reference", "size='9pt' variant='smallcaps' foreground='#5a5a5a'"),
-    ("Intense Reference", "size='9pt' variant='smallcaps' weight='bold' foreground='#2f5496'"),
+    ("Intense Reference", "size='9pt' variant='smallcaps' weight='bold' foreground='#2e6b3f'"),
     ("Book Title", "size='11pt' weight='bold' style='italic'"),
     ("List Paragraph", "size='11pt'"),
 ]
@@ -306,7 +306,14 @@ class StyleSetGallery(Gtk.Box):
         m = self.win.engine.model
         try:
             props = docapi.style_set_props(m, name)
-            fonts = docapi.FONT_PAIRS.get("Modern")
+            fonts = docapi.FONT_PAIRS.get("Modern") or ("Calibri Light", "Calibri")
+            ed = getattr(self.win.engine, "ed", None)
+            if ed is not None:
+                try:
+                    th = ed.theme_info()
+                    fonts = (th[2] or fonts[0], th[3] or fonts[1])
+                except Exception:
+                    pass
             if m is not None:
                 ps = docapi.para_styles(m)
                 fonts = (ps.getByName("Heading 1").CharFontName,

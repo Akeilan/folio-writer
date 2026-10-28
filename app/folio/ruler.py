@@ -6,12 +6,37 @@ import math
 
 from gi.repository import Gdk, GLib, Gtk
 
-from . import docapi
 from .actions import para_margins
 from .widgets import ruler_units
 
 SIZE = 20
 MARKER = 5
+
+
+MM100_PER_TW = 2540.0 / 1440.0
+
+
+def mm100(tw):
+    return int(round((tw or 0) * MM100_PER_TW))
+
+
+def page_setup(ed):
+    """The caret section's page in 1/100 mm, as the rulers draw it."""
+    ps = ed.page_setup(ed.current_section()) or {}
+    return {"width": mm100(ps.get("width")), "height": mm100(ps.get("height")),
+            "top": mm100(ps.get("top")), "bottom": mm100(ps.get("bottom")),
+            "left": mm100(ps.get("left")), "right": mm100(ps.get("right")),
+            "landscape": (ps.get("width") or 0) > (ps.get("height") or 0),
+            "columns": ps.get("cols") or 1, "gutter": mm100(ps.get("gutter"))}
+
+
+def set_margin(win, which, value):
+    """Set one page margin (1/100 mm) of the caret's section, as dragged on a ruler."""
+    from .native import pagesetup
+    cur = page_setup(win.engine.ed)
+    cur[which] = int(value)
+    pagesetup.margins(win, cur["top"], cur["bottom"], cur["left"], cur["right"],
+                      win.engine.ed.setting("mirrorMargins"))
 
 
 def tab_glyph(cr, x, base, align):
@@ -433,11 +458,9 @@ class HRuler(_Base):
             self.drag = None
             self._preview_page = None
             if "margin" in d:
-                m = self.win.engine.model
-                if m is not None:
-                    key = "left" if what == "margin-left" else "right"
-                    docapi.set_page(m, **{key: d["margin"]})
-                    self.win.rulers.refresh()
+                key = "left" if what == "margin-left" else "right"
+                set_margin(self.win, key, d["margin"])
+                self.win.rulers.refresh()
             self.win.focus_document()
             return True
         l, r, f = self.drag["vals"]
@@ -512,8 +535,8 @@ class VRuler(_Base):
             return False
         d, self.drag = self.drag, None
         self._preview = None
-        if "v" in d and self.win.engine.model is not None:
-            docapi.set_page(self.win.engine.model, **{d["which"]: d["v"]})
+        if "v" in d:
+            set_margin(self.win, d["which"], d["v"])
             self.win.rulers.refresh()
         self.win.focus_document()
         return True
@@ -558,11 +581,8 @@ class Rulers:
             w.set_visible(on)
 
     def _state(self, eng, key, value):
-        if key == ".uno:LeftRightParaMargin":
-            self.win.ruler_state["indents"] = para_margins(eng)
-            self.h.queue_draw()
-        elif key in (".uno:StatePageNumber", ".uno:ModifiedStatus", ".uno:Size",
-                     ".uno:PageStyleName", ".uno:StyleApply"):
+        # any state change (caret moved, an edit, undo...) may change the page, indents or tabs
+        if self.h.get_visible():
             self.schedule()
 
     def schedule(self):
@@ -571,16 +591,13 @@ class Rulers:
 
     def refresh(self):
         self._pending = None
-        m = self.win.engine.model
-        if m is None:
-            return False
         try:
-            self.win.ruler_state["page"] = docapi.page_setup(m)
-            vc = docapi.read_cursor(m)
-            self.win.ruler_state["page_index"] = max(0, vc.getPage() - 1)
-            self.win.ruler_state["tabs"] = [(t.Position, t.Alignment.value)
-                                            for t in (vc.ParaTabStops or ())
-                                            if getattr(t.Alignment, "value", "") != "DEFAULT"]
+            ed = self.win.engine.ed
+            self.win.ruler_state["page"] = page_setup(ed)
+            self.win.ruler_state["page_index"] = ed.caret_page()
+            self.win.ruler_state["tabs"] = [(mm100(pos), kind.upper())
+                                            for pos, kind, _l in ed.para_values().get("tabs") or []]
+            self.win.ruler_state["indents"] = para_margins(self.win.engine)
         except Exception:
             pass
         self._scrolled()

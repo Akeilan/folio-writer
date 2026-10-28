@@ -1,19 +1,18 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
-def pos():
-    c = vc(); r = c.getText().createTextCursorByRange(c.getEnd()); r.gotoStartOfParagraph(True)
-    return repr(r.getString())
+def where():
+    return repr(pos())
 def nav():
     fresh(); yield 0.4
     T("one two three"); K("Return"); T("second para"); K("Return"); T("third"); yield 0.8
     note("paras", para_texts())
-    K("Home"); yield 0.3; note("Home", pos())
-    K("End"); yield 0.3; note("End", pos())
-    K("ctrl+Home"); yield 0.3; note("ctrl+Home", pos())
-    K("ctrl+Down"); yield 0.3; note("ctrl+Down", pos() + vc().getText().createTextCursorByRange(vc().getEnd()).getString())
-    K("End"); yield 0.3; note("End2", pos())
+    K("Home"); yield 0.3; note("Home", where())
+    K("End"); yield 0.3; note("End", where())
+    K("ctrl+Home"); yield 0.3; note("ctrl+Home", where())
+    K("ctrl+Down"); yield 0.3; note("ctrl+Down", where() + caret_para_text())
+    K("End"); yield 0.3; note("End2", where())
     K("shift+Home"); yield 0.3; note("shift+Home", repr(sel()))
-    K("ctrl+Up"); yield 0.3; note("ctrl+Up", pos())
+    K("ctrl+Up"); yield 0.3; note("ctrl+Up", where())
     K("Home"); K("ctrl+Delete"); yield 0.5; note("ctrl+Delete", para_texts())
 def copyfmt():
     fresh(); yield 0.4
@@ -25,27 +24,27 @@ def lists():
     fresh(); yield 0.4
     T("1. first"); K("Return"); T("second"); yield 0.5
     K("Home"); yield 0.3; K("Tab"); yield 0.5
-    for p in paras(): note("tab at start", (p.getString(), p.NumberingLevel, p.ListLabelString))
+    for i, t in enumerate(para_texts()): note("tab at start", (t, list_level(i), list_label(i)))
     fresh(); yield 0.4
     T("a) item"); K("Return"); yield 0.6
-    for p in paras(): note("a)", (p.getString(), p.NumberingIsNumber, p.ListLabelString))
+    for i, t in enumerate(para_texts()): note("a)", (t, is_listed(i), list_label(i)))
     fresh(); yield 0.4
     T("A. item"); K("Return"); yield 0.6
-    for p in paras(): note("A.", (p.getString(), p.NumberingIsNumber, p.ListLabelString))
+    for i, t in enumerate(para_texts()): note("A.", (t, is_listed(i), list_label(i)))
     fresh(); yield 0.4
     T("i. item"); K("Return"); yield 0.6
-    for p in paras(): note("i.", (p.getString(), p.NumberingIsNumber, p.ListLabelString))
+    for i, t in enumerate(para_texts()): note("i.", (t, is_listed(i), list_label(i)))
     fresh(); yield 0.4
     T("- dash"); K("Return"); yield 0.6
-    for p in paras(): note("- ", (p.getString(), p.NumberingIsNumber, p.ListLabelString))
+    for i, t in enumerate(para_texts()): note("- ", (t, is_listed(i), list_label(i)))
     fresh(); yield 0.4
     T("> arrow"); K("Return"); yield 0.6
-    for p in paras(): note("> ", (p.getString(), p.NumberingIsNumber, p.ListLabelString))
+    for i, t in enumerate(para_texts()): note("> ", (t, is_listed(i), list_label(i)))
 def rules():
     for s in ("---", "===", "***", "___", "~~~", "###"):
         fresh(); yield 0.4
         T("before"); K("Return"); T(s); K("Return"); yield 0.8
-        note(s, [(p.getString(), p.BottomBorder.OuterLineWidth + p.BottomBorder.LineWidth) for p in paras()])
+        note(s, [(t, border("bottom", i)) for i, t in enumerate(para_texts())])
     shot("w1c_rule")
 def case():
     fresh(); yield 0.4

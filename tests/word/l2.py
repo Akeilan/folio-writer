@@ -14,7 +14,7 @@ def d():
     shot("l2_suggest")
     check("suggestions show as you type", sb.pop is not None and sb.pop.get_visible() and len(sb.rows) > 2, len(sb.rows))
     K("Return"); yield 1.5
-    note("after Enter", ([d.get_title() for d in dialogs_open()], M().getTextTables().getCount(), len(popups())))
+    note("after Enter", ([d.get_title() for d in dialogs_open()], len(tables()), len(popups())))
     close_dialogs(); K("Escape"); yield 0.5
     win.search.grab_focus(); yield 0.6
     shot("l2_recent")

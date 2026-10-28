@@ -5,7 +5,6 @@ import os
 
 from gi.repository import GLib, Gtk
 
-from . import bridge, docapi, drawing
 from .widgets import FDialog, combo, grid, heading
 
 QUICKPARTS = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
@@ -34,48 +33,7 @@ def apply_effect(target, idx):
         target.CharWeight = 150.0
 
 
-def text_effect(m, idx):
-    """Home > Text Effects: apply a preset to the selection."""
-    vc = docapi.view_cursor(m)
-    apply_effect(vc, idx)
 
-
-def toggle_char(m, prop):
-    vc = docapi.view_cursor(m)
-    setattr(vc, prop, not bool(getattr(vc, prop)))
-
-
-def insert_wordart(m, idx, text="Your text here"):
-    um = m.getUndoManager()
-    um.enterUndoContext("Insert WordArt")
-    try:
-        vc = docapi.view_cursor(m)
-        selected = vc.getString()
-        frame = m.createInstance("com.sun.star.text.TextFrame")
-        frame.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType",
-                                       "AT_PARAGRAPH")
-        vc.getText().insertTextContent(vc, frame, False)
-        frame.Size = bridge.struct("com.sun.star.awt.Size", Width=12000, Height=2600)
-        frame.SizeType = 2           # at least: grows with the text
-        frame.WidthType = 2
-        none = bridge.struct("com.sun.star.table.BorderLine2")
-        for side in ("LeftBorder", "RightBorder", "TopBorder", "BottomBorder"):
-            setattr(frame, side, none)
-        frame.BackTransparent = True
-        frame.HoriOrient = 2         # centred
-        frame.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", "NONE")
-        ft = frame.getText()
-        cur = ft.createTextCursor()
-        ft.insertString(cur, selected or text, False)
-        cur.gotoStart(False)
-        cur.gotoEnd(True)
-        cur.CharHeight = 36.0
-        cur.ParaAdjust = 3
-        apply_effect(cur, idx)
-        docapi.controller(m).select(frame)
-        return frame
-    finally:
-        um.leaveUndoContext()
 
 
 # ------------------------------------------------------------ quick parts
@@ -129,28 +87,6 @@ def insert_part(win, part):
 DOC_PROPS = [("Author", "author"), ("Title", "title"), ("Subject", "subject"),
              ("Company", None), ("Keywords", None), ("Comments", None), ("Status", None)]
 
-
-def insert_doc_property(m, name):
-    vc = docapi.view_cursor(m)
-    text = vc.getText()
-    svc = {"Author": "docinfo.CreateAuthor", "Title": "docinfo.Title",
-           "Subject": "docinfo.Subject", "Keywords": "docinfo.KeyWords",
-           "Comments": "docinfo.Description"}.get(name)
-    if svc:
-        f = m.createInstance("com.sun.star.text.textfield." + svc)
-        text.insertTextContent(vc, f, False)
-        return
-    # custom properties (Company, Status): a document information field
-    f = m.createInstance("com.sun.star.text.textfield.docinfo.Custom")
-    try:
-        ud = m.getDocumentProperties().getUserDefinedProperties()
-        if not ud.getPropertySetInfo().hasPropertyByName(name):
-            ud.addProperty(name, 128, "")
-        f.Name = name
-        text.insertTextContent(vc, f, False)
-    except Exception as e:
-        print("doc property:", e)
-        text.insertString(vc, "[%s]" % name, False)
 
 
 def quick_parts_menu(win):
@@ -274,109 +210,11 @@ def native_signature_line(win, signer, title, email, with_date):
     win.engine.view.after_edit()
 
 
-def insert_signature_line(m, signer, title, email, with_date):
-    um = m.getUndoManager()
-    um.enterUndoContext("Signature Line")
-    try:
-        vc = docapi.view_cursor(m)
-        text = vc.getText()
-        cur = text.createTextCursorByRange(vc.getStart())
-        if not cur.isStartOfParagraph():
-            text.insertControlCharacter(cur, 0, False)
-        # a fresh paragraph before the text that follows
-        text.insertControlCharacter(cur, 0, False)
-        cur.gotoPreviousParagraph(False)
-        ps = docapi.page_setup(m)
-        width = ps["width"] - ps["left"] - ps["right"]
-        line = bridge.struct("com.sun.star.table.BorderLine2", Color=0, LineWidth=18,
-                             OuterLineWidth=18)
-        none = bridge.struct("com.sun.star.table.BorderLine2")
-        lines = [s for s in (signer, title, email) if s]
-        if with_date:
-            lines.append("Date: " + __import__("datetime").date.today().strftime("%-m/%-d/%Y"))
-        entries = [("X", True)] + [(s, False) for s in lines]
-        for i, (txt, is_line) in enumerate(entries):
-            if i:
-                text.insertControlCharacter(cur, 0, False)
-            p = text.createTextCursorByRange(cur.getStart())
-            p.gotoStartOfParagraph(False)
-            p.gotoEndOfParagraph(True)
-            p.ParaStyleName = "Standard"
-            p.ParaTopMargin = docapi.pt(18) if is_line else 0
-            p.ParaBottomMargin = 0
-            p.BottomBorder = line if is_line else none
-            p.BottomBorderDistance = 0
-            p.ParaRightMargin = max(0, width - 7620) if is_line else 0
-            cur.CharHeight = 20.0 if is_line else 11.0
-            text.insertString(cur, txt, False)
-    finally:
-        um.leaveUndoContext()
-
 
 # ------------------------------------------------------------ text box gallery
 TEXTBOXES = [("Simple Text Box", "simple"), ("Sidebar", "sidebar"), ("Quote", "quote"),
              ("Banded", "banded")]
 
-
-def insert_textbox(m, kind):
-    ps = docapi.page_setup(m)
-    width = ps["width"] - ps["left"] - ps["right"]
-    page = docapi.read_cursor(m).getPage()
-    if kind == "sidebar":
-        x, y, w, h = ps["width"] - ps["right"] - 5600, ps["top"], 5600, 9000
-    elif kind == "quote":
-        x, y, w, h = ps["left"] + width // 6, ps["top"] + 3000, width * 2 // 3, 2600
-    elif kind == "banded":
-        x, y, w, h = ps["left"], ps["top"] + 2000, width, 2200
-    else:
-        x, y, w, h = ps["left"] + 1000, ps["top"] + 1000, 6350, 2540
-    frame = drawing.insert_shape(m, "textbox", page, x, y, w, h)
-    text = frame.getText()
-    cur = text.createTextCursor()
-    if kind == "sidebar":
-        frame.BackColor = 0xD9E2F3
-        none = bridge.struct("com.sun.star.table.BorderLine2")
-        for side in ("LeftBorder", "RightBorder", "TopBorder", "BottomBorder"):
-            setattr(frame, side, none)
-        text.insertString(cur, "[Sidebar Title]", False)
-        cur.gotoStart(False)
-        cur.gotoEnd(True)
-        cur.CharWeight = 150.0
-        cur.CharColor = 0x2F5496
-        cur.CharHeight = 14.0
-        cur.gotoEnd(False)
-        text.insertControlCharacter(cur, 0, False)
-        cur.CharWeight = 100.0
-        cur.CharColor = -1
-        cur.CharHeight = 11.0
-        text.insertString(cur, "[Sidebars are great for calling out important points from "
-                               "your text or adding additional info for quick reference.]",
-                          False)
-    elif kind == "quote":
-        none = bridge.struct("com.sun.star.table.BorderLine2")
-        for side in ("LeftBorder", "RightBorder"):
-            setattr(frame, side, none)
-        line = bridge.struct("com.sun.star.table.BorderLine2", Color=0x4472C4, LineWidth=35,
-                             OuterLineWidth=35)
-        frame.TopBorder = frame.BottomBorder = line
-        text.insertString(cur, "“[Grab your reader’s attention with a great quote "
-                               "from the document.]”", False)
-        cur.gotoStart(False)
-        cur.gotoEnd(True)
-        cur.CharPosture = bridge.enum("com.sun.star.awt.FontSlant", "ITALIC")
-        cur.CharHeight = 14.0
-        cur.CharColor = 0x4472C4
-        cur.ParaAdjust = 3
-    elif kind == "banded":
-        frame.BackColor = 0x4472C4
-        text.insertString(cur, "[Banded text box: type your text here.]", False)
-        cur.gotoStart(False)
-        cur.gotoEnd(True)
-        cur.CharColor = 0xFFFFFF
-        cur.CharHeight = 14.0
-    else:
-        text.insertString(cur, "[Type your text here.]", False)
-    return frame
 
 
 # ------------------------------------------------------------ object

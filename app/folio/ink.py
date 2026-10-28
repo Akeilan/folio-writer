@@ -4,7 +4,7 @@ import math
 
 from gi.repository import Gdk, GLib
 
-from . import bridge, docapi
+from . import bridge
 
 TWIP = 2540.0 / 1440.0      # mm100 per twip
 

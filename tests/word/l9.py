@@ -26,8 +26,10 @@ def table():
     check("AutoFit options", "Auto_Fit to contents" in rb and "AutoFit to win_dow" in rb, list(rb))
     rb["AutoFit to win_dow"].set_active(True)
     respond("Insert Table"); yield 1.5
-    t = M().getTextTables().getByIndex(0)
-    check("AutoFit to window", t.HoriOrient == 6, t.HoriOrient)
+    cell_rng("A1").caret_to_start()
+    tp = dict(E.ed.table_props())
+    note("table props", tp)
+    check("AutoFit to window (100% width)", tp.get("width") == (5000, "pct"), tp.get("width"))
 def field():
     fresh(); yield 0.3
     GLib.idle_add(lambda: (win.dialogs.field_dialog(), False)[1]); yield 1.2
@@ -51,7 +53,7 @@ def sort():
     fresh(); yield 0.3
     T("b\t2\na\t3\nc\t1"); yield 0.8
     K("ctrl+a"); yield 0.6
-    note("sel before sort", repr(vc().getString()))
+    note("sel before sort", repr(sel()))
     GLib.idle_add(lambda: (win.dialogs.sort_dialog(), False)[1]); yield 1.2
     d = dlg("Sort")[0]
     shot("l9_sort")
@@ -61,10 +63,7 @@ def sort():
     respond("Sort", Gtk.ResponseType.CANCEL); yield 0.5
     from folio import sortdlg
     K("ctrl+a"); yield 0.5
-    if NATIVE:
-        sortdlg.sort_native(win, [(2, 1, True)], False, {"sep": "\t"}); yield 0.8
-    else:
-        sortdlg.sort(M(), "text", None, [(2, 1, True)], False, {"sep": "\t"}); yield 0.8
+    sortdlg.sort_native(win, [(2, 1, True)], False, {"sep": "\t"}); yield 0.8
     check("sorted by field 2", [p.lower() for p in para_texts()[:3]] == ["c\t1", "b\t2", "a\t3"], para_texts())
 def caption():
     fresh(); yield 0.3
@@ -80,9 +79,8 @@ def caption():
 def xref():
     fresh(); yield 0.3
     T("Target here"); yield 0.3
-    c = M().getText().createTextCursor(); c.gotoStart(False); c.gotoEndOfParagraph(True)
-    bm = M().createInstance("com.sun.star.text.Bookmark"); bm.setName("Target1")
-    M().getText().insertTextContent(c, bm, True); yield 0.3
+    para_rng(0).select(); E.ed.add_bookmark("Target1"); E.view.after_edit(); yield 0.3
+    check("bookmark added", "Target1" in E.ed.bookmark_names(), E.ed.bookmark_names())
     K("ctrl+End"); T("\nSee "); yield 0.8
     GLib.idle_add(lambda: (win.dialogs.cross_reference(), False)[1]); yield 1.2
     d = dlg("Cross-reference")[0]
@@ -95,14 +93,13 @@ def xref():
     check("xref options", "Insert as _hyperlink" in chk and "Include above/_below" in chk, list(chk))
     respond("Cross-reference"); yield 1.0
     close_dialogs(); yield 0.3
-    p = paras()[1]
-    c = p.getText().createTextCursorByRange(p.getEnd()); c.goLeft(1, True)
-    check("reference text + hyperlink", "Target here" in p.getString() and c.HyperLinkURL == "#Target1", (p.getString(), c.HyperLinkURL))
+    p = top_paras()[1]
+    refs = [c for _d, c, _r in fields() if c.split()[:2] == ["REF", "Target1"]]
+    check("reference text + hyperlink (REF Target1 \\h)", "Target here" in ptext(p) and refs and "\\h" in refs[0], (ptext(p), fields()))
 def counts():
     fresh(); yield 0.3
-    M().getText().setString("one two three\nfour five"); yield 0.5
-    from folio.dlg_doc import count_lines
-    n = count_lines(M())
+    set_text("one two three\nfour five"); yield 0.5
+    n = E.ed.stats(False)["lines"]
     check("count lines", n == 2, n)
 def borders():
     fresh(); yield 0.3
@@ -117,8 +114,7 @@ def borders():
         if w.get_label() in ("Top", "Bottom", "Left", "Right"): tg.setdefault(w.get_label(), w)
     tg["Bottom"].set_active(True)
     respond("Borders and Shading"); yield 1.0
-    p = paras()[0]
-    check("custom bottom border", p.BottomBorder.OuterLineWidth > 0 and p.TopBorder.OuterLineWidth == 0, (p.BottomBorder.OuterLineWidth, p.TopBorder.OuterLineWidth))
+    check("custom bottom border", bool(border("bottom", 0)) and not border("top", 0), pv(0).get("borders"))
 def options():
     GLib.idle_add(lambda: (win.dialogs.options(), False)[1] if hasattr(win.dialogs, "options") else (win.run("options"), False)[1]); yield 1.5
     d = dlg("Options")

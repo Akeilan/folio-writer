@@ -4,7 +4,7 @@ exec(open("/home/claude/folio2/tests/word/w14.py").read().split("def smartcut")[
 def a():
     fresh(); yield 0.3
     T("one two three"); yield 0.4
-    docapi.controller(M()).select(find("two")); yield 0.4
+    find("two").select(); yield 0.4
     K("ctrl+x"); yield 0.6
     note("after cut", repr(text()))
     note("owned", win.clipboard_owned)

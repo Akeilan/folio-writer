@@ -1,37 +1,14 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
-from folio import findopts
-def _sd(t):
-    sd = M().createSearchDescriptor(); sd.SearchString = t; return sd
 def open_fr(tab=0):
     GLib.idle_add(lambda: (win.dialogs.find_replace(tab), False)[1])
-class _NFmt:
-    """The native dialog's Format choices, as the classic dialog's attrs."""
-    def __init__(self, fd, which):
-        self.fd, self.which = fd, which
-        self.attrs = self
-        self.words = []
-
-    def clear(self):
-        self.fd.fmt[self.which] = {}
-
-    def __setitem__(self, k, v):
-        key = {"CharWeight": "bold", "CharPosture": "italic"}.get(k)
-        if key:
-            self.fd.fmt[self.which][key] = True
-
-
 def st():
-    if not NATIVE:
-        return win.dialogs._fr
+    """The Find and Replace dialog's widgets."""
     fd = getattr(win, "_native_find", None)
     if fd is None:
         return None
-    c = dict(fd.checks)
-    c["ign_punct"] = c.get("ignore_punct")
-    c["ign_space"] = c.get("ignore_space")
-    c = {k: v for k, v in c.items() if v is not None}
-    return {"dlg": fd.dlg, "checks": c, "nb": fd.nb, "ffmt": _NFmt(fd, "find"), "rfmt": _NFmt(fd, "rep")}
+    c = {k: v for k, v in dict(fd.checks).items() if v is not None}
+    return {"fd": fd, "dlg": fd.dlg, "checks": c, "nb": fd.nb}
 def setfind(t):
     st()["dlg"]; 
     for e in find_widget(st()["dlg"], lambda w: isinstance(w, Gtk.ComboBoxText) and w.get_has_entry()):
@@ -63,69 +40,65 @@ def opts():
     reset(); st()["checks"]["prefix"].set_active(True); setfind("view"); yield 0.2
     K("ctrl+Home"); yield 0.2
     click("Find Next"); yield 0.6
-    v1 = vc().getStart()
     note("prefix sel", sel())
     reset(); st()["checks"]["suffix"].set_active(True); setfind("view"); yield 0.2
     click("Find Next"); yield 0.6
     check("suffix finds Preview's view", sel() == "view", sel())
-    reset(); st()["checks"]["ign_punct"].set_active(True); setfind("email"); yield 0.2
+    reset(); st()["checks"]["ignore_punct"].set_active(True); setfind("email"); yield 0.2
     K("ctrl+Home"); yield 0.2
     click("Find Next"); yield 0.6
     check("ignore punctuation finds e-mail", (sel() or "").lower() == "e-mail", sel())
     reset()
     # reading highlight
     setfind("the"); yield 0.2
-    was = M().isModified()
-    if not NATIVE:
-        GLib.idle_add(lambda: (win.reading_hl.highlight([M().getText().getStart()]) and False))
-        yield 0.3
-        win.reading_hl.clear()
+    was = modified()
     hl = [w for w in find_widget(st()["dlg"], lambda w: isinstance(w, Gtk.MenuButton) and "Highlight" in (w.get_label() or "").replace("_", ""))]
     check("Reading Highlight button", bool(hl))
     items = hl[0].get_popup().get_children()
     GLib.idle_add(lambda: (items[0].activate(), False)[1]); yield 0.8
     shot("l6_hl")
-    marks = (lambda: E.view.highlights) if NATIVE else (lambda: win.reading_hl.marks)
+    marks = lambda: E.view.highlights
     check("highlight marks", len(marks()) >= 2, len(marks()))
-    check("highlight not a change", M().isModified() == was, (was, M().isModified()))
+    check("highlight not a change", modified() == was, (was, modified()))
     GLib.idle_add(lambda: (items[1].activate(), False)[1]); yield 0.5
     check("cleared", not marks())
     # find in main document
     fi = [w for w in find_widget(st()["dlg"], lambda w: isinstance(w, Gtk.MenuButton) and "Find In" in (w.get_label() or "").replace("_", ""))]
     GLib.idle_add(lambda: (fi[0].get_popup().get_children()[0].activate(), False)[1]); yield 0.8
-    cnt = docapi.controller(M()).getSelection().getCount()
+    cnt = E.ed.selection_count()
     check("Find In selects all", cnt >= 2, cnt)
 def fmt():
-    if getattr(win.dialogs, "_fr", None): win.dialogs._fr["dlg"].destroy()
     close_dialogs(); yield 0.3
     fresh(); yield 0.3
     T("plain bold plain bold"); yield 0.3
-    r = M().findAll(_sd("bold"))
-    for i in range(r.getCount()): r.getByIndex(i).CharWeight = 150.0
+    for r in find_all("bold"):
+        r.select(); E.ed.toggle("w:b")
+    E.view.after_edit()
     open_fr(0); yield 1.0
-    st()["ffmt"].clear(); st()["ffmt"].attrs["CharWeight"] = 150.0; st()["ffmt"].words.append("Bold")
+    st()["fd"].fmt["find"] = {"bold": True}
     setfind("bold"); K("ctrl+Home"); yield 0.3
     click("Find Next"); yield 0.6
     check("find with format", sel() and sel().strip() == "bold", sel())
     setfind("plain"); yield 0.2
-    st()["ffmt"].clear()
-    rf = st()["rfmt"]; rf.clear(); rf.attrs["CharPosture"] = findopts.bridge.enum("com.sun.star.awt.FontSlant", "ITALIC"); rf.words.append("Italic")
+    st()["fd"].fmt["find"] = {}
+    st()["fd"].fmt["rep"] = {"italic": True}
     nb = st()["nb"]; nb.set_current_page(1); yield 0.4
     click("Replace All"); yield 1.0
     close_dialogs_msgs = [d for d in dialogs_open() if isinstance(d, Gtk.MessageDialog)]
     for d in close_dialogs_msgs: d.response(Gtk.ResponseType.OK)
     yield 0.3
-    p = paras()[0]; c = p.getText().createTextCursorByRange(p.getStart()); c.goRight(3, True)
-    check("replace format applied, text kept", c.CharPosture.value == "ITALIC" and text().lower().startswith("plain"), (c.CharPosture.value, text()))
-    rf.clear()
-    st()["dlg"].destroy(); yield 0.4
+    p = top_paras()[0]
+    it = Rng((p, 0), (p, 3)).run()["italic"]
+    check("replace format applied, text kept", it and text().lower().startswith("plain"), (it, text()))
+    st()["fd"].fmt["rep"] = {}
+    st()["dlg"].hide(); yield 0.4
 def goto():
     close_dialogs(); yield 0.3
     fresh(); win.present(); win.focus_document(); yield 0.6
     T("one\ntwo\nthree"); yield 0.3
     note("before break", para_texts()); yield 1.0
     note("before break2", para_texts())
-    docapi.insert_section_break(M(), "next-page"); yield 0.5
+    E.ed.insert_break("nextPage"); E.view.after_edit(); yield 0.5
     T("four"); yield 0.3
     K("ctrl+Home"); yield 0.3
     open_fr(2); yield 1.0
@@ -135,11 +108,11 @@ def goto():
     combos = find_widget(st()["dlg"], lambda w: isinstance(w, Gtk.ComboBoxText) and w.get_has_entry())
     combos[-1].get_child().set_text("2"); yield 0.2
     combos[-1].get_child().activate(); yield 0.6
-    check("Go To section 2", vc().getPage() == 2, vc().getPage())
+    check("Go To section 2", caret_page() == 1, caret_page())
     tv.get_selection().select_path(Gtk.TreePath(2)); yield 0.3
     note("paras", para_texts())
     combos[-1].get_child().set_text("3"); combos[-1].get_child().activate(); yield 0.6
-    c = vc().getText().createTextCursorByRange(vc().getStart()); c.gotoEndOfParagraph(True)
-    check("Go To line 3", c.getString() == "three", c.getString())
-    st()["dlg"].destroy()
+    rest = caret_para_text()[caret()[1]:]
+    check("Go To line 3", rest == "three", rest)
+    st()["dlg"].hide()
 run_scenarios(opts, fmt, goto)

@@ -50,26 +50,6 @@ def display_name(o, i=0):
     return "%s %d" % (t or "Object", i + 1)
 
 
-def selected_objects(m):
-    """The selected objects (one or several), or []."""
-    try:
-        sel = docapi.controller(m).getSelection()
-    except Exception:
-        return []
-    if sel is None:
-        return []
-    try:
-        if sel.supportsService("com.sun.star.text.TextRanges"):
-            return []
-    except Exception:
-        pass
-    if hasattr(sel, "getCount") and not hasattr(sel, "getAnchor"):
-        try:
-            return [sel.getByIndex(i) for i in range(sel.getCount())]
-        except Exception:
-            return []
-    return [sel]
-
 
 def select(m, objs):
     ctl = docapi.controller(m)
@@ -91,90 +71,7 @@ def _box(o):
     return o.HoriOrientPosition, o.VertOrientPosition, s.Width, s.Height
 
 
-def _make_free(o):
-    """Positions become explicit numbers (as after dragging)."""
-    try:
-        if getattr(o.AnchorType, "value", "") == "AS_CHARACTER":
-            o.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType",
-                                       "AT_PARAGRAPH")
-            o.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", "PARALLEL")
-    except Exception:
-        pass
-    x, y = o.HoriOrientPosition, o.VertOrientPosition
-    o.HoriOrient = 0
-    o.VertOrient = 0
-    o.HoriOrientPosition = x
-    o.VertOrientPosition = y
 
-
-def align_objects(m, objs, where):
-    """Align several objects to each other (Align Selected Objects)."""
-    if len(objs) < 2:
-        return False
-    um = m.getUndoManager()
-    um.enterUndoContext("Align Objects")
-    try:
-        for o in objs:
-            _make_free(o)
-        boxes = [_box(o) for o in objs]
-        if where == "left":
-            v = min(b[0] for b in boxes)
-            for o in objs:
-                o.HoriOrientPosition = v
-        elif where == "right":
-            v = max(b[0] + b[2] for b in boxes)
-            for o, b in zip(objs, boxes):
-                o.HoriOrientPosition = v - b[2]
-        elif where == "center":
-            lo = min(b[0] for b in boxes)
-            hi = max(b[0] + b[2] for b in boxes)
-            c = (lo + hi) // 2
-            for o, b in zip(objs, boxes):
-                o.HoriOrientPosition = c - b[2] // 2
-        elif where == "top":
-            v = min(b[1] for b in boxes)
-            for o in objs:
-                o.VertOrientPosition = v
-        elif where == "bottom":
-            v = max(b[1] + b[3] for b in boxes)
-            for o, b in zip(objs, boxes):
-                o.VertOrientPosition = v - b[3]
-        elif where == "middle":
-            lo = min(b[1] for b in boxes)
-            hi = max(b[1] + b[3] for b in boxes)
-            c = (lo + hi) // 2
-            for o, b in zip(objs, boxes):
-                o.VertOrientPosition = c - b[3] // 2
-    finally:
-        um.leaveUndoContext()
-    return True
-
-
-def distribute(m, objs, axis):
-    """Even gaps between three or more objects ('h' or 'v')."""
-    if len(objs) < 3:
-        return False
-    um = m.getUndoManager()
-    um.enterUndoContext("Distribute Objects")
-    try:
-        for o in objs:
-            _make_free(o)
-        i = 0 if axis == "h" else 1
-        items = sorted(((_box(o), o) for o in objs), key=lambda t: t[0][i])
-        first, last = items[0][0], items[-1][0]
-        total = sum(b[2 + i] for b, _o in items)
-        span = (last[i] + last[2 + i]) - first[i]
-        gap = (span - total) / float(len(items) - 1)
-        pos = first[i]
-        for b, o in items:
-            if axis == "h":
-                o.HoriOrientPosition = int(pos)
-            else:
-                o.VertOrientPosition = int(pos)
-            pos += b[2 + i] + gap
-    finally:
-        um.leaveUndoContext()
-    return True
 
 
 # ------------------------------------------------------------ selection pane

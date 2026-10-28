@@ -28,8 +28,8 @@ def a():
     K("ctrl+shift+Left"); K("ctrl+b"); yield 0.3
     K("End"); T(" again"); K("ctrl+shift+Left"); yield 0.3
     K("F4"); yield 0.4
-    sd = M().createSearchDescriptor(); sd.SearchString = "again"; f = M().findFirst(sd)
-    check("F4 gives the same formatting again", f is not None and f.CharWeight > 100, f and f.CharWeight)
+    f = find("again")
+    check("F4 gives the same formatting again", f is not None and f.run()["bold"], f and f.run()["bold"])
 
     # ---- deleting a whole field takes its codes too
     fresh(); yield 0.2

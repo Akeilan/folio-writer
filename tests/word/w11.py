@@ -1,23 +1,26 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
-from folio import mailings
+from folio.native import mailmerge as MM
 def merge():
     fresh(); yield 0.3
-    cols, rows = mailings.read_csv("/tmp/wfid2/people.csv")
-    mailings.set_merge_type(M(), "letters")
-    mailings.set_recipients(M(), cols, rows, "/tmp/wfid2/people.csv")
+    import csv
+    rows = list(csv.reader(open("/tmp/wfid2/people.csv", encoding="utf-8")))
+    cols, rows = rows[0], rows[1:]
+    MM.set_merge_type(win, "letters")
+    MM.set_recipients(win, cols, rows, "/tmp/wfid2/people.csv")
     T("Hello "); yield 0.3
-    mailings.insert_field(M(), "First Name"); yield 0.3
-    K("End"); T(" from "); mailings.insert_field(M(), "City"); yield 0.5
+    MM.insert_field(win, "First Name"); yield 0.3
+    K("End"); T(" from "); MM.insert_field(win, "City"); yield 0.5
     note("fields text", repr(text()))
-    mailings.show_record(M(), 1); yield 0.6
+    MM.show_record(win, 1); yield 0.6
     note("preview record 1", repr(text()))
     check("preview shows record values", "Ann" in text() and "Delft" in text(), repr(text()))
+    n0 = len(app.windows)
     try:
-        res = mailings.merge(M(), "all")
+        res = MM.merge(win, "all")
         note("merge result", res)
     except Exception as e:
-        note("merge error", e)
+        check("merge runs", False, e)
     yield 2.0
     note("windows", [w.get_title() for w in app.windows])
     shot("w11_merge")
@@ -29,7 +32,7 @@ def search():
     pops = popups()
     note("search popups", len(pops))
     K("Return"); yield 1.2
-    note("after enter", ([d.get_title() for d in dialogs_open()], M().getTextTables().getCount()))
+    note("after enter", ([d.get_title() for d in dialogs_open()], len(tables())))
     close_dialogs(); K("Escape"); yield 0.4
 def navpane():
     fresh(); yield 0.3
@@ -71,12 +74,12 @@ def preview():
     tiles = find_widget(win.ribbon, lambda w: isinstance(w, Gtk.Button) and "Heading 1" in (w.get_tooltip_text() or ""))
     if tiles:
         X("mousemove", *widget_center(tiles[0])); yield 1.5
-        check("style gallery hover = live preview", paras()[0].ParaStyleName == "Heading 1" or True, paras()[0].ParaStyleName)
+        check("style gallery hover = live preview", style_of(0) == "Heading 1" or True, style_of(0))
         shot("w11_hover")
         X("mousemove", 600, 700); yield 0.5
 def latency():
     win.open_file("/tmp/wfid/big.docx"); yield 10.0
-    vc().jumpToPage(40); yield 1.5
+    E.ed.goto_page(39); E.view.after_move(); yield 1.5
     focus()
     n0 = len(text())
     t0 = time.time()
@@ -86,6 +89,6 @@ def latency():
         yield 0.02
     note("big doc: 26 chars typed over %.2fs; last char landed %.0f ms after the last key" % (t1 - t0, (time.time() - t1) * 1000), len(text()) - n0)
     t0 = time.time(); K("ctrl+End"); yield 0.05
-    while vc().getPage() < 80 and time.time() - t0 < 10: yield 0.05
-    note("ctrl+End to page %d took %.2fs" % (vc().getPage(), time.time() - t0), "")
+    while caret_page() + 1 < 80 and time.time() - t0 < 10: yield 0.05
+    note("ctrl+End to page %d took %.2fs" % (caret_page() + 1, time.time() - t0), "")
 run_scenarios(navpane)

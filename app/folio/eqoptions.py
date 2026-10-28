@@ -184,28 +184,3 @@ def functions_dialog(win):
         apply(app)
     _list_dialog(win, "Recognized Math Functions", rows, ["Function"], save)
 
-
-def outside_math(win):
-    """Space typed in ordinary text: \\alpha -> α when the option is on."""
-    if not options(win.app).get("outside"):
-        return
-    m = win.engine.model
-    if m is None:
-        return
-    try:
-        vc = docapi.read_cursor(m)
-        if not vc.isCollapsed():
-            return
-        cur = vc.getText().createTextCursorByRange(vc.getStart())
-        cur.goLeft(30, True)
-        mt = _WORD.search(cur.getString())
-        if not mt:
-            return
-        sym = S.CONTROL_WORDS.get(mt.group(1))
-        if not sym:
-            return
-        rng = vc.getText().createTextCursorByRange(vc.getStart())
-        rng.goLeft(len(mt.group(0)), True)
-        rng.setString(sym)
-    except Exception as e:
-        print("math autocorrect:", e)

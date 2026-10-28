@@ -1,9 +1,9 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
 def word_xy(word, frac, nth=0):
-    c = vc(); r = find(word, nth); c.gotoRange(r.getStart(), False); yield 0.3
+    r = find(word, nth); r.caret_to_start(); yield 0.3
     x0, y0, w, h = win._follow_rect
-    c.gotoRange(r.getEnd(), False); yield 0.3
+    r.caret_to_end(); yield 0.3
     x1 = win._follow_rect[0]
     P["xy"] = doc_screen(x0 + (x1 - x0) * frac, y0 + h / 2)
 P = {}
@@ -29,18 +29,23 @@ def smartcut():
 def sticky_painter():
     fresh(); yield 0.3
     T("src a b c"); yield 0.3
-    docapi.controller(M()).select(find("src")); K("ctrl+b"); yield 0.3
+    find("src").select(); K("ctrl+b"); yield 0.3
+    spots = []
+    for w in ("a", "b", "c"):
+        yield from word_xy(" %s" % w, 0.8)
+        spots.append(P["xy"])
+    find("src").caret_to_end(); yield 0.3
     c = find_control("Home", "Format Painter")
     x, y = widget_center(c)
     X("mousemove", x, y); X("click", "--repeat", 2, "--delay", 80, 1); yield 0.6
-    for w in ("a", "b", "c"):
-        yield from word_xy(" %s" % w, 0.8)
-        click(*P["xy"]); yield 0.8
+    note("painter after double-click", (win.painter.active, win.painter.sticky))
+    for xy in spots:
+        click(*xy); yield 0.8
+        note("after click", (win.painter.active, win.painter.sticky, caret(), E.ed.has_format()))
     def last(r):
-        c = r.getText().createTextCursorByRange(r.getEnd()); c.goLeft(1, True); return c.CharWeight
+        return Rng((r.b[0], r.b[1] - 1), r.b).run()["bold"]
     got = [last(find(" %s" % w)) for w in ("a", "b", "c")]
-    note("weights", got)
-    check("double-clicked Format Painter stays on for several clicks", all(g > 100 for g in got), got)
+    check("double-clicked Format Painter stays on for several clicks", all(got), got)
     K("Escape"); yield 0.3
 def toc_click():
     fresh(); yield 0.3
@@ -49,7 +54,7 @@ def toc_click():
     rib("References", "Table of Contents", "Automatic Table 1"); yield 1.5
     yield from word_xy("Second", 0.3)
     click(*P["xy"], mods="ctrl"); yield 1.0
-    check("Ctrl+click TOC entry jumps to heading", vc().getPage() == 2, vc().getPage())
+    check("Ctrl+click TOC entry jumps to heading", caret_page() == 1 and caret_para_text() == "Second", (caret_page(), caret_para_text()))
 def overtype():
     fresh(); yield 0.3
     T("abc"); K("Home"); K("Insert"); T("X"); yield 0.5
@@ -77,6 +82,6 @@ def spell_ignore():
     if ign:
         GLib.idle_add(lambda: (ign[0].activate(), False)[1]); yield 1.2
     shot("w14_ignore")
-    from folio import docapi as DA
-    note("spell after ignore", DA.spell_ok("Zorgleflux", DA.doc_locale(M())))
+    sp = E.view.speller
+    check("ignored word no longer marked", sp is not None and sp.ignored("Zorgleflux"), sp)
 run_scenarios(ac_undo, smartcut, sticky_painter, toc_click, overtype, autocorrect_button, spell_ignore)

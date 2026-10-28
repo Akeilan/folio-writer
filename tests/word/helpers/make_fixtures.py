@@ -9,7 +9,7 @@ sys.path.insert(0, "/tmp/fw/app")
 import folio_core as core  # noqa: E402
 
 BLANK = "/tmp/fw/share/templates/Normal-Letter.docx"
-for d in ("/tmp/wfid", "/tmp/wfid2"):
+for d in ("/tmp/wfid", "/tmp/wfid2", "/tmp/dc"):
     os.makedirs(d, exist_ok=True)
 
 
@@ -58,16 +58,18 @@ ed.select_nodes(p, 0, p, 4)
 tried("comment", ed.insert_comment, "Reviewer note", "Reviewer")
 ed.move_caret("doc_end", False)
 ed.type_text("\n")
+ed.type_text("Removed by Bob.")
+p, off = ed.caret_pos()
+ed.select_nodes(p, 0, p, 0)
 ed.set_track_changes(True)
 ed.type_text("Inserted by Alice. ")
 ed.set_author("Bob")
-ed.type_text("Removed by Bob.")
 p, off = ed.caret_pos()
-ed.set_track_changes(False)
-ed.set_track_changes(True)
-ed.select_nodes(p, off - 15, p, off)
+n = len(ed.para_text_of(p))
+ed.select_nodes(p, n - 15, p, n)
 ed.delete(True, False)
 ed.set_track_changes(False)
+ed.set_author("Alice")
 ed.move_caret("doc_end", False)
 ed.type_text("\n")
 for k in range(3):
@@ -75,6 +77,11 @@ for k in range(3):
     ed.move_caret("doc_end", False)
     ed.type_text("\n")
 tried("picture", ed.insert_picture, "/tmp/wfid/pic.png")
+pics = [o for o in ed.objects_list() if o[2] == "Picture"]
+if pics:
+    ed.select_object_node(pics[0][0])
+    tried("float", ed.object_set_wrap, "square")
+    ed.deselect_object()
 ed.move_caret("doc_end", False)
 for pg in range(3):
     tried("break", ed.insert_break, "page")
@@ -95,9 +102,47 @@ ed.type_text("\nInline ")
 tried("math2", ed.insert_math, M, False)
 ed.save("/tmp/wfid/math.docx")
 
-# ---- fid2.docx and the recipients
-ed = core.Editor.open(BLANK)
-ed.type_text("Second sample\n")
+# ---- fid2.docx: fid.docx plus a drop cap, line numbers, a page border, first / even
+# headers and a two-column section
+import shutil
+ed = core.Editor.open("/tmp/wfid/fid.docx")
+ed.move_caret("doc_start", False)
+ed.move_caret("doc_start", False)
+tried("drop cap", ed.set_drop_cap, "drop", 3, 0, None)
+tried("line numbers", ed.set_line_numbers, "continuous", 1, 0, 0, True)
+tried("page border", ed.set_page_borders, None,
+      '<w:pgBorders xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:offsetFrom="page">'
+      '<w:left w:val="single" w:sz="12" w:space="24" w:color="2E6B3F"/></w:pgBorders>')
+tried("title page", ed.section_flag, 0, "w:titlePg", True)
+tried("odd/even", ed.set_setting, "evenAndOddHeaders", True)
+for which in (0, 1, 2):
+    tried("make header", ed.ensure_header_footer_kind, 0, False, which)
+for pg, txt in ((0, "First page header"), (1, "Even page header"), (2, "Odd page header")):
+    tried("hf", ed.edit_header_footer, pg, False)
+    ed.type_text(txt)
+tried("body", ed.edit_header_footer, None, False)
+ed.move_caret("doc_end", False)
+tried("section", ed.insert_break, "continuous")
+ed.type_text("Two columns of text. " * 20)
+sec = ed.current_section()
+tried("columns", ed.section_attr, sec, "w:cols", "w:num", "2", "Columns")
 ed.save("/tmp/wfid2/fid2.docx")
+print("fid2.docx", ed.page_count(), "pages, headers kinds", [ed.page_hf_kind(i) for i in range(ed.page_count())])
 open("/tmp/wfid2/people.csv", "w").write("First Name,Last Name,City\nAnn,Smith,Delft\nBen,Jones,Leeds\n")
 print("fixtures done")
+
+# ---- big.docx: 100 chapters, one a page (the speed scenarios)
+ed = core.Editor.open(BLANK)
+body = ("The quick brown fox jumps over the lazy dog while the report goes on about nothing "
+        "in particular, line after line, so that the page fills up with ordinary text. ") * 4
+for i in range(1, 101):
+    if i > 1:
+        ed.insert_break("page")
+    ed.type_text("Chapter %d\n" % i)
+    for _k in range(3):
+        ed.type_text(body + "\n")
+ed.save("/tmp/wfid/big.docx")
+print("big.docx", ed.page_count(), "pages")
+
+# ---- /tmp/dc: a 4:3 picture for the picture-layout scenarios
+png("/tmp/dc/pic.png", 160, 120, (60, 120, 200))

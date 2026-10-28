@@ -61,26 +61,26 @@ def views():
     shot("w5_navpane")
 def painter():
     fresh(); yield 0.3
-    T("source target"); yield 0.4; docapi.controller(M()).select(find("source")); yield 0.2; K("ctrl+b"); yield 0.3
+    T("source target"); yield 0.4; find("source").select(); yield 0.2; K("ctrl+b"); yield 0.3
     rib("Home", "Format Painter"); yield 0.6
     # now drag-select 'target' with mouse
-    c = vc(); c.gotoRange(find("target").getStart(), False); yield 0.3
+    find("target").caret_to_start(); yield 0.3
     x0, y0, w, h = win._follow_rect
-    c.gotoRange(find("target").getEnd(), False); yield 0.3
+    find("target").caret_to_end(); yield 0.3
     x1 = win._follow_rect[0]
     a = doc_screen(x0 + 10, y0 + h / 2); b = doc_screen(x1 - 10, y0 + h / 2)
     X("mousemove", *a); X("mousedown", 1)
     for i in range(1, 6): X("mousemove", int(a[0] + (b[0] - a[0]) * i / 5), a[1]); time.sleep(0.05)
     X("mouseup", 1); yield 1.0
-    check("format painter applies bold to dragged text", find("target").CharWeight > 100, find("target").CharWeight)
+    check("format painter applies bold to dragged text", find("target").run()["bold"], find("target").run()["bold"])
     # paste options button after paste
-    docapi.controller(M()).select(find("source")); K("ctrl+c"); yield 0.4
+    find("source").select(); K("ctrl+c"); yield 0.4
     K("End"); K("ctrl+v"); yield 1.5
     shot("w5_pasteopts")
 def clicktype():
     fresh(); yield 0.3
     T("Top line"); yield 0.4
-    c = vc(); c.gotoStart(False); yield 0.3
+    caret_start(); yield 0.3
     x0, y0, w, h = win._follow_rect
     sx, sy = doc_screen(x0 + 4000, y0 + 3000)
     X("mousemove", sx, sy); X("click", "--repeat", 2, "--delay", 80, 1); yield 1.0

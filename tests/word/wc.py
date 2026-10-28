@@ -1,14 +1,8 @@
 # Word-parity scenario harness: exec'd by a test script after common.py.
 # Scenarios are generators; `yield secs` waits while the app runs.
 import subprocess, time, traceback, os
-from folio import docapi
 E = win.engine
-M = lambda: E.model
-NATIVE = getattr(E, "native", False)
-if NATIVE:
-    exec(open("/home/claude/folio2/tests/word/nuno.py").read())
-    _NU = NativeUnoModel(E)
-    M = lambda: _NU
+exec(open("/home/claude/folio2/tests/word/wn.py").read())
 RESULTS = []
 CUR = {"name": "?"}
 
@@ -37,144 +31,79 @@ def check(name, cond, detail=""):
 def note(name, detail):
     log("NOTE [%s] %s | %s" % (CUR["name"], name, detail))
 
-def text():
-    return M().getText().getString()
-
-def paras():
-    out = []
-    en = M().getText().createEnumeration()
-    while en.hasMoreElements():
-        p = en.nextElement()
-        if p.supportsService("com.sun.star.text.Paragraph"):
-            out.append(p)
-        else:
-            out.append(p)  # table
-    return out
-
-def para_texts():
-    return [p.getString() if hasattr(p, "getString") else "<table>" for p in paras()]
-
-def vc():
-    return docapi.controller(M()).getViewCursor()
-
-def sel():
-    try:
-        s = docapi.controller(M()).getSelection()
-        return s.getByIndex(0).getString()
-    except Exception:
-        return None
-
 def focus():
     win.present()
     E.view.grab_focus()
 
 def fresh():
     """Empty document with default formatting."""
-    if NATIVE:
-        ed = E.ed
-        ed.set_track_changes(False)
-        ed.select_all()
-        ed.delete(True, False)
+    ed = E.ed
+    if ed.story() == "notes":
+        ed.edit_notes(None)
+    elif ed.story() != "body":
+        ed.edit_header_footer(None, False)
+    try:
+        ed.leave_textbox()
+    except Exception:
+        pass
+    ed.deselect_object()
+    ed.set_track_changes(False)
+    ed.select_all()
+    ed.delete(True, False)
+    try:
+        ed.remove_toc()
+    except Exception:
+        pass
+    for _i in range(20):
         try:
-            ed.remove_toc()
+            cc = ed.content_controls()
+        except Exception:
+            break
+        if not cc:
+            break
+        ed.move_caret("doc_end", False)
+        if not ed.remove_control(cc[0][0], False):
+            break
+    for _i in range(50):
+        tbl = [b for b in ed.body_blocks() if b[0] == "t"]
+        if not tbl:
+            break
+        try:
+            p0 = ed.table_cells(tbl[0][2])[0][0][0]
+            ed.select_nodes(p0, 0, p0, 0)
+            ed.table_command("delete_table")
+        except Exception:
+            break
+    for _i in range(200):
+        if len(ed.body_blocks()) <= 1:
+            break
+        ed.move_caret("doc_end", False)
+        ed.delete(False, False)
+        if len(ed.body_blocks()) > 1 and not ed.para_text_of(ed.caret_pos()[0]):
+            ed.move_caret("doc_start", False)
+            ed.delete(True, False)
+    ed.select_all()
+    ed.delete(True, False)
+    for _i in range(20):
+        try:
+            objs = ed.objects_list()
+            if not objs:
+                break
+            ed.select_object_node(objs[0][0])
+            ed.object_delete()
+        except Exception:
+            break
+    for fn in ("remove_list", "reset_para_formatting", "clear_formatting"):
+        try:
+            getattr(ed, fn)()
         except Exception:
             pass
-        for _i in range(20):
-            try:
-                cc = ed.content_controls()
-            except Exception:
-                break
-            if not cc:
-                break
-            ed.move_caret("doc_end", False)
-            if not ed.remove_control(cc[0][0], False):
-                break
-        for _i in range(50):
-            tbl = [b for b in ed.body_blocks() if b[0] == "t"]
-            if not tbl:
-                break
-            try:
-                p0 = ed.table_cells(tbl[0][2])[0][0][0]
-                ed.select_nodes(p0, 0, p0, 0)
-                ed.table_command("delete_table")
-            except Exception:
-                break
-        for _i in range(200):
-            if len(ed.body_blocks()) <= 1:
-                break
-            ed.move_caret("doc_end", False)
-            ed.delete(False, False)
-            if len(ed.body_blocks()) > 1 and not ed.para_text_of(ed.caret_pos()[0]):
-                ed.move_caret("doc_start", False)
-                ed.delete(True, False)
-        ed.select_all()
-        ed.delete(True, False)
-        for _i in range(20):
-            try:
-                objs = ed.objects_list()
-                if not objs:
-                    break
-                ed.select_object_node(objs[0][0])
-                ed.object_delete()
-            except Exception:
-                break
-        for fn in ("remove_list", "reset_para_formatting", "clear_formatting"):
-            try:
-                getattr(ed, fn)()
-            except Exception:
-                pass
-        try:
-            win.actions.apply_style("Normal")
-        except Exception:
-            pass
-        ed.set_borders("paras", [(s, None) for s in ("top", "left", "bottom", "right", "between")])
-        E.view.after_edit()
-        focus()
-        return
-    m = M()
-    t = m.getText()
-    # drop tables/frames
     try:
-        ix = m.getDocumentIndexes()
-        for i in reversed(range(ix.getCount())):
-            ix.getByIndex(i).dispose()
+        win.actions.apply_style("Normal")
     except Exception:
         pass
-    try:
-        ss = m.getTextSections()
-        for n in list(ss.getElementNames()):
-            ss.getByName(n).dispose()
-    except Exception:
-        pass
-    for coll in (m.getTextTables(), m.getTextFrames(), m.getGraphicObjects()):
-        try:
-            for n in list(coll.getElementNames()):
-                coll.getByName(n).dispose()
-        except Exception:
-            pass
-    c = t.createTextCursor()
-    c.gotoStart(False); c.gotoEnd(True)
-    c.setString("")
-    try:
-        c.ParaStyleName = "Standard"
-        c.setPropertiesToDefault(("CharWeight", "CharPosture", "CharUnderline", "CharHeight",
-                                  "ParaAdjust", "NumberingStyleName", "CharEscapement",
-                                  "CharEscapementHeight", "CharCaseMap", "CharStrikeout"))
-    except Exception:
-        pass
-    try:
-        c2 = t.createTextCursor(); c2.gotoStart(False); c2.gotoEnd(True)
-        c2.setPropertyToDefault("NumberingRules")
-        c2.setPropertyToDefault("NumberingStyleName")
-        docapi.controller(M()).getViewCursor().gotoStart(False)
-        win.actions.cmd(".uno:RemoveBullets")
-    except Exception as e:
-        log("fresh numbering", e)
-    try:
-        M().RecordChanges = False
-    except Exception:
-        pass
-    docapi.controller(M()).getViewCursor().gotoStart(False)
+    ed.set_borders("paras", [(s, None) for s in ("top", "left", "bottom", "right", "between")])
+    E.view.after_edit()
     focus()
 
 def run_scenarios(*gens, outfile="/tmp/wc_results.txt"):
@@ -206,13 +135,6 @@ def run_scenarios(*gens, outfile="/tmp/wc_results.txt"):
         return False
     GLib.timeout_add(500, nxt)
 
-def find(word, nth=0):
-    sd = M().createSearchDescriptor(); sd.SearchString = word
-    r = M().findFirst(sd)
-    for _ in range(nth):
-        r = M().findNext(r.getEnd(), sd)
-    return r
-
 def screen_of_widget(widget, x, y):
     top = widget.get_toplevel()
     tx, ty = widget.translate_coordinates(top, int(x), int(y))
@@ -222,10 +144,6 @@ def screen_of_widget(widget, x, y):
 def doc_screen(xt, yt):
     px, py = E.twips_to_px(xt, yt)
     return screen_of_widget(E.view, px, py)
-
-def range_rect(rng):
-    """twips rect of the start of a text range (moves the view cursor there)"""
-    c = vc(); c.gotoRange(rng.getStart(), False)
 
 def click(x, y, button=1, n=1, mods=None):
     X("mousemove", int(x), int(y)); time.sleep(0.08)

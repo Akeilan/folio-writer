@@ -4,7 +4,7 @@ import math
 
 from gi.repository import Gdk, GLib, Gtk
 
-from . import bridge, docapi
+from . import docapi
 from .widgets import FDialog, LengthSpin, color_button, combo, grid, heading
 
 

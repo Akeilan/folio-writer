@@ -120,18 +120,6 @@ def _find(engine, tries):
     return False
 
 
-def _attach(xsc):
-    global ctx
-    ctx = xsc.getComponentContext()
-    if ctx is None:
-        import uno
-        ctx = uno.getComponentContext()
-    doc = xsc.getDocument()
-    if _waiting:
-        eng = _waiting.pop(0)
-        _attached.add(_uid(doc))
-        eng._set_model(doc)
-
 
 def create(name, *args):
     smgr = ctx.getServiceManager()

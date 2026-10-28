@@ -5,7 +5,7 @@ import re
 
 from gi.repository import GLib, Gtk
 
-from . import bridge, docapi
+from . import docapi
 from .widgets import (FDialog, LengthSpin, Preview, color_button, combo, combo_text,
                       fmt_len, grid, heading, list_selected, listbox)
 
@@ -142,54 +142,8 @@ def _header_texts(m, ps):
     return out
 
 
-def remove_picture_watermarks(m):
-    dp = m.getDrawPage()
-    for i in reversed(range(dp.getCount())):
-        try:
-            o = dp.getByIndex(i)
-            if (o.Name or "").startswith(WATERMARK_NAME):
-                o.getAnchor().getText().removeTextContent(o)
-        except Exception:
-            pass
 
 
-def picture_watermark(m, path, pct=None, washout=True):
-    """A picture behind the text of every page, in the header, centred on
-    the page (as the original stores it)."""
-    um = m.getUndoManager()
-    um.enterUndoContext("Watermark")
-    try:
-        remove_picture_watermarks(m)
-        ps = docapi.page_style(m)
-        docapi.enable_header_footer(m, "header", ps)
-        prov = bridge.create("com.sun.star.graphic.GraphicProvider")
-        g = prov.queryGraphic((bridge.prop("URL", docapi.uno_url(path)),))
-        nat = g.Size100thMM
-        w, h = nat.Width or 10000, nat.Height or 10000
-        if pct is None:
-            avail_w = ps.Width - ps.LeftMargin - ps.RightMargin
-            avail_h = ps.Height - ps.TopMargin - ps.BottomMargin - 2540
-            r = min(avail_w / float(w), avail_h / float(h))
-        else:
-            r = pct / 100.0
-        w, h = int(w * r), int(h * r)
-        for n, text in enumerate(_header_texts(m, ps)):
-            o = m.createInstance("com.sun.star.text.TextGraphicObject")
-            o.Graphic = g
-            o.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType",
-                                       "AT_PARAGRAPH")
-            text.insertTextContent(text.getStart(), o, False)
-            o.Size = bridge.struct("com.sun.star.awt.Size", Width=w, Height=h)
-            o.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", "THROUGH")
-            o.Opaque = False
-            o.HoriOrient, o.HoriOrientRelation = 2, 7       # centre of the page
-            o.VertOrient, o.VertOrientRelation = 2, 7
-            if washout:
-                o.GraphicColorMode = bridge.enum("com.sun.star.drawing.ColorMode",
-                                                 "WATERMARK")
-            o.Name = "%s%d" % (WATERMARK_NAME, n + 1)
-    finally:
-        um.leaveUndoContext()
 
 
 def _section_starts(m):

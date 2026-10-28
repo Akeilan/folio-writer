@@ -627,33 +627,6 @@ class Engine(GObject.GObject):
     EMBED_MIME = ('application/x-openoffice-embed-source-xml;'
                   'windows_formatname="Star Embed Source (XML)"')
 
-    def selected_formula(self):
-        """Formula markup of the selected equation object, or None.
-        Uses the engine's private clipboard (the desktop one is untouched)."""
-        if self.selection_type() != SEL_COMPLEX:
-            return None
-        self.command(".uno:Copy")
-        data = self.selection_bytes(self.EMBED_MIME)
-        if not data.startswith(b"PK"):
-            return None
-        import io
-        import re
-        import zipfile
-        try:
-            z = zipfile.ZipFile(io.BytesIO(data))
-            for n in z.namelist():
-                if n.endswith("/content.xml"):
-                    xml = z.read(n).decode("utf-8", "replace")
-                    m = re.search(r'<annotation[^>]*encoding="StarMath[^"]*"[^>]*>(.*?)'
-                                  r'</annotation>', xml, re.S)
-                    if m:
-                        import html
-                        return html.unescape(m.group(1))
-                    if "<math" in xml:
-                        return ""
-        except (zipfile.BadZipFile, KeyError):
-            pass
-        return None
 
     def page_rects(self):
         """[(x, y, w, h)] of every page, in twips (document coordinates)."""

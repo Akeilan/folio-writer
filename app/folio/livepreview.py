@@ -65,20 +65,6 @@ class LivePreview:
         self.end()
         return self._start_native(key, apply_fn)
 
-    def _take_back(self, m):
-        try:
-            um = m.getUndoManager()
-            titles = um.getAllUndoActionTitles()
-            if titles and titles[0] == TITLE:
-                um.undo()
-                try:
-                    um.clearRedo()
-                except Exception:
-                    pass
-            if not self._was_modified and m.isModified():
-                m.setModified(False)
-        except Exception as e:
-            print("live preview undo:", e)
 
     def _start_native(self, key, apply_fn):
         ed = self.win.engine.ed
@@ -132,12 +118,6 @@ def attach(win, widget, key, apply_fn):
     # clicking: drop the preview before the real command runs
     widget.connect("button-press-event", lambda *_: (lp.commit(), False)[1])
 
-
-def _targets(m):
-    """Text ranges the preview applies to: the selection, or the word at the
-    cursor for character formatting."""
-    vc = docapi.view_cursor(m)
-    return vc
 
 
 def para_style(name):

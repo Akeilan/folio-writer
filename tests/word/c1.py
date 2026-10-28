@@ -37,13 +37,13 @@ def b2_own_copy_still_works():
     T("bold words"); K("ctrl+a"); K("ctrl+b"); K("ctrl+c"); yield 0.8
     K("End"); K("Return"); K("ctrl+v"); yield 1.2
     f = find("bold", 1)
-    check("own copy pastes with formatting", f is not None and f.CharWeight > 100, f and f.CharWeight)
+    check("own copy pastes with formatting", f is not None and f.run()["bold"], f and f.run()["bold"])
 def c_html():
     fresh(); yield 0.3
     xclip_set("<p><i>External</i> rich clipboard</p>", "text/html"); yield 0.8
     focus(); K("ctrl+v"); yield 1.5
     f = find("External")
-    check("paste rich text from another app keeps formatting", f is not None and f.CharPosture.value == "ITALIC", (repr(text()), f and f.CharPosture.value))
+    check("paste rich text from another app keeps formatting", f is not None and f.run()["italic"], (repr(text()), f and f.run()["italic"]))
     kill()
 def d_drag_in():
     fresh(); yield 0.3
@@ -80,10 +80,10 @@ def f_drag_out():
     try: os.remove("/tmp/c1_drop.txt")
     except Exception: pass
     spawn("/usr/bin/python3", H + "ext_dst.py", "/tmp/c1_drop.txt"); yield 2.0
-    docapi.controller(M()).select(find("Take me")); yield 0.6
-    c = vc(); r = find("Take me"); c.gotoRange(r.getStart(), False); yield 0.3
+    find("Take me").select(); yield 0.6
+    r = find("Take me"); r.caret_to_start(); yield 0.3
     x0, y0, w, h = win._follow_rect
-    docapi.controller(M()).select(find("Take me")); yield 0.6
+    find("Take me").select(); yield 0.6
     sx, sy = doc_screen(x0 + 300, y0 + h / 2)
     dx, dy = 1320 + 130, 400 + 100
     X("mousemove", sx, sy); yield 0.3; X("mousedown", 1); yield 0.3

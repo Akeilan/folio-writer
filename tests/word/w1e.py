@@ -7,5 +7,5 @@ def d():
             if s.startswith("T:"): T(s[2:])
             else: K(s[2:])
             yield 0.4
-        note(str(seq), (para_texts(), [p.NumberingIsNumber for p in paras()]))
+        note(str(seq), (para_texts(), [is_listed(i) for i, t in enumerate(para_texts())]))
 run_scenarios(d)

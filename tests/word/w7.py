@@ -1,22 +1,21 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
 def word():
+    """The formatting of 'word' (hidden text isn't found while hidden, as in the original:
+    the selection still holds it)."""
     r = find("word")
-    if r is None and NATIVE:
-        # hidden text isn't found while it's hidden (as in the original): the selection still holds it
-        r = docapi.controller(M()).getSelection().getByIndex(0)
-    return r
+    return r.run() if r is not None else rv()
 def shortcuts():
     cases = [
-        ("ctrl+shift+d", lambda: word().CharUnderline == 2, "double underline"),
-        ("ctrl+shift+w", lambda: word().CharWordMode and word().CharUnderline == 1, "word underline"),
-        ("ctrl+shift+k", lambda: word().CharCaseMap == 4, "small caps"),
-        ("ctrl+shift+h", lambda: word().CharHidden, "hidden"),
+        ("ctrl+shift+d", lambda: word()["underline"] == "double", "double underline"),
+        ("ctrl+shift+w", lambda: word()["underline"] == "words", "word underline"),
+        ("ctrl+shift+k", lambda: word()["small_caps"], "small caps"),
+        ("ctrl+shift+h", lambda: word()["hidden"], "hidden"),
     ]
     for key, ok, name in cases:
         fresh(); yield 0.3
         T("a word here"); yield 0.3
-        docapi.controller(M()).select(find("word")); yield 0.3
+        find("word").select(); yield 0.3
         K(key); yield 0.5
         try: r = ok()
         except Exception as e: r = e
@@ -29,9 +28,9 @@ def shortcuts():
         check("%s inserts %s" % (key, name), want in text(), repr(text()))
     fresh(); yield 0.3
     T("para"); K("ctrl+5"); yield 0.4
-    check("ctrl+5 1.5 spacing", paras()[0].ParaLineSpacing.Height == 150, paras()[0].ParaLineSpacing.Height)
+    check("ctrl+5 1.5 spacing", (pv(0)["line"], pv(0)["line_rule"]) == (360, "auto"), (pv(0)["line"], pv(0)["line_rule"]))
     K("ctrl+0"); yield 0.4
-    check("ctrl+0 adds 12pt before", paras()[0].ParaTopMargin > 0, paras()[0].ParaTopMargin)
+    check("ctrl+0 adds 12pt before", pv(0)["before"] == 240, pv(0)["before"])
     K("ctrl+shift+asterisk"); yield 0.5
     shot("w7_pilcrow")
     check("ctrl+shift+8 shows formatting marks", win.engine.get(".uno:ControlCodes") == "true", win.engine.get(".uno:ControlCodes"))
@@ -48,9 +47,9 @@ def shortcuts():
     fresh(); yield 0.3
     T("Head"); K("ctrl+alt+1"); yield 0.3
     K("alt+shift+Right"); yield 0.4
-    check("alt+shift+right demotes heading", paras()[0].ParaStyleName == "Heading 2", paras()[0].ParaStyleName)
+    check("alt+shift+right demotes heading", style_of(0) == "Heading 2", style_of(0))
     K("alt+shift+Left"); yield 0.4
-    check("alt+shift+left promotes heading", paras()[0].ParaStyleName == "Heading 1", paras()[0].ParaStyleName)
+    check("alt+shift+left promotes heading", style_of(0) == "Heading 1", style_of(0))
     fresh(); yield 0.3
     T("hello"); K("shift+F10"); yield 1.0
     check("shift+F10 opens context menu", len(popups()) > 0, len(popups()))
@@ -84,6 +83,6 @@ def shortcuts():
     T("first"); K("Return"); T("second"); yield 0.3
     K("ctrl+Home"); yield 0.3
     K("shift+F5"); yield 0.5
-    c = vc(); r = c.getText().createTextCursorByRange(c.getStart()); r.gotoStartOfParagraph(True)
-    check("shift+F5 returns to last edit", c.getText().createTextCursorByRange(c.getStart()) is not None and r.getString() == "second", repr(r.getString()))
+    r = pos()
+    check("shift+F5 returns to last edit", r == "second", repr(r))
 run_scenarios(shortcuts)

@@ -177,46 +177,12 @@ def set_page(m, width=None, height=None, top=None, bottom=None, left=None, right
         ps.TextColumns = tc
 
 
-def page_color(m, color):
-    ps = page_style(m)
-    if color is None or color < 0:
-        ps.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "NONE")
-        return
-    ps.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "SOLID")
-    ps.FillColor = int(color)
-    try:
-        ps.BackgroundFullSize = True
-    except Exception:
-        pass
-
 
 def _line(width_pt=0.5, color=0, style=0):
     w = int(round(width_pt * 2540 / 72))
     return bridge.struct("com.sun.star.table.BorderLine2", Color=color, LineWidth=w,
                          OuterLineWidth=w, LineStyle=style)
 
-
-def page_border(m, kind="box", width_pt=0.5, color=0, style=0):
-    """kind: none | box | shadow"""
-    ps = page_style(m)
-    line = _line(width_pt, color, style) if kind != "none" else _line(0)
-    if kind == "none":
-        line = bridge.struct("com.sun.star.table.BorderLine2")
-    for side in ("LeftBorder", "RightBorder", "TopBorder", "BottomBorder"):
-        setattr(ps, side, line)
-    dist = pt(24) if kind != "none" else 0
-    for side in ("LeftBorderDistance", "RightBorderDistance", "TopBorderDistance",
-                 "BottomBorderDistance"):
-        try:
-            setattr(ps, side, dist)
-        except Exception:
-            pass
-    sh = bridge.struct("com.sun.star.table.ShadowFormat")
-    if kind == "shadow":
-        sh.Location = bridge.enum("com.sun.star.table.ShadowLocation", "BOTTOM_RIGHT")
-        sh.ShadowWidth = pt(4)
-        sh.Color = 0x808080
-    ps.ShadowFormat = sh
 
 
 def para_border(m, sides, width_pt=0.5, color=0):
@@ -515,31 +481,6 @@ def enable_header_footer(m, which, ps=None):
     except Exception as e:
         print("header geometry:", e)
 
-
-def insert_header_footer(m, which, page_numbers=None, align="center", text=""):
-    """Turn on the header or footer and optionally put a page number in it."""
-    ps = page_style(m)
-    key = "Header" if which == "header" else "Footer"
-    enable_header_footer(m, which, ps)
-    if page_numbers:
-        body = getattr(ps, key + "Text")
-        body.setString("")
-        cur = body.createTextCursor()
-        cur.ParaAdjust = {"left": 0, "right": 1, "center": 3}[align]
-        f = m.createInstance("com.sun.star.text.textfield.PageNumber")
-        f.NumberingType = 4
-        f.SubType = bridge.enum("com.sun.star.text.PageNumberType", "CURRENT")
-        if page_numbers == "page-x-of-y":
-            body.insertString(cur, "Page ", False)
-            body.insertTextContent(cur, f, False)
-            body.insertString(cur, " of ", False)
-            c = m.createInstance("com.sun.star.text.textfield.PageCount")
-            c.NumberingType = 4
-            body.insertTextContent(cur, c, False)
-        else:
-            body.insertTextContent(cur, f, False)
-    elif text:
-        getattr(ps, key + "Text").setString(text)
 
 
 def remove_header_footer(m, which, ps=None):
@@ -1250,32 +1191,6 @@ def selected_formula_object(m):
     return None
 
 
-def formula_beside_cursor(m, direction):
-    """The equation right after (direction 1) or before (-1) the collapsed
-    cursor, or None."""
-    try:
-        vc = read_cursor(m)
-        if not vc.isCollapsed():
-            return None
-        cur = vc.getText().createTextCursorByRange(vc.getStart())
-        if direction > 0:
-            if not cur.goRight(1, True):
-                return None
-        elif not cur.goLeft(1, True):
-            return None
-        en = cur.createContentEnumeration("com.sun.star.text.TextContent")
-        while en.hasMoreElements():
-            o = en.nextElement()
-            try:
-                if o.supportsService("com.sun.star.text.TextEmbeddedObject") and \
-                        o.CLSID.upper() == MATH_CLSID.upper():
-                    return o
-            except Exception:
-                continue
-    except Exception:
-        pass
-    return None
-
 
 def formula_of(obj):
     try:
@@ -1296,43 +1211,6 @@ def set_formula(obj, markup):
 MATH_TEXT_FONT = ["Caladea"]
 
 
-def insert_formula(m, markup, display=False):
-    um = m.getUndoManager()
-    um.enterUndoContext("Insert Equation")
-    try:
-        return _insert_formula(m, markup, display)
-    finally:
-        um.leaveUndoContext()
-
-
-def _insert_formula(m, markup, display):
-    vc = view_cursor(m)
-    text = vc.getText()
-    obj = m.createInstance("com.sun.star.text.TextEmbeddedObject")
-    obj.CLSID = MATH_CLSID
-    obj.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AS_CHARACTER")
-    if display:
-        cur = text.createTextCursorByRange(vc)
-        cur.gotoStartOfParagraph(True)
-        empty_before = cur.getString().strip() == ""
-        cur = text.createTextCursorByRange(vc)
-        cur.gotoEndOfParagraph(True)
-        empty_after = cur.getString().strip() == ""
-        if not (empty_before and empty_after):
-            text.insertControlCharacter(vc, 0, False)
-        vc.ParaAdjust = 3
-    text.insertTextContent(vc, obj, False)
-    set_formula(obj, markup)
-    try:
-        emb = obj.getEmbeddedObject()
-        emb.BaseFontHeight = int(round(view_cursor(m).CharHeight or 11))
-        for p in ("FontNameVariables", "FontNameFunctions", "FontNameNumbers",
-                  "FontNameText"):
-            setattr(emb, p, MATH_TEXT_FONT[0])
-        emb.FontVariablesIsItalic = True
-    except Exception:
-        pass
-    return obj
 
 
 def select_object(m, obj):
@@ -1500,45 +1378,6 @@ def synonyms(word, loc):
 WORD_RE = re.compile(r"[^\W\d_]+(?:['’][^\W\d_]+)*", re.UNICODE)
 
 
-def next_misspelling(m, start_after_cursor=True, ignored=()):
-    """Find and select the next misspelled word from the cursor on.
-    Returns the word or None."""
-    vc = view_cursor(m)
-    body = m.getText()
-    loc = doc_locale(m)
-    try:
-        cur = body.createTextCursorByRange(vc.getEnd() if start_after_cursor else vc.getStart())
-    except Exception:
-        # cursor in a table, header or frame: check the body text from the top
-        cur = body.createTextCursor()
-        cur.gotoStart(False)
-    first = True
-    for _wrap in range(2):
-        while True:
-            if not first and not cur.gotoNextWord(False):
-                break
-            first = False
-            w = body.createTextCursorByRange(cur)
-            w.gotoEndOfWord(True)
-            word = w.getString().strip()
-            if word and WORD_RE.fullmatch(word) and word not in ignored and \
-                    not word.isupper() and len(word) > 1:
-                try:
-                    lc = w.CharLocale if w.CharLocale.Language else loc
-                    if lc.Language in ("zxx",):
-                        continue
-                    if not spell_ok(word, lc):
-                        controller(m).select(w)
-                        return word
-                except Exception:
-                    pass
-        cur = body.createTextCursor()
-        cur.gotoStart(False)
-        first = True
-        if _wrap:
-            break
-    return None
-
 
 def replace_selection_text(m, text):
     vc = view_cursor(m)
@@ -1554,30 +1393,6 @@ def table_at_cursor(m):
     except Exception:
         return None
 
-
-def table_style(m, header_fill=0x4472C4, band_fill=0xD9E2F3, border=0x8EAADB,
-                header_font=0xFFFFFF):
-    t = table_at_cursor(m)
-    if t is None:
-        return
-    rows = t.getRows().getCount()
-    cols = t.getColumns().getCount()
-    line = _line(0.5, border)
-    for r in range(rows):
-        for c in range(cols):
-            name = t.getCellByPosition(c, r)
-            if r == 0:
-                name.BackColor = header_fill
-                cur = name.createTextCursor()
-                cur.gotoEnd(True)
-                cur.CharColor = header_font
-                cur.CharWeight = 150.0
-            elif r % 2 == 0:
-                name.BackColor = band_fill
-            else:
-                name.BackColor = -1
-            for side in ("LeftBorder", "RightBorder", "TopBorder", "BottomBorder"):
-                setattr(name, side, line)
 
 
 def sort_paragraphs(m, descending=False, case=False):
@@ -1674,46 +1489,6 @@ def _text_columns(m, n, spacing=1250):
     return tc
 
 
-def insert_section_break(m, kind="next-page"):
-    """Word's section breaks. 'next-page' (and 'even'/'odd') start a new page
-    with its own copy of the page settings, so margins, orientation and
-    headers can differ per section. 'continuous' starts a new section on the
-    same page, so columns can change mid-page."""
-    um = m.getUndoManager()
-    um.enterUndoContext("Section Break")
-    try:
-        vc = view_cursor(m)
-        text = vc.getText()
-        if kind == "continuous":
-            cur = text.createTextCursorByRange(vc.getStart())
-            text.insertControlCharacter(cur, 0, False)
-            cur = text.createTextCursorByRange(vc.getStart())
-            cur.gotoStartOfParagraph(False)
-            cur.gotoEnd(True)
-            sec = m.createInstance("com.sun.star.text.TextSection")
-            text.insertTextContent(cur, sec, True)
-            return sec
-        ps = page_style(m)
-        fam = m.getStyleFamilies().getByName("PageStyles")
-        i = 1
-        while fam.hasByName("Section %d" % i):
-            i += 1
-        name = "Section %d" % i
-        new = m.createInstance("com.sun.star.style.PageStyle")
-        fam.insertByName(name, new)
-        _copy_props(ps, new)
-        if kind in ("even", "odd"):
-            try:
-                new.PageStyleLayout = bridge.enum("com.sun.star.style.PageStyleLayout",
-                                                  "LEFT" if kind == "even" else "RIGHT")
-            except Exception:
-                pass
-        text.insertControlCharacter(vc, 0, False)
-        vc.PageDescName = name
-        return name
-    finally:
-        um.leaveUndoContext()
-
 
 def set_columns(m, n):
     """Columns for the selected text (in its own section, as Word does), for
@@ -1737,11 +1512,6 @@ def set_columns(m, n):
 
 
 # ------------------------------------------------------------- text from file
-def insert_text_from_file(m, path):
-    vc = view_cursor(m)
-    cur = vc.getText().createTextCursorByRange(vc.getStart())
-    url = uno_url(path)
-    cur.insertDocumentFromURL(url, ())
 
 
 def uno_url(path):
@@ -1751,19 +1521,6 @@ def uno_url(path):
 
 
 # ------------------------------------------------------------- figures & index
-def insert_table_of_figures(m, label="Figure"):
-    vc = view_cursor(m)
-    idx = m.createInstance("com.sun.star.text.IllustrationsIndex")
-    idx.LabelCategory = label
-    idx.CreateFromLabels = True
-    idx.Title = ""
-    try:
-        idx.LabelDisplayType = 0     # label, number and text
-    except Exception:
-        pass
-    vc.getText().insertTextContent(vc, idx, False)
-    idx.update()
-    return idx
 
 
 def mark_index_entry(m, entry=None, main=False):
@@ -1857,18 +1614,6 @@ def set_language(m, lang, country, no_proof=False, default=False, whole=False):
 
 
 # ------------------------------------------------------------- fields
-def _fields_in_order(m):
-    out = []
-    en = m.getTextFields().createEnumeration()
-    while en.hasMoreElements():
-        f = en.nextElement()
-        try:
-            a = f.getAnchor()
-            if a.getText() is not None:
-                out.append((f, a))
-        except Exception:
-            pass
-    return out
 
 
 def _cmp(text, a, b):
@@ -1879,75 +1624,7 @@ def _cmp(text, a, b):
         return None
 
 
-def goto_field(m, forward=True):
-    """F11 / Shift+F11: select the next (previous) field."""
-    vc = view_cursor(m)
-    here = vc.getEnd() if forward else vc.getStart()
-    best = None
-    for f, a in _fields_in_order(m):
-        c = _cmp(a.getText(), here, a)
-        if c is None:
-            continue
-        if forward and c == 1 or (not forward and c == -1):
-            if best is None:
-                best = a
-            else:
-                c2 = _cmp(a.getText(), a, best)
-                if c2 is not None and ((forward and c2 == 1) or (not forward and c2 == -1)):
-                    best = a
-    if best is not None:
-        vc.gotoRange(best.getStart(), False)
-        vc.gotoRange(best.getEnd(), True)
-        return True
-    return False
 
-
-def unlink_fields(m):
-    """Ctrl+Shift+F9: replace the selected fields with their current text."""
-    vc = view_cursor(m)
-    text = vc.getText()
-    whole = vc.isCollapsed()
-    n = 0
-    for f, a in _fields_in_order(m):
-        if a.getText() != text:
-            continue
-        if not whole:
-            s = _cmp(text, vc.getStart(), a.getStart())
-            e = _cmp(text, a.getEnd(), vc.getEnd())
-            if s is None or e is None or s < 0 or e < 0:
-                continue
-        else:
-            # just the field at the cursor
-            if _cmp(text, a.getStart(), vc.getStart()) == -1 or \
-                    _cmp(text, vc.getStart(), a.getEnd()) == -1:
-                continue
-        try:
-            shown = f.getPresentation(False)
-        except Exception:
-            shown = a.getString()
-        cur = text.createTextCursorByRange(a)
-        text.removeTextContent(f)
-        text.insertString(cur, shown, False)
-        n += 1
-    return n
-
-
-def lock_fields(m, lock=True):
-    """Ctrl+F11 / Ctrl+Shift+F11: fixed fields stop updating."""
-    vc = view_cursor(m)
-    text = vc.getText()
-    for f, a in _fields_in_order(m):
-        if a.getText() != text:
-            continue
-        if _cmp(text, vc.getStart(), a.getEnd()) == -1 or _cmp(text, a.getStart(), vc.getEnd()) == -1:
-            continue
-        for prop in ("IsFixed", "IsFixedLanguage"):
-            try:
-                if prop == "IsFixed":
-                    f.IsFixed = lock
-                break
-            except Exception:
-                continue
 
 
 def toggle_field_codes(m):

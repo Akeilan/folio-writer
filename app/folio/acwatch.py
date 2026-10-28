@@ -10,7 +10,7 @@ import time
 
 from gi.repository import GLib, Gtk, Pango, PangoCairo
 
-from . import docapi, icons
+from . import icons
 
 TRIGGERS = {"space", "return", "kp_enter", "tab", "period", "comma", "semicolon", "colon",
             "exclam", "question", "parenright", "quotedbl", "apostrophe"}
@@ -130,118 +130,7 @@ class ACWatch:
                 self.hide()
         return False
 
-    def _no_drop_cap(self):
-        """A paragraph started with Enter after a drop cap doesn't get one
-        (in the original the drop cap belongs to its paragraph alone)."""
-        m = self.win.engine.model
-        if m is None:
-            return False
-        try:
-            vc = docapi.view_cursor(m)
-            c = vc.getText().createTextCursorByRange(vc.getStart())
-            if c.DropCapFormat.Lines < 2:
-                return False
-            prev = c.getText().createTextCursorByRange(c.getStart())
-            if not prev.gotoPreviousParagraph(False) or prev.DropCapFormat.Lines < 2:
-                return False
-            from . import bridge
-            c.DropCapFormat = bridge.struct("com.sun.star.style.DropCapFormat")
-        except Exception:
-            pass
-        return False
 
-    def _check(self, word, trig, mark, tries):
-        self._cur_trig = trig
-        m = self.win.engine.model
-        if m is None:
-            return False
-        later = self.typed[mark:] if trig != "\n" else ""
-        try:
-            vc = docapi.view_cursor(m)
-            c = vc.getText().createTextCursorByRange(vc.getStart())
-            if trig == "\n":
-                # back to the paragraph Enter ended (more may have been typed)
-                for _i in range(1 + self.enters - mark):
-                    c.gotoPreviousParagraph(False)
-                c.gotoEndOfParagraph(False)
-            c.gotoStartOfParagraph(True)
-            P = c.getString()
-        except Exception:
-            return False
-        tail = (trig if trig != "\n" else "") + later
-        if not P.endswith(tail):
-            if tries < 8:
-                GLib.timeout_add(120, self._check, word, trig, mark, tries + 1)
-            return False
-        R = P[:len(P) - len(tail)]
-        if trig == "\n" and not R.endswith(word) and \
-                not R.endswith(self._replacements().get(word, "\0")) and \
-                not R.lower().endswith(word.lower()):
-            return False
-        exp = self._replacements().get(word)
-        if exp and R.endswith(exp) and exp != word:
-            new = exp
-        else:
-            j = len(R)
-            while j > 0 and not R[j - 1].isspace():
-                j -= 1
-            new = R[j:]
-        start = len(R) - len(new)
-        if not new:
-            return False
-        try:
-            r = c.getText().createTextCursorByRange(c.getStart())
-            r.goRight(start, False)
-            r.goRight(len(new), True)
-        except Exception:
-            return False
-        if new == word and trig == "\n" and start == 0 and word[:1].islower() and \
-                word.isalpha() and self.settings().get("ac_caps_first", True):
-            # the first word of a paragraph ended by Enter (the engine waits
-            # for a space)
-            try:
-                if vc.Cell is None or self.settings().get("ac_caps_cells", True):
-                    r.setString(word[0].upper() + word[1:])
-                    r2 = c.getText().createTextCursorByRange(c.getStart())
-                    r2.goRight(len(word), True)
-                    self._remember(r2, word, word[0].upper() + word[1:], "caps", mark)
-            except Exception:
-                pass
-            return False
-        if new == word:
-            # names of days (the engine has no such option)
-            if self.settings().get("ac_days", True) and word.lower() in DAYS and \
-                    word == word.lower():
-                try:
-                    r.setString(word.capitalize())
-                    r2 = c.getText().createTextCursorByRange(c.getStart())
-                    r2.goRight(start, False)
-                    r2.goRight(len(word), True)
-                    self._remember(r2, word, word.capitalize(), "days", mark)
-                except Exception:
-                    pass
-            return False
-        if new in ("“", "”", "‘", "’"):
-            return False
-        kind = "caps" if word.lower() == new.lower() else "replace"
-        import re as _re
-        if kind == "replace" and _re.fullmatch(r"\d+/\d+", word) and \
-                not self.settings().get("ac_fractions", True):
-            r.setString(word)
-            return False
-        if kind == "caps" and not self.settings().get("ac_caps_cells", True):
-            try:
-                cell = vc.Cell
-                if cell is not None and start == 0:
-                    first = cell.getText().createTextCursor()
-                    first.gotoStart(False)
-                    if cell.getText().compareRegionStarts(first, c.getStart()) == 0:
-                        r.setString(word)
-                        return False
-            except Exception:
-                pass
-        self._remember(r, word, new, kind, mark)
-        return False
 
     _repl = None
 

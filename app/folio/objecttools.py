@@ -4,7 +4,7 @@ import math
 
 from gi.repository import Gdk, GLib, Gtk
 
-from . import bridge, docapi, drawing, icons
+from . import docapi, drawing, icons
 
 MM100_TO_TWIP = 1440.0 / 2540.0
 

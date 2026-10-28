@@ -91,54 +91,6 @@ def check(text, lang="en", country="US"):
     return out
 
 
-def next_issue(m, after_range=None, ignored=()):
-    """Find and select the next grammar issue in the body text.
-    Returns (message, suggestions, original text) or None."""
-    body = m.getText()
-    vc = docapi.view_cursor(m)
-    loc = docapi.doc_locale(m)
-    try:
-        here = body.createTextCursorByRange(vc.getEnd() if after_range else vc.getStart())
-    except Exception:
-        here = body.createTextCursor()
-        here.gotoStart(False)
-    for wrap in (0, 1):
-        en = body.createEnumeration()
-        while en.hasMoreElements():
-            para = en.nextElement()
-            if not para.supportsService("com.sun.star.text.Paragraph"):
-                continue
-            text = para.getString()
-            if not text.strip():
-                continue
-            try:
-                if not wrap and body.compareRegionEnds(para, here) > 0:
-                    continue          # paragraph ends before the cursor
-            except Exception:
-                pass
-            pc = body.createTextCursorByRange(para.getStart())
-            for start, length, msg, sugg in check(text, loc.Language or "en",
-                                                   loc.Country or "US"):
-                key = (text, start)
-                if key in ignored:
-                    continue
-                c = body.createTextCursorByRange(pc.getStart())
-                c.goRight(start, False)
-                if not wrap:
-                    try:
-                        if body.compareRegionStarts(c, here) > 0:
-                            continue  # before the cursor
-                        if after_range and body.compareRegionStarts(c, here) == 0:
-                            continue
-                    except Exception:
-                        pass
-                c.goRight(length, True)
-                docapi.controller(m).select(c)
-                return msg, sugg, c.getString(), key
-        if wrap:
-            break
-    return None
-
 
 # ------------------------------------------------------------ readability
 def _syllables(word):

@@ -2,7 +2,7 @@
 borders for the whole table."""
 from gi.repository import Gtk
 
-from . import bridge, docapi
+from . import docapi
 from .widgets import FDialog, LengthSpin, color_button, combo, grid, heading
 
 
@@ -109,25 +109,6 @@ class TableDialogs:
                     table.getCellByPosition(c, r).setString(val)
         d.done()
 
-    def table_borders(self, kind="all"):
-        m = self._model_or_warn()
-        if m is None:
-            return
-        table, _cell = _table(m)
-        if table is None:
-            return
-        tb = table.TableBorder2
-        line = bridge.struct("com.sun.star.table.BorderLine2", Color=0, LineWidth=18,
-                             OuterLineWidth=18)
-        none = bridge.struct("com.sun.star.table.BorderLine2")
-        outer = kind in ("all", "outside")
-        inner = kind in ("all", "inside")
-        for side, on in (("TopLine", outer), ("BottomLine", outer), ("LeftLine", outer),
-                         ("RightLine", outer), ("HorizontalLine", inner),
-                         ("VerticalLine", inner)):
-            setattr(tb, side, line if on else none)
-            setattr(tb, "Is" + side + "Valid", True)
-        table.TableBorder2 = tb
 
     def table_properties(self, page=0):
         from .tabledraw import properties_dialog
@@ -149,70 +130,6 @@ class TableDialogs:
         except Exception:
             pass
 
-    def _old_table_properties(self):
-        m = self._model_or_warn()
-        if m is None:
-            return
-        table, cell = _table(m)
-        if table is None:
-            self.message("Put the cursor in a table first.")
-            return
-        d = FDialog(self.win, "Table Properties")
-        nb = Gtk.Notebook()
-        d.add(nb)
-        # table
-        p1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        p1.set_border_width(10)
-        p1.pack_start(heading("Size"), False, False, 0)
-        rel = Gtk.SpinButton.new_with_range(10, 100, 1)
-        try:
-            rel.set_value(table.RelativeWidth or 100)
-        except Exception:
-            rel.set_value(100)
-        p1.pack_start(grid([["Preferred _width (%):", rel]]), False, False, 0)
-        p1.pack_start(heading("Alignment"), False, False, 0)
-        hori = {0: 0, 1: 1, 2: 2, 3: 3}
-        align = combo(["Left", "Center", "Right"], {3: 0, 2: 1, 1: 2}.get(table.HoriOrient, 0)
-                      if table.HoriOrient in (1, 2, 3) else 0)
-        p1.pack_start(align, False, False, 0)
-        # row
-        p2 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        p2.set_border_width(10)
-        vc = docapi.view_cursor(m)
-        rows = table.getRows()
-        row_index = int("".join(ch for ch in cell.CellName if ch.isdigit()) or "1") - 1
-        row = rows.getByIndex(row_index)
-        auto = Gtk.CheckButton(label="Specify height:")
-        auto.set_active(not row.IsAutoHeight)
-        height = LengthSpin(row.Height or 500, 0, 55880)
-        p2.pack_start(grid([[auto, height]]), False, False, 0)
-        # cell
-        p3 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        p3.set_border_width(10)
-        p3.pack_start(heading("Vertical alignment"), False, False, 0)
-        valign = combo(["Top", "Center", "Bottom"], {0: 0, 1: 0, 2: 1, 3: 2}.get(cell.VertOrient, 0))
-        p3.pack_start(valign, False, False, 0)
-        shade = color_button(cell.BackColor if cell.BackColor != -1 else -1, auto_label="No Color")
-        p3.pack_start(grid([["Shading:", shade]]), False, False, 0)
-        nb.append_page(p1, Gtk.Label(label="Table"))
-        nb.append_page(p2, Gtk.Label(label="Row"))
-        nb.append_page(p3, Gtk.Label(label="Cell"))
-        if d.ask() == Gtk.ResponseType.OK:
-            try:
-                ho = {0: 3, 1: 2, 2: 1}[align.get_active()]
-                if rel.get_value() < 100:
-                    table.HoriOrient = ho
-                    table.RelativeWidth = int(rel.get_value())
-                else:
-                    table.HoriOrient = 6     # full width
-                row.IsAutoHeight = not auto.get_active()
-                if auto.get_active():
-                    row.Height = height.mm100
-                cell.VertOrient = {0: 1, 1: 2, 2: 3}[valign.get_active()]
-                cell.BackColor = -1 if shade.color is None or shade.color < 0 else shade.color
-            except Exception as e:
-                self.message("Some table properties couldn't be applied: %s" % e)
-        d.done()
 
     # Engine dialogs that slipped through map onto ours
     ENGINE_DIALOGS = {"Split Cells": "split_cells", "Convert Text to Table": "text_to_table",

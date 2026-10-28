@@ -492,32 +492,3 @@ class ImmersiveReader(Gtk.Box):
                 b.remove_tag(reader.hl, b.get_start_iter(), b.get_end_iter())
         return Src()
 
-
-def syllabify(m, text):
-    """Words broken into syllables with middle dots (Immersive Reader)."""
-    try:
-        from . import bridge
-        lsm = bridge.create("com.sun.star.linguistic2.LinguServiceManager")
-        hy = lsm.getHyphenator()
-        loc = docapi.doc_locale(m)
-    except Exception:
-        return text
-
-    def one(mm):
-        w = mm.group()
-        if len(w) < 4:
-            return w
-        try:
-            ph = hy.createPossibleHyphens(w, loc, ())
-            if ph is None:
-                return w
-            pos = list(ph.getHyphenationPositions())
-        except Exception:
-            return w
-        out, last = [], 0
-        for p in pos:
-            out.append(w[last:p + 1])
-            last = p + 1
-        out.append(w[last:])
-        return "·".join(x for x in out if x)
-    return re.sub(r"[A-Za-z]{4,}", one, text)

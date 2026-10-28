@@ -1,10 +1,9 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
-def ps(): return docapi.page_style(M())
 def a():
     fresh(); yield 0.3
     T("Some text"); yield 0.3
-    docapi.enable_header_footer(M(), "header"); yield 0.5
+    E.ed.ensure_header_footer(0, False); E.view.after_edit(); yield 0.5
     win.focus_document(); yield 0.3
     GLib.idle_add(lambda: (win.dialogs.page_setup(2), False)[1]); yield 1.2
     d = dlg("Page Setup")[0]
@@ -25,17 +24,17 @@ def a():
     btns = [b.get_label() for b in find_widget(d, lambda w: isinstance(w, Gtk.Button))]
     check("Set As Default button", "Set As De_fault" in btns, btns)
     respond("Page Setup"); yield 1.0
-    p = ps()
-    check("mirrored", p.PageStyleLayout.value == "MIRRORED", p.PageStyleLayout.value)
-    note("vertical center (read)", p.TextVerticalAdjust.value)
-    check("different first", p.FirstIsShared is False, p.FirstIsShared)
-    check("different odd/even", p.HeaderIsShared is False, p.HeaderIsShared)
+    p = page_setup()
+    check("mirrored", E.ed.setting("mirrorMargins"), E.ed.setting("mirrorMargins"))
+    check("vertical center", p["v_align"] == "center", p["v_align"])
+    check("different first", p["title_pg"], p["title_pg"])
+    check("different odd/even", E.ed.setting("evenAndOddHeaders"), E.ed.setting("evenAndOddHeaders"))
     shot("l7_after")
     # Margins menu Mirrored / Normal
     rib("Layout", "Margins", "Normal"); yield 0.6
-    check("Normal undoes mirror", ps().PageStyleLayout.value == "ALL", ps().PageStyleLayout.value)
+    check("Normal undoes mirror", not E.ed.setting("mirrorMargins"), E.ed.setting("mirrorMargins"))
     rib("Layout", "Margins", "Mirrored"); yield 0.6
-    check("Mirrored menu", ps().PageStyleLayout.value == "MIRRORED" and ps().LeftMargin == 3175, (ps().PageStyleLayout.value, ps().LeftMargin))
+    check("Mirrored menu (inside 1.25 in)", E.ed.setting("mirrorMargins") and page_setup()["left"] == 1800, (E.ed.setting("mirrorMargins"), page_setup()["left"]))
     # save docx keeps mirror + valign
     win.save_to("/tmp/dc/l7.docx"); yield 3.0
     import zipfile

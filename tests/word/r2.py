@@ -20,27 +20,26 @@ def headings():
     fresh(); yield 0.3
     T("Head"); K("ctrl+alt+1"); yield 0.8
     K("alt+shift+Right"); yield 0.8
-    check("Alt+Shift+Right demotes", paras()[0].ParaStyleName == "Heading 2", paras()[0].ParaStyleName)
+    check("Alt+Shift+Right demotes", style_of(0) == "Heading 2", style_of(0))
     K("alt+shift+Left"); yield 0.8
-    check("Alt+Shift+Left promotes", paras()[0].ParaStyleName == "Heading 1", paras()[0].ParaStyleName)
+    check("Alt+Shift+Left promotes", style_of(0) == "Heading 1", style_of(0))
 def table():
     fresh(); yield 0.3
     win.actions.cmd(".uno:InsertTable", {"Columns": 2, "Rows": 3}); yield 0.8
-    t = M().getTextTables().getByIndex(0)
     for n, v in (("A1", "a1"), ("B1", "b1"), ("A2", "a2"), ("B2", "b2"), ("A3", "a3"), ("B3", "b3")):
-        t.getCellByName(n).setString(v)
-    vc().gotoRange(t.getCellByName("A1").getText().getStart(), False); yield 0.4
+        type_at(cell_rng(n), v)
+    cell_rng("A1").caret_to_start(); yield 0.4
     K("Tab"); yield 0.5
     check("Tab selects next cell text", sel() == "b1", repr(sel()))
     K("shift+Tab"); yield 0.5
     check("Shift+Tab selects previous cell text", sel() == "a1", repr(sel()))
-    vc().gotoRange(t.getCellByName("A3").getText().getStart(), False); yield 0.4
+    cell_rng("A3").caret_to_start(); yield 0.4
     K("alt+shift+Up"); yield 0.8
-    rows = [[t.getCellByName(c + str(r)).getString() for c in "AB"] for r in (1, 2, 3)]
+    rows = tables()[0]
     check("Alt+Shift+Up moves table row", rows == [["a1", "b1"], ["a3", "b3"], ["a2", "b2"]], rows)
-    check("cursor follows the row", vc().Cell is not None and vc().Cell.CellName == "A2", vc().Cell.CellName if vc().Cell else None)
+    check("cursor follows the row", in_table() == "A2", in_table())
     K("alt+shift+Down"); yield 0.8
-    rows = [[t.getCellByName(c + str(r)).getString() for c in "AB"] for r in (1, 2, 3)]
+    rows = tables()[0]
     check("Alt+Shift+Down moves it back", rows == [["a1", "b1"], ["a2", "b2"], ["a3", "b3"]], rows)
     fresh(); yield 0.3
     T("one"); K("Return"); T("two"); yield 0.3
@@ -63,17 +62,14 @@ def f8():
 def undo():
     fresh(); yield 0.3
     T("one "); yield 0.6; T("two "); yield 0.6
-    note("undo titles", list(M().getUndoManager().getAllUndoActionTitles())[:4])
+    note("undo titles", undo_titles()[:4])
     K("ctrl+z"); yield 0.5
     check("Ctrl+Z undoes word with its space", text() == "One ", repr(text()))
 def field():
     fresh(); yield 0.3
     K("ctrl+F9"); yield 1.2
-    if NATIVE:
-        # as in the original: empty field braces to type a code in
-        check("Ctrl+F9 opens field braces", win.engine.view.field_code.active)
-        K("Escape"); yield 0.3
-    else:
-        check("Ctrl+F9 opens Field", bool(dlg("Field")), [d.get_title() for d in dialogs_open()])
+    # as in the original: empty field braces to type a code in, shown in place
+    check("Ctrl+F9 opens field braces", E.ed.codes_shown() and any(c.strip() == "" for _d, c, _r in fields()), fields())
+    K("Escape"); yield 0.3
     close_dialogs(); yield 0.3
 run_scenarios(case, altx, headings, table, f8, undo, field)

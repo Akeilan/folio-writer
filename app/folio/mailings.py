@@ -207,30 +207,6 @@ def address_columns(cols, m=None):
     return lines or [[c] for c in cols[:4]]
 
 
-def insert_address_block(m):
-    cols, _r, _i = recipients(m)
-    if not cols:
-        return False
-    vc = docapi.view_cursor(m)
-    text = vc.getText()
-    um = m.getUndoManager()
-    um.enterUndoContext("Address Block")
-    try:
-        lines = address_columns(cols, m)
-        from .mailrules import matched_column
-        city = matched_column(m, "City", cols)
-        for i, line in enumerate(lines):
-            if i:
-                text.insertControlCharacter(vc, 1, False)    # line break
-            for j, col in enumerate(line):
-                if j:
-                    # City, State ZIP
-                    text.insertString(vc, ", " if line[j - 1] == city else " ", False)
-                insert_field(m, col, text, vc)
-    finally:
-        um.leaveUndoContext()
-    return True
-
 
 def insert_greeting(m, salutation="Dear", punct=","):
     cols, _r, _i = recipients(m)
@@ -577,61 +553,6 @@ def _cell_name(r, c):
     return "%s%d" % (chr(65 + c), r + 1)
 
 
-def update_labels(m):
-    """Copy the first label's content (with its merge fields) to every label."""
-    tables = m.getTextTables()
-    if not tables.getCount():
-        return False
-    t = tables.getByIndex(0)
-    order = _cell_order(t)
-    src = t.getCellByName(order[0])
-    src_text = src.getText()
-    # describe the first cell: runs of text and merge fields
-    parts = []
-    pen = src_text.createEnumeration()
-    first_para = True
-    while pen.hasMoreElements():
-        para = pen.nextElement()
-        if not first_para:
-            parts.append(("para", None))
-        first_para = False
-        ren = para.createEnumeration()
-        while ren.hasMoreElements():
-            portion = ren.nextElement()
-            kind = portion.TextPortionType
-            if kind == "TextField":
-                f = portion.TextField
-                try:
-                    parts.append(("field", f.getTextFieldMaster().Name))
-                except Exception:
-                    parts.append(("text", portion.getString()))
-            elif kind == "Text":
-                for i, chunk in enumerate(portion.getString().split("\n")):
-                    if i:
-                        parts.append(("br", None))
-                    if chunk:
-                        parts.append(("text", chunk))
-    cols, _r, _i = recipients(m)
-    by_master = {_master_name(c): c for c in cols}
-    for nm in order[1:]:
-        c = t.getCellByName(nm)
-        ctext = c.getText()
-        ctext.setString("")
-        cur = ctext.createTextCursor()
-        if merge_type(m) == "labels":
-            ctext.insertString(cur, "", False)
-        for kind, val in parts:
-            if kind == "text":
-                ctext.insertString(cur, val, False)
-            elif kind == "br":
-                ctext.insertControlCharacter(cur, 1, False)
-            elif kind == "para":
-                ctext.insertControlCharacter(cur, 0, False)
-            elif kind == "field":
-                col = by_master.get(val, val[6:] if val.startswith("Merge_") else val)
-                insert_field(m, col, ctext, cur)
-    return True
-
 
 def start(m, kind, label_index=0, envelope_index=0):
     """Start Mail Merge: letters / envelopes / labels / directory / normal."""
@@ -660,20 +581,3 @@ def start(m, kind, label_index=0, envelope_index=0):
         if not m.getTextTables().getCount():
             labels_document(m, "", label_index, True)
 
-
-def highlight_fields(on):
-    """Grey shading behind fields (Highlight Merge Fields)."""
-    from .app import COLOR_SCHEME
-    try:
-        import uno
-        prov = bridge.create("com.sun.star.configuration.ConfigurationProvider")
-        arg = uno.createUnoStruct("com.sun.star.beans.PropertyValue")
-        arg.Name, arg.Value = "nodepath", COLOR_SCHEME + "/WriterFieldShadings"
-        acc = prov.createInstanceWithArguments(
-            "com.sun.star.configuration.ConfigurationUpdateAccess", (arg,))
-        acc.setPropertyValue("IsVisible", bool(on))
-        acc.commitChanges()
-        return True
-    except Exception as e:
-        print("highlight fields:", e)
-        return False

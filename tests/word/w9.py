@@ -1,19 +1,18 @@
 exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
-import importlib
 def lists():
     fresh(); yield 0.3
     win.model_call("multilevel_list"); yield 0.6
     T("One\nTwo"); yield 0.8; K("Home"); yield 0.3; K("Tab"); yield 0.6
-    p = paras()
-    note("multilevel labels", [(x.getString(), x.ListLabelString) for x in p])
-    check("multilevel: Tab gives 1.1 style or a.", p[-1].ListLabelString in ("1.1.", "1.1", "a.", "a)"), [x.ListLabelString for x in p])
+    labs = [(t, list_label(i)) for i, t in enumerate(para_texts())]
+    note("multilevel labels", labs)
+    check("multilevel: Tab gives 1.1 style or a.", list_label(-1) in ("1.1.", "1.1", "a.", "a)"), labs)
     fresh(); yield 0.3
     T("1. alpha\nbeta\n"); K("Return"); T("Gap paragraph\n"); yield 0.5
     K("ctrl+shift+n"); yield 0.2
     win.actions.do_numbering(); yield 0.6
     T("gamma"); yield 0.5
-    labs = [(x.getString(), x.ListLabelString) for x in paras()]
+    labs = [(t, list_label(i)) for i, t in enumerate(para_texts())]
     note("numbering after a gap", labs)
     # Word asks/continues: new list after a gap restarts at 1 with AutoCorrect bubble; manual Numbering button continues? check context menu items
     GLib.idle_add(lambda: (win.dialogs.context_menu(None), False)[1]); yield 1.0
@@ -67,27 +66,26 @@ def sections():
     rib("Layout", "Breaks", "Continuous"); yield 0.8
     T("Two columns here and more text to wrap around the columns nicely."); yield 0.3
     rib("Layout", "Columns", "Two"); yield 0.8
-    secs = M().getTextSections().getCount()
-    note("sections after continuous break + 2 cols", (secs, docapi.page_setup(M())["columns"]))
+    n = page_setup()["section_count"]
+    cols = [page_setup(i)["cols"] for i in range(n)]
+    note("sections after continuous break + 2 cols", cols)
     shot("w9_cols")
-    check("continuous break + Two columns applies to section only", docapi.page_setup(M())["columns"] == 1, docapi.page_setup(M())["columns"])
+    check("continuous break + Two columns applies to section only", n == 2 and cols[0] == 1 and cols[E.ed.current_section()] == 2, (cols, E.ed.current_section()))
     fresh(); yield 0.3
     T("first page"); K("ctrl+Return"); T("second page"); yield 0.6
-    ps = docapi.page_style(M())
     rib("Insert", "Header", "Blank"); yield 1.0
     T("Header text"); yield 0.5
-    win.dialogs.hf_option(("first", None)) if False else None
-    note("header text", ps.HeaderText.getString())
-    check("header typed", "Header text" in ps.HeaderText.getString(), ps.HeaderText.getString())
+    check("typing goes into the header", E.ed.story() == "hf" and "Header text" in caret_para_text(), (E.ed.story(), caret_para_text()))
     K("Escape"); yield 0.6
+    check("header kept on both pages", header_on() and E.ed.page_hf(1)[0], (E.ed.page_hf(0), E.ed.page_hf(1)))
     shot("w9_header")
-def tables():
+def table_tools():
     fresh(); yield 0.3
     win.actions.cmd(".uno:InsertTable", {"Columns": 3, "Rows": 3}); yield 0.8
-    t = M().getTextTables().getByIndex(0)
-    for n, v in zip(t.getCellNames(), "c b a 3 2 1 x y z".split()):
-        t.getCellByName(n).setString(v)
-    vc().gotoRange(t.getCellByName("A1").getText().getStart(), False); yield 0.3
+    for r in range(3):
+        for c in range(3):
+            type_at(cell_rng(cell_name(r, c)), "c b a 3 2 1 x y z".split()[r * 3 + c])
+    cell_rng("A1").caret_to_start(); yield 0.3
     # table styles gallery
     c = [x for x in win.ribbon.controls if getattr(x, "tab_name", "") == "Table Design"]
     note("table design controls", [(type(x).__name__, getattr(x, "label", "")) for x in c][:20])
@@ -101,13 +99,13 @@ def tables():
     close_dialogs(); yield 0.3
     # Repeat header rows, AutoFit
     rib("Table Layout", "AutoFit", "AutoFit Contents"); yield 0.8
-    note("col widths after autofit", [c.Width if hasattr(c, "Width") else None for c in [t]])
+    note("col widths after autofit", E.ed.grid_widths())
     # table resize handle / move handle: check presence of overlay
     shot("w9_table")
     # Split cells / merge
-    docapi.controller(M()).select(t.getCellRangeByName("A1:B1")); yield 0.4
+    Rng(cell_rng("A1").a, cell_rng("B1").b).select(); yield 0.4
     rib("Table Layout", "Merge Cells"); yield 0.8
-    check("merge cells", len(t.getCellNames()) == 8, len(t.getCellNames()))
+    check("merge cells", sum(len(r) for r in tables()[0]) == 8, tables()[0])
     # delete row via Backspace on selected row? Word: select row + Backspace deletes row
 def refs():
     fresh(); yield 0.3
@@ -118,7 +116,7 @@ def refs():
     note("citation style control", type(c).__name__ if c else None)
     rib("References", "Insert Endnote"); yield 1.0
     T("Endnote text"); yield 0.4
-    check("endnote", M().getEndnotes().getCount() == 1, M().getEndnotes().getCount())
+    check("endnote", notes(True) == 1, notes(True))
     focus(); K("ctrl+End"); yield 0.3
     rib("References", "Footnotes Settings"); yield 1.2
     note("footnote dialog", [d.get_title() for d in dialogs_open()])
@@ -126,7 +124,7 @@ def refs():
 def review():
     fresh(); yield 0.3
     T("Review this text please."); yield 0.3
-    docapi.controller(M()).select(find("Review")); yield 0.3
+    find("Review").select(); yield 0.3
     rib("Review", "New Comment"); yield 1.0
     T("first"); K("ctrl+Return"); yield 1.0
     shot("w9_comment")
@@ -186,4 +184,4 @@ def files():
     for ext in ("odt", "rtf", "txt", "doc", "html"):
         ok = E.save_as("/tmp/w9." + ext, ext, keep=False); yield 0.8
         check("save as %s" % ext, ok and os.path.exists("/tmp/w9." + ext), ok)
-run_scenarios(lists, styles, sections, tables, refs, review, insert, files)
+run_scenarios(lists, styles, sections, table_tools, refs, review, insert, files)

@@ -765,7 +765,7 @@ def dictionaries_dialog(win):
             return
         if not name.lower().endswith(".dic"):
             name += ".dic"
-        from . import bridge, docapi
+        from . import docapi
         import uno
         import os
         path = os.path.join(os.path.expanduser("~/.config/folio-writer/dictionaries"), name)

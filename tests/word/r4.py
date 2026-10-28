@@ -9,13 +9,12 @@ def nav():
     check("2 results", len(p._ranges) == 2, len(p._ranges))
     focus(); K("End"); T(" cat bird"); yield 2.0
     check("results refresh after typing", len(p._ranges) == 3, (len(p._ranges), p.rcount.get_text()))
-    c = vc(); r = c.getText().createTextCursorByRange(c.getEnd()); r.gotoStartOfParagraph(True)
-    check("cursor stays where typing", r.getString().endswith("bird"), repr(r.getString()))
+    check("cursor stays where typing", pos().endswith("bird"), repr(pos()))
     K("Escape")
 def ctx():
     fresh(); yield 0.3
     T("Alpha bravo charlie"); yield 0.4
-    docapi.controller(M()).select(find("bravo")); yield 0.4
+    find("bravo").select(); yield 0.4
     GLib.idle_add(lambda: (win.dialogs.context_menu(None), False)[1]); yield 1.0
     labs = [l.replace("_", "") for l in menu_labels() if l]
     for w in popups():
@@ -27,7 +26,7 @@ def ctx():
     K("Escape"); yield 0.4
 def status():
     win.open_file("/tmp/wfid/fid.docx"); yield 5.0
-    vc().jumpToLastPage(); yield 1.5
+    caret_end(); yield 1.5
     lab = [w.get_label() for w in find_widget(win.status, lambda w: isinstance(w, Gtk.Button) and (w.get_label() or "").startswith("Page "))]
     check("status shows physical page", "Page 4 of 4" in lab, lab)
 def tabname():

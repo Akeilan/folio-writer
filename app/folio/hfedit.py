@@ -11,7 +11,7 @@ import json
 
 from gi.repository import Gtk
 
-from . import bridge, docapi
+from . import docapi
 from .widgets import FDialog, combo, grid
 
 MM = 1440.0 / 2540.0       # mm100 -> twips
@@ -432,11 +432,8 @@ def alignment_tab_dialog(win):
     """Insert Alignment Tab: a tab that lines the text up at the left,
     centre or right of the margin (or indent)."""
     from gi.repository import Gtk
-    from . import bridge, docapi
     from .widgets import FDialog, combo, grid, heading
-    m = win.engine.model
-    if m is None:
-        return
+    ed = win.engine.ed
     d = FDialog(win, "Alignment Tab")
     d.add(heading("Alignment"))
     al = Gtk.Box(spacing=12)
@@ -450,32 +447,28 @@ def alignment_tab_dialog(win):
     rel = combo(["Margin", "Indent"], 0)
     d.add(grid([["Ali_gn relative to:", rel]]))
     d.add(heading("Leader"))
-    leaders = [("1 None", " "), ("2 .......", "."), ("3 -------", "-"), ("4 ____", "_")]
+    leaders = [("1 None", "none"), ("2 .......", "dot"), ("3 -------", "hyphen"), ("4 ____", "underscore")]
     lead = combo([n for n, _c in leaders], 0)
     d.add(lead)
     if d.ask() == Gtk.ResponseType.OK:
+        ps = ed.page_setup(ed.current_section()) or {}
+        width = (ps.get("width") or 0) - (ps.get("left") or 0) - (ps.get("right") or 0)
+        pv = ed.para_values()
+        li = pv.get("ind_left", 0) if rel.get_active() == 1 else 0
+        ri = pv.get("ind_right", 0) if rel.get_active() == 1 else 0
+        if left.get_active():
+            pos, kind = 0, "left"
+        elif center.get_active():
+            pos, kind = (width - li - ri) // 2, "center"
+        else:
+            pos, kind = width - li - ri - 1, "right"
+        stops = [t for t in pv.get("tabs") or [] if abs(t[0] - pos) > 6]
+        stops.append((int(pos), kind, leaders[max(0, lead.get_active())][1]))
+        ed.begin_group("Alignment Tab")
         try:
-            vc = docapi.view_cursor(m)
-            ps = docapi.page_style(m)
-            width = ps.Width - ps.LeftMargin - ps.RightMargin
-            c = vc.getText().createTextCursorByRange(vc.getStart())
-            li = c.ParaLeftMargin if rel.get_active() == 1 else 0
-            ri = c.ParaRightMargin if rel.get_active() == 1 else 0
-            if left.get_active():
-                pos, kind = 0, "LEFT"
-            elif center.get_active():
-                pos, kind = (width - li - ri) // 2, "CENTER"
-            else:
-                pos, kind = width - li - ri - 1, "RIGHT"
-            stops = [t for t in (c.ParaTabStops or ()) if abs(t.Position - pos) > 10]
-            ts = bridge.struct("com.sun.star.style.TabStop")
-            ts.Position = int(pos)
-            ts.Alignment = bridge.enum("com.sun.star.style.TabAlign", kind)
-            ts.FillChar = leaders[max(0, lead.get_active())][1]
-            stops.append(ts)
-            stops.sort(key=lambda t: t.Position)
-            c.ParaTabStops = tuple(stops)
-            win.actions.insert_text("\t")
-        except Exception as e:
-            print("alignment tab:", e)
+            ed.set_tabs(sorted(stops))
+            ed.type_text("\t")
+        finally:
+            ed.end_group()
+        win.engine.view.after_edit()
     d.done()

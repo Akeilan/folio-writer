@@ -4,23 +4,11 @@ separator, column-only sorting, case and language."""
 from ._lazy import uno
 from gi.repository import Gtk
 
-from . import bridge, docapi
+from . import docapi
 from .widgets import FDialog, combo, heading
 
 TYPES = [("Text", 2), ("Number", 1), ("Date", 0)]
 
-
-def _rows(m):
-    """('table', table, first row text) or ('text', paragraphs) for the
-    selection."""
-    vc = docapi.view_cursor(m)
-    try:
-        t = vc.TextTable
-    except Exception:
-        t = None
-    if t is not None:
-        return "table", t
-    return "text", vc.getString().split("\n")
 
 
 class _NativeTable:
@@ -185,83 +173,6 @@ def _options(parent, opts, kind):
     d.destroy()
 
 
-def _fields(keys, case, locale, template=None):
-    out = []
-    for field, ftype, ascending in keys[:3]:
-        f = bridge.struct("com.sun.star.table.TableSortField")
-        if template is not None:
-            f.CollatorLocale = template.CollatorLocale
-            f.CollatorAlgorithm = template.CollatorAlgorithm
-        f.Field = field
-        f.IsAscending = ascending
-        f.IsCaseSensitive = bool(case)
-        f.FieldType = bridge.enum("com.sun.star.table.TableSortFieldType",
-                                  {1: "NUMERIC", 2: "ALPHANUMERIC"}.get(ftype, "AUTOMATIC"))
-        if locale:
-            f.CollatorLocale = bridge.struct("com.sun.star.lang.Locale",
-                                             Language=locale[0], Country=locale[1])
-        out.append(f)
-    return tuple(out)
-
-
-def sort(m, kind, data, keys, header, opts):
-    um = m.getUndoManager()
-    um.enterUndoContext("Sort")
-    try:
-        def fields_for(desc):
-            tmpl = None
-            for p in desc:
-                if p.Name == "SortFields" and p.Value:
-                    tmpl = p.Value[0]
-            return _fields(keys, opts.get("case"), opts.get("locale"), tmpl)
-        if kind == "table":
-            t = data
-            nr, nc = t.getRows().getCount(), t.getColumns().getCount()
-            first = 1 if header else 0
-            if nr - first < 2:
-                return True
-            end = _col_name(nc - 1) + str(nr)
-            rng = t.getCellRangeByName("A%d:%s" % (first + 1, end))
-            desc = list(rng.createSortDescriptor())
-            fields = fields_for(desc)
-            out = []
-            for p in desc:
-                if p.Name == "SortFields":
-                    p.Value = uno.Any("[]com.sun.star.table.TableSortField", fields)
-                elif p.Name == "IsSortColumns":
-                    p.Value = False
-                elif p.Name == "ContainsHeader":
-                    p.Value = False
-                out.append(p)
-            uno.invoke(rng, "sort", (tuple(out),))
-            return True
-        vc = docapi.view_cursor(m)
-        rng = vc.getText().createTextCursorByRange(vc.getStart())
-        rng.gotoRange(vc.getEnd(), True)
-        if header:
-            start = vc.getText().createTextCursorByRange(vc.getStart())
-            start.gotoNextParagraph(False)
-            rng = vc.getText().createTextCursorByRange(start)
-            rng.gotoRange(vc.getEnd(), True)
-        desc = list(rng.createSortDescriptor())
-        fields = fields_for(desc)
-        out = []
-        for p in desc:
-            if p.Name == "SortFields":
-                p.Value = uno.Any("[]com.sun.star.table.TableSortField", fields)
-            elif p.Name == "IsSortInTable":
-                p.Value = False
-            elif p.Name == "Delimiter":
-                p.Value = uno.Any("char", uno.Char(opts.get("sep", "\t")[:1] or "\t"))
-            out.append(p)
-        uno.invoke(rng, "sort", (tuple(out),))
-        return True
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return False
-    finally:
-        um.leaveUndoContext()
 
 
 def _col_name(i):

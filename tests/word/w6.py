@@ -7,11 +7,11 @@ def big():
     yield 15.0
     note("title", win.get_title())
     yield 2.0
-    vc().jumpToLastPage(); note("pages", vc().getPage())
-    vc().gotoStart(False); yield 1.0
+    note("pages", pages())
+    caret_start(); yield 1.0
     focus()
     # move to middle
-    c = vc(); c.jumpToPage(60); yield 1.5
+    E.ed.goto_page(59); E.view.after_move(); yield 1.5
     n0 = len(text())
     t0 = time.time()
     T("typing speed test string with forty chars", delay=30)
@@ -27,11 +27,11 @@ def big():
     shot("w6_after_pgdn")
     t0 = time.time()
     K("ctrl+End"); yield 0.5
-    note("ctrl+End page", vc().getPage())
+    note("ctrl+End page", caret_page() + 1)
     win.status.schedule_metrics() if hasattr(win.status, "schedule_metrics") else None
     t0 = time.time(); K("ctrl+a"); yield 0.3; K("ctrl+b"); 
     yield 0.2
-    while find("Chapter 40").CharWeight < 150 and time.time() - t0 < 30:
+    while not find("Chapter 40").run()["bold"] and time.time() - t0 < 30:
         yield 0.2
     note("bold whole doc seconds", round(time.time() - t0, 2))
     K("ctrl+z"); yield 2
