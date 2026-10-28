@@ -591,10 +591,12 @@ class Reader:
                     if hp is not None:
                         h = (twips(A(hp, "fo:min-height"), 0) or twips(A(hp, "svg:height"), 0) or 0)
                         gap = twips(A(hp, "fo:margin-bottom" if kind == "header" else "fo:margin-top"), 0) or 0
+                        # LibreOffice's header height includes the spacing below it
+                        tot = h if h else gap + 240
                         if kind == "header":
-                            hdr_h = h + gap
+                            hdr_h = tot
                         else:
-                            ftr_h = h + gap
+                            ftr_h = tot
         mg = s["margins"]
         hd = m.find(q("style:header"))
         if hd is not None and A(hd, "style:display") != "false":

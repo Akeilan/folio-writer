@@ -532,6 +532,10 @@ class _Writer:
                    'w:footer="%d" w:gutter="%d"/>' % (m["top"], m["right"], m["bottom"], m["left"],
                                                       m.get("header", 720), m.get("footer", 720),
                                                       m.get("gutter", 0)))
+        if s.get("pgborders"):
+            out.append('<w:pgBorders w:offsetFrom="text">%s</w:pgBorders>' % "".join(
+                _border(side, s["pgborders"][side]) for side in ("top", "left", "bottom", "right")
+                if side in s["pgborders"]))
         if s.get("page_start"):
             out.append('<w:pgNumType w:start="%d"/>' % s["page_start"])
         if s.get("cols", 1) > 1:
