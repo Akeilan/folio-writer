@@ -69,13 +69,13 @@ class NavigationPane(Pane):
         cell.set_property("ellipsize", Pango.EllipsizeMode.END)
         self.htv.append_column(Gtk.TreeViewColumn("", cell, text=0))
         self.htv.get_selection().connect("changed", self._heading_clicked)
-        # drag headings to move their sections
-        targets = [Gtk.TargetEntry.new("FOLIO_HEADING", Gtk.TargetFlags.SAME_WIDGET, 0)]
-        self.htv.enable_model_drag_source(Gdk.ModifierType.BUTTON1_MASK, targets,
-                                          Gdk.DragAction.MOVE)
-        self.htv.enable_model_drag_dest(targets, Gdk.DragAction.MOVE)
-        self.htv.connect("drag-data-get", self._drag_get)
-        self.htv.connect("drag-data-received", self._drag_received)
+        # drag headings to move their sections: done within the pane itself (no
+        # desktop drag and drop, so it works with any window manager)
+        self._hdrag = None
+        self.htv.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK)
+        self.htv.connect("button-press-event", self._heading_press)
+        self.htv.connect("motion-notify-event", self._heading_motion)
+        self.htv.connect("button-release-event", self._heading_release)
         self.htv.connect("button-press-event", self._heading_menu)
         hsw = Gtk.ScrolledWindow()
         hsw.add(self.htv)
@@ -218,44 +218,82 @@ class NavigationPane(Pane):
             docapi.goto_start(self.model, model[it][1])
             self.win.focus_document()
 
-    def _drag_get(self, tv, ctx, data, info, time):
-        model, it = tv.get_selection().get_selected()
-        if it is not None:
-            data.set(data.get_target(), 8, model.get_string_from_iter(it).encode())
+    # ------------------------------------------------------------ heading drag
+    def _heading_press(self, tv, ev):
+        self._hdrag = None
+        if ev.button == 1 and ev.type == Gdk.EventType.BUTTON_PRESS:
+            res = tv.get_path_at_pos(int(ev.x), int(ev.y))
+            if res:
+                self._hdrag = {"path": res[0].to_string(), "x": ev.x, "y": ev.y, "active": False}
+        return False
 
-    def _drag_received(self, tv, ctx, x, y, data, info, time):
-        tv.stop_emission_by_name("drag-data-received")
-        src_path = data.get_data().decode() if data.get_data() else None
-        dest = tv.get_dest_row_at_pos(x, y)
+    def _drop_spot(self, tv, ev):
+        wx, wy = tv.convert_bin_window_to_widget_coords(int(ev.x), int(ev.y))
+        dest = tv.get_dest_row_at_pos(wx, wy)
+        if dest is None:
+            n = len(self.hstore)
+            if not n:
+                return None
+            # below the last row: after it
+            last = Gtk.TreePath.new_from_indices([n - 1])
+            if ev.y > 0:
+                return last, Gtk.TreeViewDropPosition.AFTER
+            return Gtk.TreePath.new_first(), Gtk.TreeViewDropPosition.BEFORE
+        path, pos = dest
+        after = pos in (Gtk.TreeViewDropPosition.AFTER, Gtk.TreeViewDropPosition.INTO_OR_AFTER)
+        return path, Gtk.TreeViewDropPosition.AFTER if after else Gtk.TreeViewDropPosition.BEFORE
+
+    def _heading_motion(self, tv, ev):
+        d = self._hdrag
+        if d is None or not ev.state & Gdk.ModifierType.BUTTON1_MASK:
+            return False
+        if not d["active"]:
+            if abs(ev.y - d["y"]) < 6 and abs(ev.x - d["x"]) < 6:
+                return False
+            d["active"] = True
+            win = tv.get_window()
+            if win is not None:
+                win.set_cursor(Gdk.Cursor.new_from_name(tv.get_display(), "grabbing"))
+        spot = self._drop_spot(tv, ev)
+        if spot:
+            tv.set_drag_dest_row(*spot)
+        return True
+
+    def _heading_release(self, tv, ev):
+        d = self._hdrag
+        self._hdrag = None
+        if d is None or not d["active"] or ev.button != 1:
+            return False
+        tv.set_drag_dest_row(None, Gtk.TreeViewDropPosition.BEFORE)
+        win = tv.get_window()
+        if win is not None:
+            win.set_cursor(None)
+        spot = self._drop_spot(tv, ev)
+        if spot:
+            path, pos = spot
+            self.move_heading(d["path"], path.to_string(), pos == Gtk.TreeViewDropPosition.AFTER)
+        return True
+
+    def move_heading(self, src_path, dst_path, after):
+        """Move the section of the heading at src_path before or after the one at dst_path."""
         ed = self._native()
-        if ed is not None:
-            if not src_path or dest is None:
-                Gtk.drag_finish(ctx, False, False, time)
-                return
-            path, pos = dest
+        try:
             src = self.hstore[Gtk.TreePath.new_from_string(src_path)][1]
-            dst = self.hstore[path][1]
-            after = pos in (Gtk.TreeViewDropPosition.AFTER, Gtk.TreeViewDropPosition.INTO_OR_AFTER)
-            Gtk.drag_finish(ctx, True, False, time)
+            dst = self.hstore[Gtk.TreePath.new_from_string(dst_path)][1]
+        except (ValueError, IndexError, TypeError):
+            return False
+        if ed is not None:
             nodes = ed.section_paras(src)
             if src == dst or dst in nodes:
-                return
+                return False
             target = ed.section_paras(dst)[-1] if after else dst
-            if ed.move_paras(nodes, target, after):
+            ok = ed.move_paras(nodes, target, after)
+            if ok:
                 self.win.engine.view.after_edit()
             GLib.timeout_add(200, lambda: (self.refresh_headings(), False)[1])
-            return
-        if not src_path or dest is None:
-            Gtk.drag_finish(ctx, False, False, time)
-            return
-        path, pos = dest
-        src = self.hstore[Gtk.TreePath.new_from_string(src_path)][1]
-        dst = self.hstore[path][1]
-        after = pos in (Gtk.TreeViewDropPosition.AFTER,
-                        Gtk.TreeViewDropPosition.INTO_OR_AFTER)
-        Gtk.drag_finish(ctx, True, False, time)
+            return ok
         if src is dst:
-            return
+            return False
         m = self.model
 
         def go():
@@ -265,6 +303,7 @@ class NavigationPane(Pane):
                 print("move section:", e)
             GLib.timeout_add(300, lambda: (self.refresh_headings(), False)[1])
         self.win.engine.sync(go)
+        return True
 
     def _heading_menu(self, tv, ev):
         if ev.button != 3:
