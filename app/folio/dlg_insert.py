@@ -93,11 +93,8 @@ class InsertDialogs:
         m = self._model_or_warn()
         if m is None:
             return
-        if getattr(self.win, "native", False):
-            from .native.links import LinkApi
-            api = LinkApi(self.win)
-        else:
-            api = docapi
+        from .native.links import LinkApi
+        api = LinkApi(self.win)
         vc = api.view_cursor(m)
         cur_url = api.selected_link(m)
         sel = vc.getString() if not vc.isCollapsed() else ""
@@ -378,11 +375,8 @@ class InsertDialogs:
         m = self._model_or_warn()
         if m is None:
             return
-        if getattr(self.win, "native", False):
-            from .native.links import LinkApi
-            api = LinkApi(self.win)
-        else:
-            api = docapi
+        from .native.links import LinkApi
+        api = LinkApi(self.win)
         d = FDialog(self.win, "Bookmark", buttons=(("Add", 1), ("Close", Gtk.ResponseType.CANCEL)))
         name = Gtk.Entry()
         name.set_activates_default(True)
@@ -434,11 +428,8 @@ class InsertDialogs:
         m = self._model_or_warn()
         if m is None:
             return
-        if getattr(self.win, "native", False):
-            from .native.links import LinkApi
-            api = LinkApi(self.win)
-        else:
-            api = docapi
+        from .native.links import LinkApi
+        api = LinkApi(self.win)
         refs = api.references(m)
         types = [k for k in ("Heading", "Bookmark", "Figure", "Table", "Equation") if k in refs] + \
             [k for k in refs if k not in ("Heading", "Bookmark", "Figure", "Table", "Equation")]
@@ -567,15 +558,12 @@ class InsertDialogs:
     # ============================================================ comments, notes
     def comment(self):
         margin = getattr(self.win, "comments", None)
-        if getattr(self.eng, "native", False) and margin is not None and hasattr(margin, "new_comment"):
+        if margin is not None and hasattr(margin, "new_comment"):
             # Word's way: a balloon in the margin to type in
             if margin.new_comment() is not None:
                 return
         m = self.model
-        if getattr(self.eng, "native", False):
-            sel = self.eng.ed.selected_text() if self.eng.ed else ""
-        else:
-            sel = docapi.selection_text(m) if m else ""
+        sel = self.eng.ed.selected_text() if self.eng.ed else ""
         d = FDialog(self.win, "New Comment", buttons=(("Post", Gtk.ResponseType.OK),
                                                       ("Cancel", Gtk.ResponseType.CANCEL)))
         author = self.win.app.user_name()
@@ -616,28 +604,16 @@ class InsertDialogs:
             self.eng.command(".uno:InsertAnnotation", {"Text": text, "Author": author})
 
     def next_comment(self):
-        if getattr(self.eng, "native", False):
-            self.eng.command(".uno:NextAnnotation")
-            return
-        m = self.model
-        if m is not None and not docapi.goto_next(m, "comment", True):
-            self.message("There are no more comments.")
+        self.eng.command(".uno:NextAnnotation")
+        return
 
     def prev_comment(self):
-        if getattr(self.eng, "native", False):
-            self.eng.command(".uno:PreviousAnnotation")
-            return
-        m = self.model
-        if m is not None and not docapi.goto_next(m, "comment", False):
-            self.message("There are no more comments.")
+        self.eng.command(".uno:PreviousAnnotation")
+        return
 
     def delete_all_comments(self):
-        if getattr(self.eng, "native", False):
-            self.eng.command(".uno:DeleteAllNotes")
-            return
-        m = self.model
-        if m is not None:
-            docapi.delete_comments(m)
+        self.eng.command(".uno:DeleteAllNotes")
+        return
 
     def next_footnote(self):
         m = self.model
@@ -780,25 +756,16 @@ class InsertDialogs:
         if d.ask() == Gtk.ResponseType.OK:
             i = sel_index()
             fmt, code = DATE_FORMATS[i]
-            if getattr(self.win, "native", False):
-                pic = WORD_DATE_PICTURES[i]
-                ed = self.win.engine.ed
-                is_time = not any(c in pic for c in "dMy")
-                if auto.get_active():
-                    ed.insert_field_now('%s \\@ "%s"' % ("TIME" if is_time else "DATE", pic))
-                else:
-                    ed.type_text(ed.format_now(pic))
-                self.win.engine.view.after_edit()
-                d.done()
-                return
+            pic = WORD_DATE_PICTURES[i]
+            ed = self.win.engine.ed
+            is_time = not any(c in pic for c in "dMy")
             if auto.get_active():
-                is_time = "%" in fmt and "%Y" not in fmt and "%y" not in fmt and "%B" not in fmt
-                try:
-                    docapi.insert_field(m, "time" if is_time else "date", False, code)
-                except Exception:
-                    self.win.actions.insert_text(now.strftime(fmt))
+                ed.insert_field_now('%s \\@ "%s"' % ("TIME" if is_time else "DATE", pic))
             else:
-                self.win.actions.insert_text(now.strftime(fmt))
+                ed.type_text(ed.format_now(pic))
+            self.win.engine.view.after_edit()
+            d.done()
+            return
         d.done()
 
     def field_dialog(self):
@@ -819,22 +786,14 @@ class InsertDialogs:
 
     def cover_page(self, style="simple"):
         from . import covers
-        if not getattr(self.win.engine, "native", False):
-            m = self._model_or_warn()
-            if m is None:
-                return
         names = {n.lower(): n for n, _s in covers.COVERS}
         covers.insert_cover(self.win, names.get(str(style).lower(), "Simple"))
 
     def remove_cover_page(self):
         from . import covers
-        if getattr(self.win.engine, "native", False):
-            if not covers.remove_current(self.win):
-                self.message("This document doesn't have a cover page.")
-            return
-        m = self.model
-        if m is not None and not covers.remove_cover(m):
+        if not covers.remove_current(self.win):
             self.message("This document doesn't have a cover page.")
+        return
 
     # ============================================================ tables
     def table_grid_popover(self):
@@ -1320,20 +1279,12 @@ class InsertDialogs:
                               "All Documents")
         if not path:
             return
-        if getattr(self.eng, "native", False):
-            from .native import insertfile
-            try:
-                insertfile.insert(self.win, path)
-            except Exception as e:
-                self.message("This file couldn't be inserted. (%s)" % e, kind="error")
-            return
-        m = self._model_or_warn()
-        if m is None:
-            return
+        from .native import insertfile
         try:
-            docapi.insert_text_from_file(m, path)
+            insertfile.insert(self.win, path)
         except Exception as e:
             self.message("This file couldn't be inserted. (%s)" % e, kind="error")
+        return
 
     # ============================================================ figures / index
     def table_of_figures(self):
@@ -1452,14 +1403,11 @@ class InsertDialogs:
     # ============================================================ language
     def language_dialog(self):
         native = getattr(self.eng, "native", False)
-        m = None if native else self._model_or_warn()
-        if m is None and not native:
+        m = None
+        if m is None and False:
             return
-        if native:
-            tag = (self.eng.ed.state().get("lang") or "-".join(self.win.app.settings.get("language") or ["en", "US"]))
-            cur_l, _s, cur_c = tag.replace("_", "-").partition("-")
-        else:
-            cur_l, cur_c = docapi.current_language(m)
+        tag = (self.eng.ed.state().get("lang") or "-".join(self.win.app.settings.get("language") or ["en", "US"]))
+        cur_l, _s, cur_c = tag.replace("_", "-").partition("-")
         d = FDialog(self.win, "Language")
         d.set_default_size(380, 420)
         d.add(Gtk.Label(label="Mark selected text as:", xalign=0))
@@ -1508,22 +1456,13 @@ class InsertDialogs:
                 d.done()
                 return
             self.win.app.settings["detect_language"] = detect.get_active()
-            if native:
-                from .native import proofing
-                proofing.set_language(self.win, l, c, noproof.get_active(), default=r == 1)
-                if r == 1:
-                    self.win.app.settings["language"] = [l, c]
-                    self.win.app.save_settings()
-                d.done()
-                return
-            docapi.set_language(m, l, c, noproof.get_active())
+            from .native import proofing
+            proofing.set_language(self.win, l, c, noproof.get_active(), default=r == 1)
             if r == 1:
-                docapi.set_language(m, l, c, default=True, whole=True)
                 self.win.app.settings["language"] = [l, c]
                 self.win.app.save_settings()
-            self.win.status.lang.set_label(name if not noproof.get_active()
-                                           else "Do not check")
-            self.win.status.schedule_proof()
+            d.done()
+            return
         d.done()
 
 

@@ -165,7 +165,7 @@ class NavigationPane(Pane):
 
     def _native(self):
         eng = self.win.engine
-        return eng.ed if getattr(eng, "native", False) else None
+        return eng.ed
 
     def refresh_headings(self):
         m = self.model
@@ -770,17 +770,14 @@ class EditorPane(Pane):
 
     def next(self, after=True):
         m = self.model
-        if m is None and not self.native:
+        if m is None and False:
             return
         for c in self.sugg.get_children():
             self.sugg.remove(c)
         w = None
         if getattr(self, "mode", "spelling") == "spelling":
-            if self.native:
-                from .native import docops
-                w = docops.next_misspelling(self.win, after, self.win.ignored_words)
-            else:
-                w = docapi.next_misspelling(m, after, self.win.ignored_words)
+            from .native import docops
+            w = docops.next_misspelling(self.win, after, self.win.ignored_words)
             if w is None:
                 self.mode = "grammar"
                 after = False
@@ -792,10 +789,7 @@ class EditorPane(Pane):
         self.mode = "spelling"
         self.status.set_text("Spelling")
         self.word.set_markup('<span size="large" underline="error">%s</span>' % html.escape(w))
-        if self.native:
-            sugg = self.win.engine.view.speller.suggestions(w)
-        else:
-            sugg = docapi.suggestions(w, docapi.doc_locale(m))
+        sugg = self.win.engine.view.speller.suggestions(w)
         for s in sugg:
             row = Gtk.ListBoxRow()
             row.word = s
@@ -813,11 +807,8 @@ class EditorPane(Pane):
         from . import grammar
         if not hasattr(self, "grammar_ignored"):
             self.grammar_ignored = set()
-        if self.native:
-            from .native import docops
-            found = docops.next_grammar(self.win, after, self.grammar_ignored)
-        else:
-            found = grammar.next_issue(m, after, self.grammar_ignored)
+        from .native import docops
+        found = docops.next_grammar(self.win, after, self.grammar_ignored)
         if found is None:
             self.mode = "spelling"
             self.current = None
@@ -849,11 +840,8 @@ class EditorPane(Pane):
             return
         from . import grammar
         try:
-            if self.native:
-                from .native import docops
-                st = docops.readability(self.win)
-            else:
-                st = grammar.readability(m)
+            from .native import docops
+            st = docops.readability(self.win)
         except Exception as e:
             print("readability:", e)
             return
@@ -870,32 +858,20 @@ class EditorPane(Pane):
         self.sugg.show_all()
 
     def change(self, word):
-        if word is None or (self.model is None and not self.native):
+        if word is None or (self.model is None and False):
             return
-        if self.native:
-            from .native import docops
-            docops.replace_selection(self.win, word)
-        else:
-            docapi.replace_selection_text(self.model, word)
+        from .native import docops
+        docops.replace_selection(self.win, word)
         self.next()
 
     def change_all(self):
         rows = self.sugg.get_children()
         if not rows or self.current is None or getattr(rows[0], "word", None) is None:
             return
-        if self.native:
-            from .native import docops
-            docops.replace_all(self.win, self.current, rows[0].word)
-            self.next()
-            return
-        m = self.model
-        sd = m.createReplaceDescriptor()
-        sd.SearchString = self.current
-        sd.SearchWords = True
-        sd.SearchCaseSensitive = True
-        sd.ReplaceString = rows[0].word
-        m.replaceAll(sd)
+        from .native import docops
+        docops.replace_all(self.win, self.current, rows[0].word)
         self.next()
+        return
 
     def ignore_once(self):
         if getattr(self, "mode", "") == "grammar" and getattr(self, "_gkey", None):
@@ -907,24 +883,18 @@ class EditorPane(Pane):
     def ignore_all(self):
         if self.current:
             self.win.ignored_words.add(self.current)
-            if self.native:
-                sp = self.win.engine.view.speller
-                sp.cache.clear()
-                sp.invalidate()
-            else:
-                docapi.ignore_all(self.current)
+            sp = self.win.engine.view.speller
+            sp.cache.clear()
+            sp.invalidate()
         self.next()
 
     def add(self):
         if self.current:
-            if self.native:
-                from .native import spell
-                spell.add_to_dictionary(self.current)
-                sp = self.win.engine.view.speller
-                sp.cache.clear()
-                sp.invalidate()
-            else:
-                docapi.add_to_dictionary(self.current)
+            from .native import spell
+            spell.add_to_dictionary(self.current)
+            sp = self.win.engine.view.speller
+            sp.cache.clear()
+            sp.invalidate()
         self.next()
 
 
@@ -953,35 +923,18 @@ class ThesaurusPane(Pane):
         self.pack_start(hint, False, False, 0)
 
     def lookup_selection(self):
-        if getattr(self.win.engine, "native", False):
-            from .native import docops
-            self.lookup(docops.select_word_at_caret(self.win))
-            return
-        m = self.model
-        if m is None:
-            return
-        vc = docapi.view_cursor(m)
-        word = vc.getString().strip()
-        if not word:
-            c = vc.getText().createTextCursorByRange(vc)
-            c.gotoStartOfWord(False)
-            c.gotoEndOfWord(True)
-            word = c.getString().strip()
-            if word:
-                docapi.select(m, c)
-        self.lookup(word)
+        from .native import docops
+        self.lookup(docops.select_word_at_caret(self.win))
+        return
 
     def lookup(self, word):
         self.entry.set_text(word or "")
         self.store.clear()
         native = getattr(self.win.engine, "native", False)
-        if not word or (self.model is None and not native):
+        if not word or (self.model is None and False):
             return
-        if native:
-            from .native import docops
-            res = docops.synonyms(word)
-        else:
-            res = docapi.synonyms(word, docapi.doc_locale(self.model))
+        from .native import docops
+        res = docops.synonyms(word)
         if not res:
             self.store.append(None, ["<i>No results found.</i>", ""])
             return
@@ -1004,11 +957,8 @@ class ThesaurusPane(Pane):
             return True
         w = self.store[res[0]][1].split(" (")[0]
         def insert():
-            if getattr(self.win.engine, "native", False):
-                from .native import docops
-                docops.replace_selection(self.win, w)
-            else:
-                docapi.replace_selection_text(self.model, w)
+            from .native import docops
+            docops.replace_selection(self.win, w)
         pop = menu_popover(tv, [("Insert", insert),
                                 ("Copy", lambda: Gtk.Clipboard.get(
                                     __import__("gi.repository.Gdk", fromlist=["Gdk"]).SELECTION_CLIPBOARD
@@ -1150,16 +1100,12 @@ class ReviewingPane(Pane):
         m = self.model
         eng = self.win.engine
         native = getattr(eng, "native", False)
-        if m is None and not native:
+        if m is None and False:
             return
-        if native:
-            from .native import review as NR
-            rs = NR.pane_changes(eng) if eng.ed else []
-            cs = [{"author": c["author"], "text": c["text"], "field": None, "id": c["id"]}
-                  for c in (eng.ed.comments() if eng.ed else []) if c["anchor"] is not None]
-        else:
-            rs = docapi.redlines(m)
-            cs = docapi.comments(m)
+        from .native import review as NR
+        rs = NR.pane_changes(eng) if eng.ed else []
+        cs = [{"author": c["author"], "text": c["text"], "field": None, "id": c["id"]}
+              for c in (eng.ed.comments() if eng.ed else []) if c["anchor"] is not None]
         ins = sum(1 for r in rs if r["type"].startswith("Insert"))
         dels = sum(1 for r in rs if r["type"].startswith("Delet"))
         self.summary.set_text("%d revision%s  (%d insertion%s, %d deletion%s, %d comment%s)" % (
@@ -1212,16 +1158,11 @@ class ReviewingPane(Pane):
     def _go(self, lb, row):
         m = self.model
         eng = self.win.engine
-        if getattr(eng, "native", False):
-            r = getattr(row, "redline", None)
-            if r is not None and r.get("para") is not None:
-                eng.ed.select_range(r["para"], r["start"], r["para"], r["end"])
-                eng.view.after_move()
-            return
-        if getattr(row, "redline", None) is not None:
-            docapi.select_range(m, row.redline["start"], row.redline["end"])
-        elif getattr(row, "field", None) is not None:
-            docapi.goto(m, row.field.getAnchor().getStart())
+        r = getattr(row, "redline", None)
+        if r is not None and r.get("para") is not None:
+            eng.ed.select_range(r["para"], r["start"], r["para"], r["end"])
+            eng.view.after_move()
+        return
 
     def _act(self, cmd):
         row = self.list.get_selected_row()

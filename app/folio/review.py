@@ -376,12 +376,9 @@ def enforce(win):
     win.engine.view.set_edit(not ro and not getattr(win, "read_only", False))
     win.restricted = ro
     if on and r.get("mode") == "tracked":
-        if getattr(win.engine, "native", False):
-            if not win.engine.ed.track_changes():
-                win.engine.ed.set_track_changes(True)
-                win.engine._schedule_state()
-        elif win.engine.get(".uno:TrackChanges") != "true":
-            win.engine.command(".uno:TrackChanges")
+        if not win.engine.ed.track_changes():
+            win.engine.ed.set_track_changes(True)
+            win.engine._schedule_state()
         win.track_locked = True
     else:
         win.track_locked = False

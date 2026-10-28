@@ -38,11 +38,10 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
     def __getattribute__(self, name):
         if name in NATIVE_ROUTES:
             win = object.__getattribute__(self, "win")
-            if getattr(getattr(win, "engine", None), "native", False):
-                acts = getattr(win, "actions", None)
-                fn = getattr(type(acts), NATIVE_ROUTES[name], None) if acts is not None else None
-                if fn is not None:
-                    return lambda *a, **k: fn(acts)
+            acts = getattr(win, "actions", None)
+            fn = getattr(type(acts), NATIVE_ROUTES[name], None) if acts is not None else None
+            if fn is not None:
+                return lambda *a, **k: fn(acts)
         return object.__getattribute__(self, name)
 
     def crop(self):
@@ -62,10 +61,8 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
     @property
     def model(self):
         eng = self.win.engine
-        if getattr(eng, "native", False):
-            from .native.uno_model import NativeModel
-            return NativeModel(eng)
-        return eng.model
+        from .native.uno_model import NativeModel
+        return NativeModel(eng)
 
     def _model_or_warn(self):
         m = self.model
@@ -374,7 +371,7 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
         link = docapi.selected_link(m) if m is not None else ""
         word = ""
         misspelled = None
-        ned = getattr(self.eng, "ed", None) if getattr(self.eng, "native", False) else None
+        ned = getattr(self.eng, "ed", None)
         if ned is not None:
             has_sel = ned.has_selection()
             in_table = bool(ned.cell_name())
@@ -422,7 +419,7 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
             menu.append(Gtk.SeparatorMenuItem())
 
         native_hit = None
-        if getattr(self.eng, "native", False) and event is not None:
+        if event is not None:
             view = self.eng.view
             sp = getattr(view, "speller", None)
             try:
@@ -498,25 +495,14 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
             item("Split Cells...", "split-cells")
             item("Table Properties...", "table-properties")
             sep()
-        if getattr(self.eng, "native", False):
-            from .native import lists as nl
-            if nl.in_list(self.win):
-                item("Adjust List _Indents...", lambda: nl.adjust_indents(self.win))
-                if nl.in_numbered_list(self.win):
-                    item("_Restart at 1", lambda: nl.restart_at(self.win, 1))
-                    item("_Continue Numbering", lambda: nl.continue_numbering(self.win))
-                    item("Set Numbering _Value...", lambda: nl.set_numbering_value(self.win))
-                sep()
-        else:
-            from . import lists
-            if m is not None and lists.in_list(m):
-                numbered = lists.in_numbered_list(m)
-                item("Adjust List _Indents...", lambda: lists.adjust_indents(self.win))
-                if numbered:
-                    item("_Restart at 1", lambda: lists.restart_at(m, 1))
-                    item("_Continue Numbering", lambda: lists.continue_numbering(m))
-                    item("Set Numbering _Value...", lambda: lists.set_numbering_value(self.win))
-                sep()
+        from .native import lists as nl
+        if nl.in_list(self.win):
+            item("Adjust List _Indents...", lambda: nl.adjust_indents(self.win))
+            if nl.in_numbered_list(self.win):
+                item("_Restart at 1", lambda: nl.restart_at(self.win, 1))
+                item("_Continue Numbering", lambda: nl.continue_numbering(self.win))
+                item("Set Numbering _Value...", lambda: nl.set_numbering_value(self.win))
+            sep()
         lvl, par = 0, None
         try:
             vc = docapi.read_cursor(m)

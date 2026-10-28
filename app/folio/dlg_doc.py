@@ -322,487 +322,8 @@ class DocDialogs:
         self.find_replace(2)
 
     def find_replace(self, tab=0, text=None):
-        if getattr(self.win.engine, "native", False):
-            from .native import find
-            return find.dialog(self.win, tab, text)
-        m = self._model_or_warn()
-        if m is None:
-            return
-        if getattr(self, "_fr", None) is not None:
-            self._fr["nb"].set_current_page(tab)
-            self._fr["dlg"].present()
-            return
-        dlg = Gtk.Window(title="Find and Replace", transient_for=self.win)
-        dlg.set_type_hint(1)   # dialog
-        dlg.set_resizable(False)
-        dlg.get_style_context().add_class("folio-dialog")
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        outer.set_border_width(12)
-        dlg.add(outer)
-        nb = Gtk.Notebook()
-        outer.pack_start(nb, True, True, 0)
-        st = {"dlg": dlg, "nb": nb}
-        self._fr = st
-        sel = docapi.selection_text(m)
-        initial = text or (sel if sel and "\n" not in sel and len(sel) < 80 else
-                           getattr(self, "_last_find", ""))
-
-        def page(with_replace):
-            b = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-            b.set_border_width(10)
-            f = Gtk.ComboBoxText.new_with_entry()
-            f.get_child().set_text(initial)
-            f.get_child().set_width_chars(40)
-            rows = [["Fi_nd what:", f]]
-            r = None
-            if with_replace:
-                r = Gtk.ComboBoxText.new_with_entry()
-                rows.append(["Replace w_ith:", r])
-            b.pack_start(grid(rows), False, False, 0)
-            return b, f, r
-        p_find, f1, _ = page(False)
-        p_rep, f2, rep = page(True)
-        # keep the two "find what" boxes in step
-        f1.get_child().connect("changed", lambda e: f2.get_child().get_text() != e.get_text()
-                               and f2.get_child().set_text(e.get_text()))
-        f2.get_child().connect("changed", lambda e: f1.get_child().get_text() != e.get_text()
-                               and f1.get_child().set_text(e.get_text()))
-        # options (shared): the original's "More >>" part
-        from . import findopts
-        ffmt, rfmt = findopts.Format(), findopts.Format()
-        st["ffmt"], st["rfmt"] = ffmt, rfmt
-        opts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        opts.set_margin_top(4)
-        opts.pack_start(heading("Search Options"), False, False, 0)
-        direction = combo(["All", "Down", "Up"], 0)
-        opts.pack_start(grid([["Search:", direction]]), False, False, 0)
-        case = Gtk.CheckButton.new_with_mnemonic("Matc_h case")
-        whole = Gtk.CheckButton.new_with_mnemonic("Find whole words onl_y")
-        wild = Gtk.CheckButton.new_with_mnemonic("_Use wildcards")
-        sounds = Gtk.CheckButton.new_with_mnemonic("Sounds li_ke (English)")
-        forms = Gtk.CheckButton.new_with_mnemonic("Find all _word forms (English)")
-        prefix = Gtk.CheckButton.new_with_mnemonic("Match prefi_x")
-        suffix = Gtk.CheckButton.new_with_mnemonic("Match _suffix")
-        ign_p = Gtk.CheckButton.new_with_mnemonic("Ignore punctuation charac_ters")
-        ign_w = Gtk.CheckButton.new_with_mnemonic("Ignore _white-space characters")
-        og = Gtk.Grid(column_spacing=40, row_spacing=2)
-        for i, w in enumerate((case, whole, wild, sounds, forms)):
-            og.attach(w, 0, i, 1, 1)
-        for i, w in enumerate((prefix, suffix, None, ign_p, ign_w)):
-            if w is not None:
-                og.attach(w, 1, i, 1, 1)
-        opts.pack_start(og, False, False, 0)
-        st["checks"] = {"case": case, "whole": whole, "wild": wild, "sounds": sounds,
-                        "forms": forms, "prefix": prefix, "suffix": suffix,
-                        "ign_punct": ign_p, "ign_space": ign_w}
-
-        def opt_sens(*_):
-            w_, s_, f_ = wild.get_active(), sounds.get_active(), forms.get_active()
-            exclusive = w_ or s_ or f_
-            for b in (prefix, suffix, ign_p, ign_w):
-                b.set_sensitive(not exclusive)
-            whole.set_sensitive(not exclusive and not prefix.get_active() and
-                                not suffix.get_active())
-            case.set_sensitive(not (w_ or s_ or f_))
-            wild.set_sensitive(not (s_ or f_))
-            sounds.set_sensitive(not (w_ or f_))
-            forms.set_sensitive(not (w_ or s_))
-        for b in st["checks"].values():
-            b.connect("toggled", opt_sens)
-        # Format / Special / No Formatting
-        fmt_btn = Gtk.MenuButton(label="F_ormat", use_underline=True)
-        special = Gtk.MenuButton(label="Sp_ecial", use_underline=True)
-        nofmt = Gtk.Button(label="No Formatt_ing", use_underline=True)
-        nofmt.set_sensitive(False)
-        smenu = Gtk.Menu()
-        for label, code in SPECIAL_CODES:
-            it = Gtk.MenuItem(label=label)
-
-            def ins(_i, code=code):
-                entry = rep.get_child() if getattr(self, "_fr_last_focus", "") == "rep" \
-                    else (f2.get_child() if nb.get_current_page() == 1 else f1.get_child())
-                pos = entry.get_position()
-                entry.insert_text(code, pos)
-                entry.set_position(pos + len(code))
-            it.connect("activate", ins)
-            smenu.append(it)
-        smenu.show_all()
-        special.set_popup(smenu)
-        rep.get_child().connect("focus-in-event", lambda *_: setattr(
-            self, "_fr_last_focus", "rep") or False)
-        for fbox in (f1, f2):
-            fbox.get_child().connect("focus-in-event", lambda *_: setattr(
-                self, "_fr_last_focus", "find") or False)
-
-        def cur_fmt():
-            return rfmt if getattr(self, "_fr_last_focus", "") == "rep" and \
-                nb.get_current_page() == 1 else ffmt
-
-        fmt_labels = []
-
-        def fmt_changed():
-            for lab, f in fmt_labels:
-                lab.set_text(("Format:    " + f.text()) if not f.empty() else "")
-                lab.set_visible(not f.empty())
-            nofmt.set_sensitive(not cur_fmt().empty())
-
-        def fmt_popup(*_):
-            fmt_btn.set_popup(findopts.format_menu(dlg, cur_fmt(), fmt_changed))
-        fmt_btn.connect("pressed", fmt_popup)
-        fmt_popup()
-        nofmt.connect("clicked", lambda *_: (cur_fmt().clear(), fmt_changed()))
-        for fbox in (f1, f2, rep):
-            fbox.get_child().connect("focus-in-event",
-                                     lambda *_: (GLib.idle_add(fmt_changed), False)[1])
-        sb = Gtk.Box(spacing=6)
-        sb.pack_start(fmt_btn, False, False, 0)
-        sb.pack_start(special, False, False, 0)
-        sb.pack_start(nofmt, False, False, 0)
-        opts.pack_start(heading("Find"), False, False, 2)
-        opts.pack_start(sb, False, False, 4)
-        for parent, f in ((p_find, ffmt), (p_rep, ffmt), (p_rep, rfmt)):
-            lab = Gtk.Label(xalign=0)
-            lab.set_no_show_all(True)
-            lab.get_style_context().add_class("dim-label")
-            fmt_labels.append((lab, f))
-            parent.pack_start(lab, False, False, 0)
-        more = Gtk.Button(label="_More >>", use_underline=True)
-        opts.set_no_show_all(True)
-
-        def toggle_more(*_):
-            show = not opts.get_visible()
-            if show:
-                opts.show_all()
-                opts.show()
-            else:
-                opts.hide()
-            more.set_label("<< _Less" if show else "_More >>")
-        more.connect("clicked", toggle_more)
-        exp = opts
-        # Go To page
-        p_goto = Gtk.Box(spacing=12)
-        p_goto.set_border_width(10)
-        sw, kinds, _store = listbox(GOTO_KINDS, height=150, width=140)
-        kinds.get_selection().select_path(Gtk.TreePath(0))
-        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        what_lab = Gtk.Label(label="Enter page number:", xalign=0)
-        what = Gtk.ComboBoxText.new_with_entry()
-        what.get_child().set_width_chars(30)
-        hint = Gtk.Label(label="Enter + and - to move relative to the current location. "
-                               "Example: +4 will move forward four items.", xalign=0)
-        hint.set_line_wrap(True)
-        hint.set_max_width_chars(40)
-        hint.get_style_context().add_class("dim-label")
-        right.pack_start(what_lab, False, False, 0)
-        right.pack_start(what, False, False, 0)
-        right.pack_start(hint, False, False, 0)
-        p_goto.pack_start(Gtk.Label(label="G_o to what:", xalign=0, use_underline=True),
-                          False, False, 0)
-        p_goto.pack_start(sw, False, False, 0)
-        p_goto.pack_start(right, True, True, 0)
-
-        def kind_changed(_s):
-            k = list_selected(kinds) or "Page"
-            what.remove_all()
-            items = []
-            if k == "Bookmark":
-                items = docapi.bookmarks(m)
-                what_lab.set_text("Enter bookmark name:")
-            elif k == "Heading":
-                items = [t for _l, t, _p in docapi.headings(m)]
-                what_lab.set_text("Enter heading:")
-            elif k == "Comment":
-                items = ["Any reviewer"] + sorted({a for a in _comment_authors(m)})
-                what_lab.set_text("Enter reviewer's name:")
-            elif k == "Field":
-                items = ["Any field"] + sorted({_field_name(f) for f in _fields(m)})
-                what_lab.set_text("Enter field name:")
-            else:
-                what_lab.set_text("Enter %s number:" % k.lower())
-            for it in items:
-                what.append_text(it)
-            what.get_child().set_text(items[0] if items and k not in ("Comment", "Field")
-                                      else "")
-            upd_buttons()
-        kinds.get_selection().connect("changed", kind_changed)
-
-        nb.append_page(p_find, Gtk.Label(label="Find", use_underline=True))
-        nb.append_page(p_rep, Gtk.Label(label="Replace"))
-        nb.append_page(p_goto, Gtk.Label(label="Go To"))
-        bb = Gtk.Box(spacing=6)
-        bb.pack_start(more, False, False, 0)
-        hl_btn = Gtk.MenuButton(label="Reading Highlig_ht", use_underline=True)
-        hl_menu = Gtk.Menu()
-        for label, fn in (("Highlight All", lambda: do_highlight()),
-                          ("Clear Highlighting", lambda: self.win.reading_hl.clear())):
-            it = Gtk.MenuItem(label=label)
-            it.connect("activate", lambda _i, fn=fn: fn())
-            hl_menu.append(it)
-        hl_menu.show_all()
-        hl_btn.set_popup(hl_menu)
-        in_btn = Gtk.MenuButton(label="Find _In", use_underline=True)
-        in_menu = Gtk.Menu()
-        for label, where in (("Main Document", "main"), ("Headers and Footers", "hf")):
-            it = Gtk.MenuItem(label=label)
-            it.connect("activate", lambda _i, w=where: find_in(w))
-            in_menu.append(it)
-        in_menu.show_all()
-        in_btn.set_popup(in_menu)
-        b_rep = Gtk.Button(label="_Replace", use_underline=True)
-        b_all = Gtk.Button(label="Replace _All", use_underline=True)
-        b_next = Gtk.Button(label="_Find Next", use_underline=True)
-        b_prev = Gtk.Button(label="Find Pre_vious", use_underline=True)
-        b_go = Gtk.Button(label="Go _To", use_underline=True)
-        b_close = Gtk.Button(label="Cancel")
-        b_next.get_style_context().add_class("suggested-action")
-        bb.pack_end(b_close, False, False, 0)
-        for w in (b_go, b_next, b_prev, b_all, b_rep, in_btn, hl_btn):
-            bb.pack_end(w, False, False, 0)
-        outer.pack_start(bb, False, False, 0)
-        outer.pack_start(exp, False, False, 0)
-        status = Gtk.Label(label="", xalign=0)
-        status.get_style_context().add_class("dim-label")
-        outer.pack_start(status, False, False, 0)
-
-        def upd_buttons(*_):
-            p = nb.get_current_page()
-            b_rep.set_visible(p == 1)
-            b_all.set_visible(p == 1)
-            b_next.set_visible(p in (0, 1))
-            b_prev.set_visible(p in (0, 1))
-            b_go.set_visible(p == 2)
-            hl_btn.set_visible(p == 0)
-            in_btn.set_visible(p == 0)
-            more.set_visible(p in (0, 1))
-            if p == 2:
-                exp.hide()
-            elif more.get_label().startswith("<<"):
-                exp.show()
-            if p == 2:
-                k = list_selected(kinds) or "Page"
-                b_go.set_label("_Go To" if what.get_child().get_text().strip() else
-                               ("_Next" if k != "Page" else "_Go To"))
-        nb.connect("switch-page", lambda nb, pg, n: GLib.idle_add(upd_buttons))
-        what.get_child().connect("changed", upd_buttons)
-
-        def opt_values():
-            return {k: (b.get_active() and b.get_sensitive()) for k, b in st["checks"].items()}
-
-        def descriptor(repl=None, use_format=True):
-            sd = m.createReplaceDescriptor()
-            s = f1.get_child().get_text()
-            self._last_find = s
-            o = opt_values()
-            regex = False
-            if o["wild"] or o["sounds"] or o["forms"] or o["prefix"] or o["suffix"] or \
-                    o["ign_punct"] or o["ign_space"]:
-                s, regex = findopts.search_pattern(
-                    s, o, m.getText().getString() if o["sounds"] else "")
-                if repl is not None and "^" in repl:
-                    repl = special_to_replacement(repl)
-            elif "^" in s:
-                s, regex = special_to_regex(s), True
-                if repl is not None:
-                    repl = special_to_replacement(repl)
-            elif repl is not None and "^" in repl:
-                s, regex = re.escape(s), True
-                repl = special_to_replacement(repl)
-            if not s and use_format and not ffmt.empty():
-                if ffmt.style and not ffmt.attrs:
-                    sd.SearchStyles = True
-                    s = ffmt.style
-                else:
-                    sd.setSearchAttributes(ffmt.props())
-                    sd.ValueSearch = True
-            sd.SearchString = s
-            sd.SearchCaseSensitive = o["case"] or o["wild"]
-            sd.SearchWords = o["whole"] and not regex
-            sd.SearchRegularExpression = regex
-            if repl is not None:
-                sd.ReplaceString = repl
-            return sd
-
-        def searching():
-            return bool(f1.get_child().get_text()) or not ffmt.empty()
-
-        def find(forward=True):
-            if not searching():
-                return None
-            dirn = direction.get_active()
-            if dirn == 2:
-                forward = False
-            sd = descriptor()
-            sd.SearchBackwards = not forward
-            vc = docapi.view_cursor(m)
-            start = vc.getEnd() if forward else vc.getStart()
-            wrapped = False
-            found = m.findNext(start, sd)
-            for _i in range(500):
-                if found is None and dirn == 0 and not wrapped:
-                    # wrap around
-                    cur = m.getText().createTextCursor()
-                    if forward:
-                        cur.gotoStart(False)
-                    else:
-                        cur.gotoEnd(False)
-                    found = m.findNext(cur.getStart(), sd)
-                    wrapped = True
-                if found is None or findopts.matches_format(found, ffmt) or \
-                        not f1.get_child().get_text():
-                    break
-                found = m.findNext(found.getEnd() if forward else found.getStart(), sd)
-            status.set_text("The search wrapped around the document." if wrapped and found
-                            else "")
-            if found is None:
-                status.set_text("")
-                if dirn == 0 or not self.confirm(
-                        "We reached the %s of the document. Do you want to continue "
-                        "searching at the %s?" % (("end", "beginning") if forward else
-                                                  ("beginning", "end")), yes="Yes", no="No"):
-                    if dirn == 0:
-                        self.message("We couldn't find what you were looking for.",
-                                     title="Find and Replace")
-                    return None
-                cur = m.getText().createTextCursor()
-                cur.gotoStart(False) if forward else cur.gotoEnd(False)
-                found = m.findNext(cur.getStart(), sd)
-                if found is None:
-                    self.message("We couldn't find what you were looking for.",
-                                 title="Find and Replace")
-                    return None
-            docapi.select(m, found)
-            return found
-
-        def all_matches(where="main"):
-            sd = descriptor()
-            res = m.findAll(sd)
-            out = []
-            for i in range(res.getCount()):
-                r = res.getByIndex(i)
-                try:
-                    in_main = r.getText().getImplementationName() != "SwXHeadFootText"
-                except Exception:
-                    in_main = True
-                if (where == "main") != in_main:
-                    continue
-                if f1.get_child().get_text() and not findopts.matches_format(r, ffmt):
-                    continue
-                out.append(r)
-            return out
-
-        def do_highlight():
-            if not searching():
-                return
-            n = self.win.reading_hl.highlight(all_matches("main"))
-            status.set_text("%d item%s highlighted" % (n, "" if n == 1 else "s")
-                            if n else "")
-            if not n:
-                self.message("We couldn't find what you were looking for.",
-                             title="Find and Replace")
-
-        def find_in(where):
-            if not searching():
-                return
-            found = all_matches(where)
-            if not found:
-                self.message("We couldn't find what you were looking for.",
-                             title="Find and Replace")
-                return
-            try:
-                if len(found) == 1:
-                    docapi.select(m, found[0])
-                else:
-                    sd = descriptor()
-                    res = m.findAll(sd)
-                    docapi.controller(m).select(res)
-            except Exception as e:
-                print("find in:", e)
-            status.set_text("Folio found %d item%s matching this criteria."
-                            % (len(found), "" if len(found) == 1 else "s"))
-
-        def do_replace(*_):
-            s = f1.get_child().get_text()
-            if not searching():
-                return
-            vc = docapi.view_cursor(m)
-            cur_sel = vc.getString()
-            matches = cur_sel == s if case.get_active() else cur_sel.lower() == s.lower()
-            if wild.get_active() and cur_sel:
-                import re
-                try:
-                    matches = re.fullmatch(s, cur_sel, 0 if case.get_active() else re.I) \
-                        is not None
-                except re.error:
-                    matches = False
-            if not s and not ffmt.empty() and not vc.isCollapsed():
-                matches = findopts.matches_format(vc, ffmt)
-            elif any(b.get_active() and b.get_sensitive() for k, b in st["checks"].items()
-                     if k not in ("case", "whole")) and cur_sel:
-                matches = True       # what Find Next selected
-            if matches and not vc.isCollapsed():
-                r = vc.getText().createTextCursorByRange(vc)
-                if rep.get_child().get_text() or (s and rfmt.empty()):
-                    r.setString(rep.get_child().get_text())
-                findopts.apply_format(r, rfmt)
-                vc.collapseToEnd()
-            find(True)
-
-        def do_all(*_):
-            s = f1.get_child().get_text()
-            if not searching():
-                return
-            if ffmt.empty() and rfmt.empty():
-                n = m.replaceAll(descriptor(rep.get_child().get_text()))
-            else:
-                found = all_matches("main")
-                um = m.getUndoManager()
-                um.enterUndoContext("Replace All")
-                try:
-                    for r in found:
-                        c = r.getText().createTextCursorByRange(r)
-                        if rep.get_child().get_text() or (s and rfmt.empty()):
-                            c.setString(rep.get_child().get_text())
-                        findopts.apply_format(c, rfmt)
-                finally:
-                    um.leaveUndoContext()
-                n = len(found)
-            if n:
-                self.message("All done. We made %d replacement%s." % (n, "" if n == 1 else "s"),
-                             title="Find and Replace")
-            else:
-                self.message("We couldn't find what you were looking for.",
-                             title="Find and Replace")
-
-        def do_goto(*_):
-            k = list_selected(kinds) or "Page"
-            val = what.get_child().get_text().strip()
-            self._goto(m, k, val)
-        b_next.connect("clicked", lambda *_: find(True))
-        b_prev.connect("clicked", lambda *_: find(False))
-        b_rep.connect("clicked", do_replace)
-        b_all.connect("clicked", do_all)
-        b_go.connect("clicked", do_goto)
-        b_close.connect("clicked", lambda *_: dlg.destroy())
-        f1.get_child().connect("activate", lambda *_: find(True))
-        f2.get_child().connect("activate", lambda *_: find(True))
-        what.get_child().connect("activate", do_goto)
-
-        def on_key(w, ev):
-            from gi.repository import Gdk
-            if ev.keyval == Gdk.KEY_Escape:
-                dlg.destroy()
-                return True
-            return False
-        dlg.connect("key-press-event", on_key)
-        dlg.connect("destroy", lambda *_: setattr(self, "_fr", None))
-        dlg.show_all()
-        nb.set_current_page(tab)
-        upd_buttons()
-        kind_changed(None)
-        if tab == 2:
-            what.get_child().grab_focus()
-        else:
-            (f1 if tab == 0 else f2).get_child().grab_focus()
+        from .native import find
+        return find.dialog(self.win, tab, text)
 
     def _goto(self, m, kind, val):
         vc = docapi.view_cursor(m)
@@ -1055,7 +576,7 @@ class DocDialogs:
 
     def _page_px(self):
         """Page width/height in document pixels at zoom 1.0."""
-        ed = getattr(self.eng, "ed", None) if getattr(self.eng, "native", False) else None
+        ed = getattr(self.eng, "ed", None)
         if ed is not None and ed.page_count():
             w, h = ed.page_size(0)
             return w * 96 / 72.0, h * 96 / 72.0, None
@@ -1067,7 +588,7 @@ class DocDialogs:
 
     def _single_column(self):
         v = self.eng.view
-        if getattr(self.eng, "native", False) and (v.columns > 1 or v.side):
+        if (v.columns > 1 or v.side):
             v.set_page_layout(1)
 
     def zoom_page_width(self, text=False):
@@ -1087,7 +608,7 @@ class DocDialogs:
     def zoom_pages(self, n):
         """n pages in view at once (the engine lays pages out one under
         another, so they are fitted top to bottom)."""
-        if getattr(self.eng, "native", False) and n > 1:
+        if n > 1:
             # the new engine puts them side by side
             w, h, _ = self._page_px()
             a = self.win.canvas.get_allocation()
@@ -1102,60 +623,32 @@ class DocDialogs:
         self.win.status.set_zoom(max(0.1, min(5.0, z)))
 
     def zoom_multiple(self):
-        if getattr(self.eng, "native", False):
-            self.win.act_multiple_pages()
-            return
-        self.zoom_one_page()
-        self.win.status.set_zoom(self.eng.view.get_zoom() / 2)
+        self.win.act_multiple_pages()
+        return
 
     # ============================================================ Page setup
     def page_setup(self, tab=0):
-        if getattr(self.eng, "native", False) or self._model_or_warn() is not None:
-            from . import pagesetup
-            pagesetup.dialog(self.win, tab)
+        from . import pagesetup
+        pagesetup.dialog(self.win, tab)
 
     def margins(self, preset):
-        if getattr(self.eng, "native", False):
-            from .native import pagesetup as NP
-            vals = MARGIN_PRESETS[preset] if isinstance(preset, str) else preset
-            NP.margins(self.win, *vals, mirrored=preset == "mirrored")
-            return
-        m = self._model_or_warn()
-        if m is None:
-            return
-        from . import pagesetup
-        if preset == "mirrored":
-            pagesetup.mirrored_margins(m)
-            return
-        if isinstance(preset, str):
-            t, b, l, r = MARGIN_PRESETS[preset]
-        else:
-            t, b, l, r = preset
-        docapi.set_page(m, top=t, bottom=b, left=l, right=r)
-        ps = docapi.page_style(m)
-        if pagesetup._layout(ps) == "MIRRORED":
-            pagesetup._set_layout(ps, "ALL")
+        from .native import pagesetup as NP
+        vals = MARGIN_PRESETS[preset] if isinstance(preset, str) else preset
+        NP.margins(self.win, *vals, mirrored=preset == "mirrored")
+        return
 
     def orientation(self, landscape):
-        if getattr(self.eng, "native", False):
-            from .native import pagesetup as NP
-            NP.orientation(self.win, landscape)
-            return
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.set_page(m, landscape=bool(landscape))
+        from .native import pagesetup as NP
+        NP.orientation(self.win, landscape)
+        return
 
     def paper(self, size):
-        if getattr(self.eng, "native", False):
-            from .native import pagesetup as NP
-            NP.paper(self.win, size[0], size[1])
-            return
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.set_page(m, width=size[0], height=size[1])
+        from .native import pagesetup as NP
+        NP.paper(self.win, size[0], size[1])
+        return
 
     def columns(self, n):
-        if getattr(self.eng, "native", False) and n != "more":
+        if n != "more":
             from .native import pagesetup as NP
             NP.columns(self.win, int(n))
             return
@@ -1174,23 +667,13 @@ class DocDialogs:
 
     # ============================================================== Watermark
     def watermark(self, text):
-        if getattr(self.eng, "native", False):
-            ed = self.eng.ed
-            if text:
-                ed.set_watermark("text", text=text, font="Calibri")
-            else:
-                ed.set_watermark("none")
-            self.eng.view.document_changed()
-            return
-        if not text:
-            self.eng.command(".uno:Watermark", {"Text": ""})
-            m = self.model
-            if m is not None:
-                remove_picture_watermarks(m)
-            return
-        self.eng.command(".uno:Watermark", {"Text": text, "Font": "Carlito",
-                                            "Angle": ("short", 45), "Transparency": ("short", 50),
-                                            "Color": ("long", 0xC0C0C0)})
+        ed = self.eng.ed
+        if text:
+            ed.set_watermark("text", text=text, font="Calibri")
+        else:
+            ed.set_watermark("none")
+        self.eng.view.document_changed()
+        return
 
     def watermark_dialog(self):
         d = FDialog(self.win, "Printed Watermark", buttons=(
@@ -1249,7 +732,7 @@ class DocDialogs:
                 text.append_text(t)
             text.get_child().set_text(cur if cur in items else items[0])
         lang.connect("changed", lang_changed)
-        dflt_font = "Calibri" if getattr(self.eng, "native", False) else "Carlito"
+        dflt_font = "Calibri"
         font = combo(self.eng.fonts() or [dflt_font], dflt_font, entry=True)
         color = color_button(0xC0C0C0)
         semi = Gtk.CheckButton.new_with_mnemonic("S_emitransparent")
@@ -1271,46 +754,28 @@ class DocDialogs:
             if none.get_active():
                 self.watermark("")
                 return
-            if getattr(self.eng, "native", False):
-                ed = self.eng.ed
-                if picw.get_active():
-                    if not pic_path[0]:
-                        return
-                    st = combo_text(scale).strip().rstrip("%")
-                    try:
-                        k = None if st.lower() == "auto" else float(st) / 100.0
-                    except ValueError:
-                        k = None
-                    ed.set_watermark("picture", path=pic_path[0], scale=k, washout=wash.get_active())
-                else:
-                    c = color.color if color.color is not None and color.color >= 0 else 0xC0C0C0
-                    sz = combo_text(size).strip()
-                    try:
-                        sz = None if sz.lower() == "auto" else float(sz)
-                    except ValueError:
-                        sz = None
-                    ed.set_watermark("text", text=combo_text(text), font=combo_text(font) or "Calibri",
-                                     size=sz, color=c, semi=semi.get_active(),
-                                     diagonal=not horiz.get_active())
-                self.eng.view.document_changed()
-                return
+            ed = self.eng.ed
             if picw.get_active():
-                if pic_path[0]:
-                    self.eng.command(".uno:Watermark", {"Text": ""})
-                    st = combo_text(scale).strip().rstrip("%")
-                    try:
-                        pct = None if st.lower() == "auto" else float(st)
-                    except ValueError:
-                        pct = None
-                    picture_watermark(self.model, pic_path[0], pct, wash.get_active())
-                return
-            remove_picture_watermarks(self.model)
-            c = color.color if color.color is not None and color.color >= 0 else 0xC0C0C0
-            self.eng.command(".uno:Watermark", {
-                "Text": combo_text(text), "Font": combo_text(font) or "Carlito",
-                "Angle": ("short", 0 if horiz.get_active() else 45),
-                "Transparency": ("short", 50 if semi.get_active() else 0),
-                "Color": ("long", c)})
+                if not pic_path[0]:
+                    return
+                st = combo_text(scale).strip().rstrip("%")
+                try:
+                    k = None if st.lower() == "auto" else float(st) / 100.0
+                except ValueError:
+                    k = None
+                ed.set_watermark("picture", path=pic_path[0], scale=k, washout=wash.get_active())
+            else:
+                c = color.color if color.color is not None and color.color >= 0 else 0xC0C0C0
+                sz = combo_text(size).strip()
+                try:
+                    sz = None if sz.lower() == "auto" else float(sz)
+                except ValueError:
+                    sz = None
+                ed.set_watermark("text", text=combo_text(text), font=combo_text(font) or "Calibri",
+                                 size=sz, color=c, semi=semi.get_active(),
+                                 diagonal=not horiz.get_active())
+            self.eng.view.document_changed()
+            return
         while True:
             r = d.ask()
             if r == Gtk.ResponseType.APPLY:
@@ -1388,22 +853,14 @@ class DocDialogs:
         d.done()
 
     def hyphenation_options(self):
-        if getattr(self.eng, "native", False):
-            from .native import layoutopts
-            layoutopts.options_dialog(self.win)
-            return
-        if self._model_or_warn() is not None:
-            from . import hyphen
-            hyphen.options_dialog(self.win)
+        from .native import layoutopts
+        layoutopts.options_dialog(self.win)
+        return
 
     def manual_hyphenation(self):
-        if getattr(self.eng, "native", False):
-            from .native import layoutopts
-            layoutopts.manual_dialog(self.win)
-            return
-        if self._model_or_warn() is not None:
-            from . import hyphen
-            hyphen.manual_dialog(self.win)
+        from .native import layoutopts
+        layoutopts.manual_dialog(self.win)
+        return
 
     def hyphenation(self, auto=None):
         m = self._model_or_warn()

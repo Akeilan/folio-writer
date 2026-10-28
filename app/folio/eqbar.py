@@ -149,11 +149,8 @@ class EquationBar(Gtk.Revealer):
         from .mathedit import InlineEditor
         from . import eqoptions
         eqoptions.apply(win.app)
-        if getattr(win.engine, "native", False):
-            from .native.equations import NativeInlineEditor
-            self.ed = NativeInlineEditor(win, self)
-        else:
-            self.ed = InlineEditor(win, self)
+        from .native.equations import NativeInlineEditor
+        self.ed = NativeInlineEditor(win, self)
         self.entry = _EntryShim(self)
         self.listener = None
 
@@ -175,46 +172,9 @@ class EquationBar(Gtk.Revealer):
 
     # -------------------------------------------------------------- open/close
     def new_equation(self, linear=None):
-        if getattr(self.win.engine, "native", False):
-            from .native import equations
-            equations.new_equation(self, linear)
-            return
-        m = self.win.engine.model
-        if m is None:
-            self.win.dialogs.message("The document is still opening. Try again in a moment.")
-            return
-        if self.ed.active:
-            self.finish()
-        vc = docapi.view_cursor(m)
-        cur = vc.getText().createTextCursorByRange(vc)
-        cur.gotoStartOfParagraph(True)
-        alone = cur.getString().strip() == ""
-        cur = vc.getText().createTextCursorByRange(vc)
-        cur.gotoEndOfParagraph(True)
-        alone = alone and cur.getString().strip() == ""
-        if not vc.isCollapsed() and linear is None:
-            linear = vc.getString()
-            vc.setString("")
-        markup = PLACEHOLDER_MARKUP
-        if linear:
-            try:
-                markup = M.to_starmath(M.from_linear(linear))
-            except Exception:
-                markup = PLACEHOLDER_MARKUP
-        try:
-            obj = docapi.insert_formula(m, markup, display=alone)
-        except Exception as e:
-            self.win.dialogs.message("The equation couldn't be inserted: %s" % e)
-            return
-        if alone:
-            j = self.win.app.settings.get("eq_options", {}).get("justify", "centered")
-            try:
-                obj.getAnchor().ParaAdjust = {"left": 0, "right": 1}.get(j, 3)
-            except Exception:
-                pass
-        self.ed.start(obj)
-        if linear and markup == PLACEHOLDER_MARKUP:
-            self.ed.load_linear(linear)
+        from .native import equations
+        equations.new_equation(self, linear)
+        return
 
     def edit(self, obj, linear=None, click=None):
         self.ed.start(obj, click=click)
@@ -227,19 +187,11 @@ class EquationBar(Gtk.Revealer):
     def finish(self, cursor="after"):
         obj = self.ed.obj
         self.ed.stop(move_cursor=cursor is not None)
-        if getattr(self.win.engine, "native", False):
-            if cursor == "before" and obj is not None:
-                self.win.engine.ed.caret_by_math(obj.id, False)
-                self.win.engine.view.after_move()
-            self.win.focus_document()
-            return
         if cursor == "before" and obj is not None:
-            try:
-                vc = docapi.view_cursor(self.win.engine.model)
-                vc.gotoRange(obj.getAnchor().getStart(), False)
-            except Exception:
-                pass
+            self.win.engine.ed.caret_by_math(obj.id, False)
+            self.win.engine.view.after_move()
         self.win.focus_document()
+        return
 
     # -------------------------------------------------------------- ribbon
     def insert(self, linear):
@@ -302,69 +254,17 @@ class EquationBar(Gtk.Revealer):
 
     def convert_all(self, how):
         """Convert > All - Professional / Linear."""
-        if getattr(self.win.engine, "native", False):
-            from .native import equations
-            n = equations.convert_all(self, how)
-            self.win.status.flash("Converted %d equation%s." % (n, "" if n == 1 else "s"))
-            return
-        from .mathedit import is_linear_markup, linear_markup, linear_of_markup
-        m = self.win.engine.model
-        if m is None:
-            return
-        if self.ed.active:
-            self.finish()
-        n = 0
-        for obj in docapi.formulas(m):
-            mk = docapi.formula_of(obj) or ""
-            try:
-                if how == "linear" and not is_linear_markup(mk):
-                    tree = M.from_starmath(mk)
-                    lin = M.to_latex(tree) if self.input_format == "latex" else M.to_linear(tree)
-                    docapi.set_formula(obj, linear_markup(lin))
-                    n += 1
-                elif how == "professional" and is_linear_markup(mk):
-                    lin = linear_of_markup(mk)
-                    tree = M.from_latex(lin) if self.input_format == "latex" else \
-                        M.from_linear(unicodemath.expand_control_words(lin, final=True))
-                    docapi.set_formula(obj, M.to_starmath(tree))
-                    n += 1
-            except Exception as e:
-                print("convert:", e)
+        from .native import equations
+        n = equations.convert_all(self, how)
         self.win.status.flash("Converted %d equation%s." % (n, "" if n == 1 else "s"))
+        return
 
     def set_display(self, display):
         """Change to Display (own centred line) / Change to Inline."""
         obj = self.ed.obj
-        if getattr(self.win.engine, "native", False):
-            from .native import equations
-            equations.set_display(self, display)
-            return
-        m = self.win.engine.model
-        if obj is None or m is None:
-            return
-        um = m.getUndoManager()
-        um.enterUndoContext("Change Equation Display")
-        try:
-            anchor = obj.getAnchor()
-            text = anchor.getText()
-            if display:
-                cur = text.createTextCursorByRange(anchor.getStart())
-                cur.gotoStartOfParagraph(True)
-                if cur.getString().strip():
-                    text.insertControlCharacter(anchor.getStart(), 0, False)
-                cur = text.createTextCursorByRange(obj.getAnchor().getStart())
-                cur.goRight(1, False)
-                end = text.createTextCursorByRange(cur)
-                end.gotoEndOfParagraph(True)
-                if end.getString().strip():
-                    text.insertControlCharacter(cur, 0, False)
-                obj.getAnchor().ParaAdjust = 3
-            else:
-                obj.getAnchor().ParaAdjust = 0
-        finally:
-            um.leaveUndoContext()
-        self.ed.changed()
-        GLib.timeout_add(150, lambda: (self.ed._locate(), False)[1])
+        from .native import equations
+        equations.set_display(self, display)
+        return
 
     def justify(self, how):
         obj = self.ed.obj

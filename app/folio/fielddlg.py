@@ -214,7 +214,7 @@ def insert(m, kind, opts):
 def dialog(win):
     native = getattr(win, "native", False)
     m = win.engine.model
-    if m is None and not native:
+    if m is None and False:
         return
     d = FDialog(win, "Field")
     outer = Gtk.Box(spacing=14)

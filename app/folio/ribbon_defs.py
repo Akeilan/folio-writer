@@ -1172,7 +1172,7 @@ def build_ribbon(win):
             lambda: __import__("folio.insertmore", fromlist=["x"]).smartart_dialog(win),
             size="large", keytip="M"),
         btn("Chart", "cmd/lc_insertobjectchart",
-            lambda: __import__("folio.native.charts" if win.native else "folio.charts",
+            lambda: __import__("folio.native.charts",
                                fromlist=["x"]).insert_chart_dialog(win),
             size="large", keytip="C"),
         MenuButton(r, "Screenshot", "screenshot", [
@@ -1421,7 +1421,7 @@ def build_ribbon(win):
     def group_menu(keytip):
         return MenuButton(r, "Group", "cmd/sc_formatgroup", [
             ("Group", lambda: A.cmd(".uno:FormatGroup"), "cmd/sc_formatgroup"),
-            ("Regroup", lambda: A.cmd(".uno:Regroup" if getattr(win.engine, "native", False) else ".uno:FormatGroup")),
+            ("Regroup", lambda: A.cmd(".uno:Regroup")),
             ("Ungroup", lambda: A.cmd(".uno:FormatUngroup"), "cmd/sc_formatungroup")],
             size="small", keytip=keytip)
 
@@ -1467,14 +1467,9 @@ def build_ribbon(win):
     from . import dlg_cite
 
     def cite_style(v):
-        if getattr(win.engine, "native", False):
-            from .native import refs as _refs
-            _refs.cites().set_style(win, v)
-            return
-        m = win.engine.model
-        if m is not None:
-            win.engine.sync(lambda: __import__("folio.citations", fromlist=["x"]).set_style(
-                win.engine.model, v))
+        from .native import refs as _refs
+        _refs.cites().set_style(win, v)
+        return
     win.cite_style_choice = ChoiceControl(r, __import__("folio.citations", fromlist=["x"]).STYLES,
                                           cite_style,
                                           keytip="L", tooltip="Style")
@@ -1514,11 +1509,10 @@ def build_ribbon(win):
             "cmd/lc_insertauthoritiesentry") else "cmd/lc_insertindexesentry",
             "mark-citation", size="large", keytip="I", tip="Mark Citation (Alt+Shift+I)"),
         [btn("Insert Table of Authorities", "toa",
-             lambda: run("insert-toa") if getattr(win.engine, "native", False) else TOA.insert_dialog(win),
+             lambda: run("insert-toa"),
              keytip="T"),
          btn("Update Table", "cmd/sc_updatecurindex",
-             lambda: run("update-toa") if getattr(win.engine, "native", False) else
-             win.engine.sync(lambda: TOA.update_tables(win.engine.model)),
+             lambda: run("update-toa"),
              keytip="U")]]))
     r.add_tab(t)
 
@@ -1918,30 +1912,21 @@ def build_ribbon(win):
 
     def _effects_items(win, picture, oc, ol):
         """Shape / Picture Effects: the new engine draws every kind."""
-        if getattr(win.engine, "native", False):
-            from .native import objects as NO
-            items = [("#", "Shadow"), ("No Shadow", lambda: oc("set_shadow", None))]
-            items += [(n, (lambda n=n: oc("set_shadow", n))) for n in NO.SHADOWS]
-            items += [("#", "Reflection"), ("No Reflection", lambda: oc("set_reflection", None))]
-            items += [(n, (lambda n=n: oc("set_reflection", n))) for n in NO.REFLECTIONS]
-            items += [("#", "Glow")] + [(lab, (lambda pt=pt, c=c: oc("set_glow", pt, c)))
-                                        for lab, pt, c in OL.GLOWS]
-            items += [("#", "Soft Edges")] + [(lab, (lambda pt=pt: oc("set_soft_edges", pt)))
-                                              for lab, pt in OL.SOFT]
-            items += [("#", "Bevel"), ("No Bevel", lambda: oc("set_bevel", None))]
-            items += [(n, (lambda n=n: oc("set_bevel", n))) for n in NO.BEVELS]
-            items += [("#", "3-D Rotation"), ("No Rotation", lambda: oc("set_rotation", None))]
-            items += [("#", n) if p is None else (n, (lambda p=p: oc("set_rotation", p)))
-                      for n, p in NO.ROTATIONS]
-            return items
-        return [("#", "Shadow"),
-                ("No Shadow", lambda: oc("set_shadow", False)),
-                ("Offset: Bottom Right", lambda: oc("set_shadow", True))] + ([] if picture else [
-                ("#", "Glow")] + [
-                (lab, (lambda pt=pt, c=c: ol("set_glow", pt, c)))
-                for lab, pt, c in OL.GLOWS[:9]] + [
-                ("#", "Soft Edges")] + [
-                (lab, (lambda pt=pt: ol("set_soft_edges", pt))) for lab, pt in OL.SOFT])
+        from .native import objects as NO
+        items = [("#", "Shadow"), ("No Shadow", lambda: oc("set_shadow", None))]
+        items += [(n, (lambda n=n: oc("set_shadow", n))) for n in NO.SHADOWS]
+        items += [("#", "Reflection"), ("No Reflection", lambda: oc("set_reflection", None))]
+        items += [(n, (lambda n=n: oc("set_reflection", n))) for n in NO.REFLECTIONS]
+        items += [("#", "Glow")] + [(lab, (lambda pt=pt, c=c: oc("set_glow", pt, c)))
+                                    for lab, pt, c in OL.GLOWS]
+        items += [("#", "Soft Edges")] + [(lab, (lambda pt=pt: oc("set_soft_edges", pt)))
+                                          for lab, pt in OL.SOFT]
+        items += [("#", "Bevel"), ("No Bevel", lambda: oc("set_bevel", None))]
+        items += [(n, (lambda n=n: oc("set_bevel", n))) for n in NO.BEVELS]
+        items += [("#", "3-D Rotation"), ("No Rotation", lambda: oc("set_rotation", None))]
+        items += [("#", n) if p is None else (n, (lambda p=p: oc("set_rotation", p)))
+                  for n, p in NO.ROTATIONS]
+        return items
 
     def object_tab(name, keytip, picture):
         oc = win.object_call
@@ -2188,9 +2173,8 @@ def build_ribbon(win):
         from . import charts
         m = win.engine.model
         obj = charts.selected_chart(m) if m is not None else None
-        if win.native:
-            from .native import charts
-            obj = charts.selected(win)
+        from .native import charts
+        obj = charts.selected(win)
         if obj is None:
             return
         if charts.is_image(obj) and fn not in ("edit", "type", "title", "set_title"):
@@ -2294,11 +2278,10 @@ def build_ribbon(win):
         from . import charts
         m = win.engine.model
         obj = charts.selected_chart(m) if m is not None else None
-        if win.native:
-            from .native import charts as NC
-            obj = NC.selected(win)
-            if obj is not None and not NC.special(obj):
-                return charts.filter_popover_for(win, obj, NC)
+        from .native import charts as NC
+        obj = NC.selected(win)
+        if obj is not None and not NC.special(obj):
+            return charts.filter_popover_for(win, obj, NC)
         if obj is None or charts.is_image(obj) or charts.special(obj):
             pop = Gtk.Popover()
             lab = Gtk.Label(label="Filters work on column, bar, line, area and pie charts.",
@@ -2460,37 +2443,20 @@ def build_ribbon(win):
     t = r.building(Tab("SmartArt Design", "JS", contextual=True))
 
     def smart_group():
-        if win.native:
-            from .native import smartart as NS
-            return NS.selected(win)
-        from . import drawing
-        m = win.engine.model
-        return IM.smartart_of(m, drawing.selected_shape(m)) if m is not None else None
+        from .native import smartart as NS
+        return NS.selected(win)
 
     def sa(fn, *a, **kw):
         m = win.engine.model
         g = smart_group()
         if g is None:
             return
-        if win.native:
-            from .native import smartart as NS
-            {"text": lambda: NS.text_pane(win, g), "edit": lambda: NS.edit_graphic(win, g, *a),
-             "reset": lambda: NS.reset_graphic(win, g), "to-text": lambda: NS.convert_to_text(win, g),
-             "to-shapes": lambda: NS.convert_to_shapes(win, g)}.get(
-                fn, lambda: NS.change_layout(win, g, *a, **kw))()
-            return
-        if fn == "text":
-            IM.text_pane(win, g)
-        elif fn == "edit":
-            win.engine.sync(lambda: IM.edit_graphic(win, g, *a))
-        elif fn == "reset":
-            win.engine.sync(lambda: IM.reset_graphic(win, g))
-        elif fn == "to-text":
-            win.engine.sync(lambda: IM.convert_to_text(win, g))
-        elif fn == "to-shapes":
-            win.engine.sync(lambda: IM.convert_to_shapes(win, g))
-        else:
-            win.engine.sync(lambda: IM.change_layout(win, g, *a, **kw))
+        from .native import smartart as NS
+        {"text": lambda: NS.text_pane(win, g), "edit": lambda: NS.edit_graphic(win, g, *a),
+         "reset": lambda: NS.reset_graphic(win, g), "to-text": lambda: NS.convert_to_text(win, g),
+         "to-shapes": lambda: NS.convert_to_shapes(win, g)}.get(
+            fn, lambda: NS.change_layout(win, g, *a, **kw))()
+        return
     t.add(Group("Create Graphic", [
         [SplitButton(r, "Add Shape", "cmd/sc_basicshapes", lambda: sa("edit", "after"), [
             ("Add Shape After", lambda: sa("edit", "after")),
@@ -2504,8 +2470,7 @@ def build_ribbon(win):
          btn("Demote", "cmd/sc_outlineright" if icons.exists("cmd/sc_outlineright") else
              "cmd/sc_incrementindent", lambda: sa("edit", "demote"), keytip="D"),
          btn("Right to Left", "cmd/sc_pararighttoleft",
-             lambda: sa("layout", rtl=not ((__import__("folio.native.smartart", fromlist=["x"]).info(win)
-                                            if win.native else IM.smartart_info(win.engine.model, smart_group()))
+             lambda: sa("layout", rtl=not (__import__("folio.native.smartart", fromlist=["x"]).info(win)
                                            or {}).get("rtl", False)), keytip="R")],
         [btn("Move Up", "cmd/sc_moveup", lambda: sa("edit", "up"), keytip="U"),
          btn("Move Down", "cmd/sc_movedown", lambda: sa("edit", "down"), keytip="W")]]))
@@ -2781,8 +2746,7 @@ def _hf_menu(win, which):
     gal = "Headers" if which == "header" else "Footers"
     word = "Header" if which == "header" else "Footer"
     items = [("#", "Built-in")] + [
-        (n, (lambda n=n: (covers.hf_design(win, which, n) if getattr(win, "native", False) else
-                          (win.engine.sync(lambda: covers.hf_design(win, which, n)), win.run(which)))))
+        (n, (lambda n=n: covers.hf_design(win, which, n)))
         for n in names]
     saved = covers.gallery_parts(gal)
     if saved:

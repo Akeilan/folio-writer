@@ -155,53 +155,8 @@ def continue_numbering(m):
 
 
 def set_numbering_value(win):
-    if getattr(win.engine, "native", False):
-        from .native import lists as NL
-        return NL.set_numbering_value(win)
-    m = win.engine.model
-    if m is None or not in_list(m):
-        return
-    p = _paragraph(m)
-    props, _r, _l = _level_props(p)
-    cur = 1
-    try:
-        cur = p.NumberingStartValue if p.ParaIsNumberingRestart and \
-            p.NumberingStartValue > 0 else int(props.get("StartWith", 1))
-    except Exception:
-        pass
-    from .widgets import FDialog
-    d = FDialog(win, "Set Numbering Value")
-    new = Gtk.RadioButton.new_with_mnemonic(None, "_Start new list")
-    cont = Gtk.RadioButton.new_with_mnemonic_from_widget(new, "_Continue from previous list")
-    adv = Gtk.CheckButton.new_with_mnemonic("_Advance value (skip numbers)")
-    adv.set_sensitive(False)
-    new.set_active(True)
-    spin = Gtk.SpinButton.new_with_range(0, 9999, 1)
-    spin.set_value(cur)
-    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-    box.set_border_width(10)
-    for w in (new, cont):
-        box.pack_start(w, False, False, 0)
-    adv.set_margin_start(20)
-    box.pack_start(adv, False, False, 0)
-    row = Gtk.Box(spacing=8)
-    lab = Gtk.Label.new_with_mnemonic("Set _value to:")
-    lab.set_mnemonic_widget(spin)
-    row.pack_start(lab, False, False, 0)
-    row.pack_start(spin, False, False, 0)
-    box.pack_start(row, False, False, 0)
-    cont.connect("toggled", lambda b: adv.set_sensitive(b.get_active()))
-    d.add(box)
-    d.show_all()
-    if d.ask() == Gtk.ResponseType.OK:
-        if new.get_active():
-            restart_at(m, int(spin.get_value()))
-        else:
-            continue_numbering(m)
-            if adv.get_active():
-                restart_at(m, int(spin.get_value()))
-    d.destroy()
-    win.focus_document()
+    from .native import lists as NL
+    return NL.set_numbering_value(win)
 
 
 # ---------------------------------------------------------------- indents
@@ -219,59 +174,8 @@ def _set_level(p, rules, lvl, changes):
 
 
 def adjust_indents(win):
-    if getattr(win.engine, "native", False):
-        from .native import lists as NL
-        return NL.adjust_indents(win)
-    m = win.engine.model
-    if m is None or not in_list(m):
-        return
-    p = _paragraph(m)
-    props, rules, lvl = _level_props(p)
-    indent_at = props.get("IndentAt", 1270)
-    first = props.get("FirstLineIndent", -635)
-    follow = props.get("LabelFollowedBy", LISTTAB)
-    tabpos = props.get("ListtabStopPosition", indent_at)
-    from .widgets import FDialog
-    from .widgets import LengthSpin, grid, combo
-    d = FDialog(win, "Adjust List Indents")
-    num_pos = LengthSpin(indent_at + first, 0, 55880)
-    text_ind = LengthSpin(indent_at, 0, 55880)
-    fol = combo(["Tab character", "Space", "Nothing"], follow)
-    addtab = Gtk.CheckButton.new_with_mnemonic("Add tab _stop at:")
-    addtab.set_active(follow == LISTTAB and abs(tabpos - indent_at) > 5)
-    tab = LengthSpin(tabpos, 0, 55880)
-    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-    box.set_border_width(10)
-    box.pack_start(grid([["_Number position:", num_pos], ["_Text indent:", text_ind],
-                         ["Follow number _with:", fol], [addtab, tab]]), False, False, 0)
-
-    def sens(*_):
-        addtab.set_sensitive(fol.get_active() == LISTTAB)
-        tab.set_sensitive(fol.get_active() == LISTTAB and addtab.get_active())
-    fol.connect("changed", sens)
-    addtab.connect("toggled", sens)
-    sens()
-    d.add(box)
-    d.show_all()
-    if d.ask() == Gtk.ResponseType.OK:
-        ia = text_ind.mm100
-        fl = num_pos.mm100 - ia
-        fb = fol.get_active()
-        ts = tab.mm100 if (fb == LISTTAB and addtab.get_active()) else ia
-
-        def go():
-            for q in _list_paragraphs(m, p) or [p]:
-                if q.NumberingLevel != lvl:
-                    continue
-                r = q.NumberingRules
-                _set_level(q, r, lvl, {"PositionAndSpaceMode": 1, "IndentAt": ia,
-                                       "FirstLineIndent": fl, "LabelFollowedBy": fb,
-                                       "ListtabStopPosition": ts})
-                q.NumberingRules = r
-                break          # the rules are shared by the list
-        _undo(m, "Adjust List Indents", go)
-    d.destroy()
-    win.focus_document()
+    from .native import lists as NL
+    return NL.adjust_indents(win)
 
 
 # ---------------------------------------------------------------- multilevel
@@ -526,8 +430,8 @@ def define_dialog(win):
     """Define New Multilevel List: each level's number style, format and
     position."""
     native = getattr(win.engine, "native", False)
-    m = None if native else win.engine.model
-    if m is None and not native:
+    m = None
+    if m is None and False:
         return
     from .widgets import FDialog
     from .widgets import LengthSpin, grid, combo

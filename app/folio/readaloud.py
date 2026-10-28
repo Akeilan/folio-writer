@@ -413,44 +413,11 @@ class ImmersiveReader(Gtk.Box):
         self.paras = []
 
     def load(self):
-        if getattr(self.win.engine, "native", False):
-            from .native.views import immersive_paras
-            self.buf.set_text("")
-            self.paras = []
-            heading_tags = {}
-            for text, lvl in immersive_paras(self.win, self.syllables):
-                start = self.buf.get_end_iter().get_offset()
-                if lvl:
-                    tag = heading_tags.get(lvl)
-                    if tag is None:
-                        tag = self.buf.create_tag(None, weight=Pango.Weight.BOLD,
-                                                  scale=max(1.0, 1.6 - lvl * 0.15))
-                        heading_tags[lvl] = tag
-                    self.buf.insert_with_tags(self.buf.get_end_iter(), text + "\n", tag)
-                else:
-                    self.buf.insert(self.buf.get_end_iter(), text + "\n")
-                self.paras.append((start, text))
-            self.apply_look()
-            return
-        m = self.win.engine.model
+        from .native.views import immersive_paras
         self.buf.set_text("")
         self.paras = []
         heading_tags = {}
-        en = m.getText().createEnumeration()
-        while en.hasMoreElements():
-            p = en.nextElement()
-            if not p.supportsService("com.sun.star.text.Paragraph"):
-                continue
-            text = p.getString()
-            if not text.strip():
-                continue
-            lvl = 0
-            try:
-                lvl = p.OutlineLevel or 0
-            except Exception:
-                pass
-            if self.syllables:
-                text = syllabify(m, text)
+        for text, lvl in immersive_paras(self.win, self.syllables):
             start = self.buf.get_end_iter().get_offset()
             if lvl:
                 tag = heading_tags.get(lvl)
@@ -463,6 +430,7 @@ class ImmersiveReader(Gtk.Box):
                 self.buf.insert(self.buf.get_end_iter(), text + "\n")
             self.paras.append((start, text))
         self.apply_look()
+        return
 
     def apply_look(self):
         name, bg, fg = self.color

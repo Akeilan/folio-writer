@@ -130,14 +130,8 @@ class _Classic:
 
 
 def dialog(win):
-    if getattr(win.engine, "native", False):
-        from .native.refs import NotesBackend
-        B = NotesBackend(win)
-    else:
-        m = win.engine.model
-        if m is None:
-            return
-        B = _Classic(win, m)
+    from .native.refs import NotesBackend
+    B = NotesBackend(win)
     d = FDialog(win, "Footnote and Endnote", buttons=(("Insert", 10),
                                                       ("Cancel", Gtk.ResponseType.CANCEL),
                                                       ("Apply", 11)))

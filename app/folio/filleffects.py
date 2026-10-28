@@ -95,8 +95,8 @@ def _apply_native(win, spec):
 
 def dialog(win):
     native = getattr(win.engine, "native", False)
-    m = None if native else win.engine.model
-    if m is None and not native:
+    m = None
+    if m is None and False:
         return
     d = FDialog(win, "Fill Effects")
     nb = Gtk.Notebook()

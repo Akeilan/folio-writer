@@ -250,53 +250,8 @@ def compress(obj, ppi, delete_cropped=True):
 
 
 def compress_dialog(win):
-    if getattr(win.engine, "native", False):
-        from .native import arrange
-        return arrange.compress_dialog(win)
-    from .widgets import FDialog, heading
-    m = win.engine.model
-    if m is None:
-        return
-    if not _pil():
-        win.dialogs.message("Picture tools need the python3-pil package.")
-        return
-    obj = drawing.selected_shape(m)
-    d = FDialog(win, "Compress Pictures")
-    d.add(heading("Compression options:"))
-    only = Gtk.CheckButton.new_with_mnemonic("Apply only to this _picture")
-    only.set_active(obj is not None and drawing.kind_of(obj) == "picture")
-    only.set_sensitive(only.get_active())
-    crop = Gtk.CheckButton.new_with_mnemonic("_Delete cropped areas of pictures")
-    crop.set_active(True)
-    d.add(only)
-    d.add(crop)
-    d.add(heading("Resolution:"))
-    group, radios = None, []
-    for i, (label, ppi) in enumerate(RESOLUTIONS):
-        rb = Gtk.RadioButton.new_with_label_from_widget(group, label)
-        group = group or rb
-        radios.append(rb)
-        d.add(rb)
-    radios[2].set_active(True)
-    res = d.ask()
-    ppi = RESOLUTIONS[[r.get_active() for r in radios].index(True)][1]
-    one, dc = only.get_active(), crop.get_active()
-    d.done()
-    if res != Gtk.ResponseType.OK:
-        return
-    pics = [obj] if one else [m.getGraphicObjects().getByIndex(i)
-                              for i in range(m.getGraphicObjects().getCount())]
-    um = m.getUndoManager()
-    um.enterUndoContext("Compress Pictures")
-    try:
-        for p in pics:
-            try:
-                compress(p, ppi, dc)
-            except Exception as e:
-                print("compress:", e)
-    finally:
-        um.leaveUndoContext()
-    win.status.flash("Compressed %d picture%s." % (len(pics), "" if len(pics) == 1 else "s"))
+    from .native import arrange
+    return arrange.compress_dialog(win)
 
 
 # ------------------------------------------------------------ WordArt transform

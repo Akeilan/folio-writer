@@ -11,7 +11,7 @@ def a():
       "ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco "
       "laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in "
       "voluptate velit esse cillum dolore eu fugiat nulla pariatur. ")
-    yield 0.3
+    yield 1.5   # typing's timers (autocorrect, spelling) settle before the picture goes in
     E.ed.move_caret("doc_start", False); yield 0.1
     check("inserted", E.ed.insert_picture("/tmp/n7.png"))
     E.view.after_edit(); yield 0.5

@@ -15,10 +15,8 @@ PLACEHOLDER = {"rich": "Click or tap here to enter text.",
 
 
 def _native(win):
-    if getattr(win.engine, "native", False):
-        from .native import controls
-        return controls
-    return None
+    from .native import controls
+    return controls
 
 
 def insert(win, kind):

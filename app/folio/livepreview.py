@@ -63,25 +63,7 @@ class LivePreview:
     def _start(self, key, apply_fn):
         self._timer = 0
         self.end()
-        if getattr(self.win.engine, "native", False):
-            return self._start_native(key, apply_fn)
-        m = self.win.engine.model
-        if m is None or self.win.read_only:
-            return False
-        try:
-            self._was_modified = m.isModified()
-            um = m.getUndoManager()
-            um.enterUndoContext(TITLE)
-            try:
-                apply_fn(m)
-            finally:
-                um.leaveUndoContext()
-            self.active = True
-            self.key = key
-        except Exception as e:
-            print("live preview:", e)
-            self._take_back(m)
-        return False
+        return self._start_native(key, apply_fn)
 
     def _take_back(self, m):
         try:
@@ -137,12 +119,8 @@ class LivePreview:
             return
         self.active = False
         self.key = None
-        if getattr(self.win.engine, "native", False):
-            self._take_back_native()
-            return
-        m = self.win.engine.model
-        if m is not None:
-            self._take_back(m)
+        self._take_back_native()
+        return
 
 
 # ---------------------------------------------------------------- helpers

@@ -427,49 +427,22 @@ class StatusBar(Gtk.Box):
 
     def _check_proof(self):
         self._proof_timer = None
-        if getattr(self.win.engine, "native", False):
-            ed = self.win.engine.ed
-            if ed is None:
-                return False
-            sp = getattr(self.win.engine.view, "speller", None)
-            if sp is not None and sp.enabled():
-                from .native import docops
-                bad = False
-                for para, text, langs in docops.paragraphs(ed)[:3000]:
-                    if sp.para_marks(para, text, langs):
-                        bad = True
-                        break
-                self.set_proof(bad)
-            if self.enabled().get("a11y"):
-                try:
-                    issues = ed.accessibility_issues()
-                    self.set_a11y(not [c for c, _l, _t in issues if c != "Missing document title"])
-                except Exception as e:
-                    print("a11y:", e)
+        ed = self.win.engine.ed
+        if ed is None:
             return False
-        m = self.win.engine.model
-        if m is None:
-            return False
-        try:
-            from . import docapi
-            text = m.getText().getString()
-            loc = docapi.doc_locale(m)
+        sp = getattr(self.win.engine.view, "speller", None)
+        if sp is not None and sp.enabled():
+            from .native import docops
             bad = False
-            for w in docapi.WORD_RE.findall(text[:200000]):
-                if len(w) > 1 and not w.isupper() and w not in self.win.ignored_words \
-                        and not docapi.spell_ok(w, loc):
+            for para, text, langs in docops.paragraphs(ed)[:3000]:
+                if sp.para_marks(para, text, langs):
                     bad = True
                     break
             self.set_proof(bad)
-        except Exception:
-            pass
         if self.enabled().get("a11y"):
             try:
-                from . import accessibility
-                if m.getText().getString().count("\n") < 3000:
-                    issues = accessibility.check(m)
-                    self.set_a11y(not [c for c, _l, _t in issues
-                                       if c != "Missing document title"])
+                issues = ed.accessibility_issues()
+                self.set_a11y(not [c for c, _l, _t in issues if c != "Missing document title"])
             except Exception as e:
                 print("a11y:", e)
         return False

@@ -53,13 +53,10 @@ def screenshot(win, clip=True):
 def _insert_pixbuf(win, pb):
     path = tempfile.mktemp(prefix="folio-shot-", suffix=".png")
     pb.savev(path, "png", [], [])
-    if getattr(win.engine, "native", False):
-        from .native import objects
-        objects.insert_picture_path(win, path)
-        os.unlink(path)
-        return
-    m = win.engine.model
-    win.engine.sync(lambda: docapi.insert_picture(m, path))
+    from .native import objects
+    objects.insert_picture_path(win, path)
+    os.unlink(path)
+    return
 
 
 class ClipWindow(Gtk.Window):
@@ -216,21 +213,10 @@ def icons_dialog(win):
     d.done()
     if r != Gtk.ResponseType.OK or not picks:
         return
-    if getattr(win.engine, "native", False):
-        from .native import objects
-        for p in picks:
-            objects.insert_picture_path(win, p, size_pt=72)
-        return
-    m = win.engine.model
-
-    def go():
-        for p in picks:
-            obj = docapi.insert_picture(m, p)
-            try:
-                obj.Size = bridge.struct("com.sun.star.awt.Size", Width=2540, Height=2540)
-            except Exception:
-                pass
-    win.engine.sync(go)
+    from .native import objects
+    for p in picks:
+        objects.insert_picture_path(win, p, size_pt=72)
+    return
 
 
 # ------------------------------------------------------------ quick tables
@@ -731,11 +717,8 @@ def smartart_dialog(win):
     idx = sel["i"]
     d.done()
     if r == Gtk.ResponseType.OK:
-        if getattr(win.engine, "native", False):
-            from .native import smartart
-            smartart.insert(win, LAYOUTS[idx][2])
-        else:
-            win.engine.sync(lambda: insert_smartart(win, LAYOUTS[idx][2]))
+        from .native import smartart
+        smartart.insert(win, LAYOUTS[idx][2])
 
 
 def text_pane(win, group):

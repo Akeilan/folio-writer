@@ -53,39 +53,7 @@ class ACWatch:
         if mods or keyname not in ("tab", "backspace") or \
                 not self.settings().get("ac_tab_indent", True):
             return False
-        if self.native():
-            return self._tab_indent_native(keyname)
-        m = self.win.engine.model
-        if m is None:
-            return False
-        try:
-            vc = docapi.view_cursor(m)
-            if not vc.isCollapsed() or vc.Cell is not None:
-                return False
-            c = vc.getText().createTextCursorByRange(vc.getStart())
-            if not c.isStartOfParagraph():
-                return False
-            if getattr(c, "NumberingIsNumber", False):
-                return False
-            p = c.getText().createTextCursorByRange(c.getStart())
-            p.gotoEndOfParagraph(True)
-            if keyname == "tab":
-                if not p.getString().strip():
-                    return False
-                if c.ParaFirstLineIndent < 1270:
-                    c.ParaFirstLineIndent = 1270
-                    return True
-                c.ParaLeftMargin = c.ParaLeftMargin + 1270
-                return True
-            if c.ParaFirstLineIndent > 0:
-                c.ParaFirstLineIndent = 0
-                return True
-            if c.ParaLeftMargin > 0 and c.ParaFirstLineIndent == 0:
-                c.ParaLeftMargin = max(0, c.ParaLeftMargin - 1270)
-                return True
-        except Exception:
-            return False
-        return False
+        return self._tab_indent_native(keyname)
 
     def _tab_indent_native(self, keyname):
         eng = self.win.engine
@@ -160,43 +128,6 @@ class ACWatch:
             self.keys_since += 1
             if self.keys_since > 12:
                 self.hide()
-        if self.native():
-            return False
-        if mods:
-            self.typed = ""
-            return False
-        ch = event.string if event is not None else ""
-        if keyname == "backspace":
-            self.typed = self.typed[:-1]
-            return False
-        if keyname in ("return", "kp_enter"):
-            trig = "\n"
-        elif keyname == "tab":
-            trig = "\t"
-        elif ch and ch.isprintable() and len(ch) == 1:
-            trig = ch if keyname in TRIGGERS or not (ch.isalnum() or ch in "'’-") else None
-            if trig is None:
-                self.typed += ch
-                return False
-        else:
-            self.typed = ""          # moving around: start afresh
-            return False
-        word = self.typed
-        k = len(word)
-        while k > 0 and not word[k - 1].isspace():
-            k -= 1
-        word = word[k:]
-        self.typed += trig
-        if trig == "\n":
-            self.typed = ""
-            self.enters += 1
-            mark = self.enters
-            GLib.timeout_add(200, self._no_drop_cap)
-            from . import langdetect
-            GLib.timeout_add(400, langdetect.check_paragraph, self.win)
-        if word and self.win.engine.model is not None:
-            GLib.timeout_add(150, self._check, word, trig,
-                             mark if trig == "\n" else len(self.typed), 0)
         return False
 
     def _no_drop_cap(self):

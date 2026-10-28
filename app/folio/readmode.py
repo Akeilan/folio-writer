@@ -67,11 +67,7 @@ class ReadMode(Gtk.Box):
     def _load(self):
         self.pages = self.win.engine.page_rects()
         try:
-            if getattr(self.win.engine, "native", False):
-                self.first = self.win.engine.ed.caret_page()
-            else:
-                m = self.win.engine.model
-                self.first = max(0, m.getCurrentController().getViewCursor().getPage() - 1)
+            self.first = self.win.engine.ed.caret_page()
         except Exception:
             self.first = 0
         self.first -= self.first % 2
@@ -295,39 +291,22 @@ class ReadMode(Gtk.Box):
             self.win.dialogs, "ask_text") else None
         if not text:
             return
-        if getattr(self.win.engine, "native", False):
-            ed = self.win.engine.ed
-            if not ed.find(text, {}, True, True):
-                self.win.dialogs.message("We couldn't find what you were looking for.")
-                return
-            page = ed.caret_page()
-            k = self.per_screen()
-            self.first = page - page % k
-            self._update()
-            return
-        m = self.win.engine.model
-        sd = m.createSearchDescriptor()
-        sd.SearchString = text
-        found = m.findFirst(sd)
-        if found is None:
+        ed = self.win.engine.ed
+        if not ed.find(text, {}, True, True):
             self.win.dialogs.message("We couldn't find what you were looking for.")
             return
-        vc = m.getCurrentController().getViewCursor()
-        vc.gotoRange(found.getStart(), False)
-        page = vc.getPage() - 1
+        page = ed.caret_page()
         k = self.per_screen()
         self.first = page - page % k
         self._update()
+        return
 
     # ------------------------------------------------------------ leaving
     def leave(self, page=None):
         win = self.win
         if page:
             try:
-                if getattr(win.engine, "native", False):
-                    win.engine.ed.goto_page(page - 1)
-                else:
-                    win.engine.model.getCurrentController().getViewCursor().jumpToPage(page)
+                win.engine.ed.goto_page(page - 1)
             except Exception:
                 pass
         win.leave_read_mode()

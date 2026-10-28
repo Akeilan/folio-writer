@@ -103,33 +103,19 @@ class DropHandler:
 
     def _move(self, x, y):
         eng = self.win.engine
-        if getattr(eng, "native", False):
-            hit = eng.view.page_at(x, y)
-            if hit is not None and eng.ed is not None:
-                eng.ed.click(hit[0], hit[1], hit[2], False)
-                eng.view.after_move()
-            return
-        tx, ty = eng.px_to_twips(x, y)
-        eng.click_at(tx, ty)
+        hit = eng.view.page_at(x, y)
+        if hit is not None and eng.ed is not None:
+            eng.ed.click(hit[0], hit[1], hit[2], False)
+            eng.view.after_move()
+        return
 
     def _picture(self, path, x, y):
         self._move(x, y)
 
         def insert():
-            if getattr(self.win.engine, "native", False):
-                from .native import objects
-                if objects.insert_picture_path(self.win, path):
-                    self.win.select_tab("Picture Format")
-                return
-            m = self.win.engine.model
-            if m is None:
-                return
-            try:
-                docapi.insert_picture(m, path)
-                self.win.update_object_tabs()
+            from .native import objects
+            if objects.insert_picture_path(self.win, path):
                 self.win.select_tab("Picture Format")
-            except Exception as e:
-                self.win.dialogs.message("This picture couldn't be inserted. (%s)" % e,
-                                         kind="error")
+            return
         self.win.engine.sync(insert)
         return False

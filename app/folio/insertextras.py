@@ -223,7 +223,7 @@ def organizer(win):
 # ------------------------------------------------------------ signature line
 def signature_dialog(win):
     m = win.engine.model
-    if m is None and not getattr(win.engine, "native", False):
+    if m is None and False:
         return
     d = FDialog(win, "Signature Setup")
     signer = Gtk.Entry()
@@ -237,10 +237,7 @@ def signature_dialog(win):
     d.add(date)
     if d.ask() == Gtk.ResponseType.OK:
         vals = (signer.get_text(), title.get_text(), email.get_text(), date.get_active())
-        if getattr(win.engine, "native", False):
-            native_signature_line(win, *vals)
-        else:
-            win.engine.sync(lambda: insert_signature_line(m, *vals))
+        native_signature_line(win, *vals)
     d.done()
 
 
@@ -385,7 +382,7 @@ def insert_textbox(m, kind):
 # ------------------------------------------------------------ object
 def object_dialog(win):
     m = win.engine.model
-    if m is None and not getattr(win.engine, "native", False):
+    if m is None and False:
         return
     d = FDialog(win, "Object")
     nb = Gtk.Notebook()
@@ -420,7 +417,7 @@ def object_dialog(win):
             kind = kinds[row.get_index() if row else 0][1]
             if kind == "chart":
                 GLib.idle_add(lambda: (__import__(
-                    "folio.native.charts" if getattr(win.engine, "native", False) else "folio.charts",
+                    "folio.native.charts",
                     fromlist=["x"]).insert_chart_dialog(win), False)[1])
             elif kind == "equation":
                 win.run("equation")
@@ -432,14 +429,9 @@ def object_dialog(win):
                 ext = os.path.splitext(path)[1].lower()
                 if ext in (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".tif", ".tiff",
                            ".webp"):
-                    if getattr(win.engine, "native", False):
-                        from .native import objects
-                        objects.insert_picture_path(win, path)
-                    else:
-                        win.engine.sync(lambda: docapi.insert_picture(m, path))
-                elif getattr(win.engine, "native", False):
+                    from .native import objects
+                    objects.insert_picture_path(win, path)
+                else:
                     from .native import insertfile
                     insertfile.insert(win, path)
-                else:
-                    win.engine.sync(lambda: docapi.insert_text_from_file(m, path))
     d.done()

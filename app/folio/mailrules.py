@@ -256,22 +256,8 @@ def unlink(doc, rule_defs, records, ptr, seq, answers, master_name_of):
 
 def ask_answers(win, m, per_record=None):
     """Prompt for Fill-in and Ask rules (those asked once, or for a record)."""
-    if getattr(win.engine, "native", False):
-        from .native import mailmerge
-        return mailmerge.ask_answers(win, per_record)
-    r = rules(m)
-    answers = {}
-    for rid, rule in r.items():
-        if rule["kind"] not in ("fillin", "ask"):
-            continue
-        if per_record is not None and rule.get("once", True):
-            continue
-        if per_record is None and not rule.get("once", True):
-            continue
-        a = win.dialogs.ask_text("Fill-in" if rule["kind"] == "fillin" else "Ask",
-                                 rule.get("prompt", ""), rule.get("default", ""))
-        answers[rid] = rule.get("default", "") if a is None else a
-    return answers
+    from .native import mailmerge
+    return mailmerge.ask_answers(win, per_record)
 
 
 # ------------------------------------------------------------ dialogs

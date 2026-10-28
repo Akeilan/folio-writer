@@ -23,11 +23,9 @@ def _on(line):
 
 def apply_win(win, which):
     """The Borders menu for a window (either engine)."""
-    if getattr(win.engine, "native", False):
-        from .native import tables
-        tables.borders_menu(win, which)
-        return
-    apply(win.engine.model, which)
+    from .native import tables
+    tables.borders_menu(win, which)
+    return
 
 
 def apply(m, which):
@@ -141,43 +139,23 @@ def _paragraphs(m, which):
 
 def horizontal_line(win):
     """A paragraph of its own with a line across, as the original inserts."""
-    if getattr(win.engine, "native", False):
-        ed = win.engine.ed
-        p0 = ed.caret_pos()[0]
-        for _i in range(500):
-            ed.move_caret("end", False)
-            c = ed.caret_pos()
-            ed.move_caret("right", False)
-            n = ed.caret_pos()
-            if n[0] != p0 or n == c:
-                if n != c:
-                    ed.move_caret("left", False)
-                break
-        line = [("w:val", "single"), ("w:sz", "12"), ("w:space", "1"), ("w:color", "A0A0A0")]
-        ed.begin_group("Horizontal Line")
-        ed.type_text("\n")
-        ed.set_borders("paras", [(s, None) for s in ("top", "left", "right", "between")] + [("bottom", line)])
-        ed.type_text("\n")
-        ed.set_borders("paras", [(s, None) for s in ("top", "left", "bottom", "right", "between")])
-        ed.end_group()
-        win.engine.view.after_edit()
-        return
-    m = win.engine.model
-    if m is None:
-        return
-    um = m.getUndoManager()
-    um.enterUndoContext("Horizontal Line")
-    try:
-        vc = docapi.view_cursor(m)
-        text = vc.getText()
-        cur = text.createTextCursorByRange(vc.getStart())
-        cur.gotoEndOfParagraph(False)
-        text.insertControlCharacter(cur, 0, False)
-        cur.BottomBorder = bridge.struct("com.sun.star.table.BorderLine2", Color=0xA0A0A0,
-                                         LineWidth=53, OuterLineWidth=53)
-        cur.BottomBorderDistance = 0
-        text.insertControlCharacter(cur, 0, False)
-        cur.BottomBorder = _none()
-        vc.gotoRange(cur.getStart(), False)
-    finally:
-        um.leaveUndoContext()
+    ed = win.engine.ed
+    p0 = ed.caret_pos()[0]
+    for _i in range(500):
+        ed.move_caret("end", False)
+        c = ed.caret_pos()
+        ed.move_caret("right", False)
+        n = ed.caret_pos()
+        if n[0] != p0 or n == c:
+            if n != c:
+                ed.move_caret("left", False)
+            break
+    line = [("w:val", "single"), ("w:sz", "12"), ("w:space", "1"), ("w:color", "A0A0A0")]
+    ed.begin_group("Horizontal Line")
+    ed.type_text("\n")
+    ed.set_borders("paras", [(s, None) for s in ("top", "left", "right", "between")] + [("bottom", line)])
+    ed.type_text("\n")
+    ed.set_borders("paras", [(s, None) for s in ("top", "left", "bottom", "right", "between")])
+    ed.end_group()
+    win.engine.view.after_edit()
+    return

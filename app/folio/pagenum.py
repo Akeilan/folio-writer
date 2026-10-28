@@ -76,48 +76,8 @@ GALLERIES = {
 
 
 def insert(win, where, align, style):
-    if getattr(win, "native", False):
-        _insert_native(win, where, align, style)
-        return
-    m = win.engine.model
-    if m is None:
-        return
-    um = m.getUndoManager()
-    um.enterUndoContext("Page Number")
-    try:
-        if where in ("top", "bottom"):
-            docapi.insert_header_footer(m, "header" if where == "top" else "footer",
-                                        page_numbers="page-x-of-y" if style == "xofy"
-                                        else "plain", align=align)
-            if style == "bold":
-                ps = docapi.page_style(m)
-                body = ps.HeaderText if where == "top" else ps.FooterText
-                c = body.createTextCursor()
-                c.gotoStart(False)
-                c.gotoEnd(True)
-                c.CharWeight = 150.0
-        elif where == "here":
-            vc = docapi.view_cursor(m)
-            text = vc.getText()
-            cur = text.createTextCursorByRange(vc.getStart())
-            pf = m.createInstance("com.sun.star.text.textfield.PageNumber")
-            pf.NumberingType = 4
-            pf.SubType = bridge.enum("com.sun.star.text.PageNumberType", "CURRENT")
-            if style == "xofy":
-                text.insertString(cur, "Page ", False)
-                text.insertTextContent(cur, pf, False)
-                text.insertString(cur, " of ", False)
-                cf = m.createInstance("com.sun.star.text.textfield.PageCount")
-                cf.NumberingType = 4
-                text.insertTextContent(cur, cf, False)
-            else:
-                text.insertTextContent(cur, pf, False)
-            vc.gotoRange(cur.getEnd(), False)
-        else:
-            _margin_number(m, align, style)
-    finally:
-        um.leaveUndoContext()
-    win.engine.sync(win.refresh_hf)
+    _insert_native(win, where, align, style)
+    return
 
 
 def _margin_number(m, side, style):

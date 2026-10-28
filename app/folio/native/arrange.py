@@ -568,7 +568,7 @@ def install(win):
 def crop_dialog(win):
     """Crop...: how much to take off each side."""
     native = getattr(win.engine, "native", False)
-    if native and (_ed(win).selected_object() or {}).get("kind") != "picture":
+    if (_ed(win).selected_object() or {}).get("kind") != "picture":
         _flash(win, "Select a picture to crop it.")
         return
     d = FDialog(win, "Crop")
@@ -580,10 +580,7 @@ def crop_dialog(win):
     if d.ask() == Gtk.ResponseType.OK:
         vals = [s.mm100 for s in spins]
         if any(vals):
-            if native:
-                crop_mm100(win, *vals)
-            else:
-                win.object_call("crop", *vals)
+            crop_mm100(win, *vals)
     d.destroy()
 
 

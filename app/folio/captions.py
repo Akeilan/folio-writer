@@ -56,9 +56,7 @@ def dialog(win):
     d.add(autob)
 
     def counter(name):
-        if getattr(win, "native", False):
-            return win.engine.ed.seq_count(name) + 1
-        return len(docapi.references(m).get(name, [])) + 1
+        return win.engine.ed.seq_count(name) + 1
 
     def numspec(name):
         return num.get(name, {"fmt": 4, "chapter": False, "level": 1, "sep": "-"})
@@ -135,12 +133,9 @@ def dialog(win):
             (("1%s" % spec["sep"]) if spec["chapter"] else "") + _fmt(counter(n), spec["fmt"])
         extra = e.get_text()[len(prefix):] if e.get_text().startswith(prefix) else ""
         st["caption_last"] = n
-        if getattr(win, "native", False):
-            fmt = {0: "ALPHABETIC", 1: "alphabetic", 2: "ROMAN", 3: "roman"}.get(spec.get("fmt", 4), "ARABIC")
-            win.engine.ed.insert_caption(n, extra.strip(), pos.get_active() == 0, fmt, excl.get_active())
-            win.engine.view.after_edit()
-        else:
-            insert(m, n, extra.strip(), pos.get_active() == 0, spec, excl.get_active())
+        fmt = {0: "ALPHABETIC", 1: "alphabetic", 2: "ROMAN", 3: "roman"}.get(spec.get("fmt", 4), "ARABIC")
+        win.engine.ed.insert_caption(n, extra.strip(), pos.get_active() == 0, fmt, excl.get_active())
+        win.engine.view.after_edit()
     d.destroy()
     win.focus_document()
 
