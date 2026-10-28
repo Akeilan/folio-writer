@@ -366,6 +366,8 @@ class FolioApp(Gtk.Application):
         css.load_from_path(os.path.join(os.path.dirname(__file__), "theme.css"))
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css,
                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        from . import fontfix
+        fontfix.install()
 
     def do_activate(self):
         if self.windows:
