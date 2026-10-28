@@ -1,6 +1,6 @@
 """Insert > Object > Text from File with the new engine: a .docx's body comes in with its
-formatting; .txt as text; .html through the HTML reader; other formats (.doc, .odt, .rtf)
-are converted to .docx first."""
+formatting; .txt as text; .html through the HTML reader; OpenDocument and Word 97-2003 through
+Folio's own readers; other formats are converted to .docx first."""
 import os
 import shutil
 import subprocess
@@ -29,7 +29,11 @@ def insert(win, path):
         return
     tmp = None
     try:
-        if ext not in (".docx", ".docm", ".dotx", ".dotm"):
+        from . import importers
+        if importers.handles(path):
+            tmp = tempfile.mkdtemp(prefix="folio-insert-")
+            path = importers.to_docx(path, os.path.join(tmp, "inserted.docx"))
+        elif ext not in (".docx", ".docm", ".dotx", ".dotm"):
             tmp = tempfile.mkdtemp(prefix="folio-insert-")
             r = subprocess.run(["soffice", "--headless", "--convert-to", "docx", "--outdir", tmp, path],
                                capture_output=True, timeout=120)
