@@ -8,15 +8,15 @@ Home	Copy (Ctrl+C)	copy	SAME
 Home	Format Painter (Ctrl+Shift+C / Ctrl+Shift+V)	.uno:FormatPaintbrush	SAME
 Home	Clipboard Settings	clipboard-pane	UI
 Home	Increase Font Size (Ctrl+Shift+>)	grow-font	SAME
-Home	Decrease Font Size (Ctrl+Shift+<)	shrink-font	SAME MODEL
+Home	Decrease Font Size (Ctrl+Shift+<)	shrink-font	SAME
 Home	Change Case (Shift+F3) > Sentence case.		CHANGED
-Home	Change Case (Shift+F3) > lowercase		CHANGED MODEL
+Home	Change Case (Shift+F3) > lowercase		CHANGED
 Home	Change Case (Shift+F3) > UPPERCASE		CHANGED
 Home	Change Case (Shift+F3) > Capitalize Each Word		CHANGED
 Home	Change Case (Shift+F3) > tOGGLE cASE		CHANGED
 Home	Clear All Formatting	clear-all-formatting	CHANGED
 Home	Bold (Ctrl+B)	.uno:Bold	SAME
-Home	Italic (Ctrl+I)	.uno:Italic	SAME MODEL
+Home	Italic (Ctrl+I)	.uno:Italic	SAME
 Home	Underline (Ctrl+U)	.uno:Underline	SAME
 Home	Underline (Ctrl+U) > Underline		SAME
 Home	Underline (Ctrl+U) > Double Underline		SAME
@@ -132,21 +132,21 @@ Home	Font Color > #7030A0		SAME
 Home	Font Color > More Colors...		UI
 Home	Font Settings	font-dialog	UI
 Home	Bullets	bullets	CHANGED
-Home	Bullets > •  Filled bullet		CHANGED MODEL
+Home	Bullets > •  Filled bullet		CHANGED
 Home	Bullets > ◦  Open bullet	-	SKIP
 Home	Bullets > ▪  Square bullet		CHANGED
-Home	Bullets > None		CHANGED MODEL
+Home	Bullets > None		CHANGED
 Home	Numbering	numbering	CHANGED
-Home	Numbering > 1.  2.  3.		CHANGED MODEL
+Home	Numbering > 1.  2.  3.		CHANGED
 Home	Numbering > 1)  2)  3)		CHANGED
-Home	Numbering > A.  B.  C.		CHANGED MODEL
+Home	Numbering > A.  B.  C.		CHANGED
 Home	Numbering > a)  b)  c)		CHANGED
 Home	Numbering > I.  II.  III.		CHANGED
 Home	Numbering > i.  ii.  iii.		CHANGED
 Home	Numbering > None		CHANGED
-Home	Numbering > Set Numbering Value...		SAME MODEL
+Home	Numbering > Set Numbering Value...		SAME
 Home	Multilevel List > None		SAME
-Home	Multilevel List > 1.  a.  i.		CHANGED MODEL
+Home	Multilevel List > 1.  a.  i.		CHANGED
 Home	Multilevel List > 1)  a)  i)		CHANGED
 Home	Multilevel List > 1.  1.1.  1.1.1.		CHANGED
 Home	Multilevel List > •  ◦  ▪		CHANGED
@@ -160,7 +160,7 @@ Home	Increase Indent	indent	CHANGED
 Home	Sort	sort-dialog	UI
 Home	Show/Hide ¶ (Ctrl+Shift+8)	.uno:ControlCodes	UI
 Home	Align Left (Ctrl+L)	.uno:LeftPara	SAME
-Home	Center (Ctrl+E)	.uno:CenterPara	CHANGED MODEL
+Home	Center (Ctrl+E)	.uno:CenterPara	CHANGED
 Home	Align Right (Ctrl+R)	.uno:RightPara	CHANGED
 Home	Justify (Ctrl+J)	.uno:JustifyPara	CHANGED
 Home	Line and Paragraph Spacing > 1.0		CHANGED
@@ -173,7 +173,7 @@ Home	Line and Paragraph Spacing > Line Spacing Options...	paragraph-dialog	UI
 Home	Line and Paragraph Spacing > Add Space Before Paragraph		CHANGED
 Home	Line and Paragraph Spacing > Remove Space After Paragraph		CHANGED
 Home	Shading > No Color		SAME
-Home	Shading > #385623		CHANGED MODEL
+Home	Shading > #385623		CHANGED
 Home	Shading > #548135		CHANGED
 Home	Shading > #A9CD90		CHANGED
 Home	Shading > #C5DEB5		CHANGED
@@ -253,10 +253,10 @@ Home	Borders > Outside Borders		CHANGED
 Home	Borders > Inside Borders		CHANGED
 Home	Borders > Inside Horizontal Border		CHANGED
 Home	Borders > Inside Vertical Border		SAME
-Home	Borders > Diagonal Down Border		SAME MODEL
+Home	Borders > Diagonal Down Border		SAME
 Home	Borders > Diagonal Up Border		SAME
 Home	Borders > Horizontal Line		CHANGED
-Home	Borders > Draw Table		SAME MODEL
+Home	Borders > Draw Table		SAME
 Home	Borders > View Gridlines		SAME
 Home	Borders > Borders and Shading...	paragraph-borders	UI
 Home	Paragraph Settings	paragraph-dialog	UI
@@ -267,11 +267,11 @@ Home	Find (Ctrl+F) > Advanced Find...	replace	UI MODEL
 Home	Find (Ctrl+F) > Go To...	goto	UI
 Home	Replace (Ctrl+H)	replace	UI MODEL
 Home	Select > Select All		SAME
-Home	Select > Select Objects		SAME MODEL
+Home	Select > Select Objects		SAME
 Home	Select > Select All Text With Similar Formatting	select-similar	SAME
 Home	Select > Selection Pane...	selection-pane	SAME
 Insert	Cover Page > Simple		CHANGED MODEL
-Insert	Cover Page > Banded		CHANGED MODEL
+Insert	Cover Page > Banded		CHANGED
 Insert	Cover Page > Grid		CHANGED
 Insert	Cover Page > Facet		CHANGED
 Insert	Cover Page > Ion (Dark)		CHANGED
@@ -286,7 +286,7 @@ Insert	Cover Page > Remove Current Cover Page		CHANGED MODEL
 Insert	Cover Page > Save Selection to Cover Page Gallery...	-	SKIP
 Insert	Blank Page	blank-page	CHANGED MODEL
 Insert	Page Break (Ctrl+Enter)	.uno:InsertPagebreak	CHANGED MODEL
-Insert	Add a Table > Insert Table...		UI MODEL
+Insert	Add a Table > Insert Table...		UI
 Insert	Add a Table > Draw Table		SAME
 Insert	Add a Table > Convert Text to Table...		SAME
 Insert	Add a Table > Quick Tables		UI
@@ -358,8 +358,8 @@ Insert	Screenshot > Full Screen		SAME
 Insert	Insert Link (Ctrl+K)	hyperlink	UI
 Insert	Bookmark	bookmark	UI
 Insert	Cross-reference	cross-reference	UI
-Insert	New Comment (Ctrl+Alt+M)	comment	UI
-Insert	Header > Blank		CHANGED MODEL
+Insert	New Comment (Ctrl+Alt+M)	comment	CHANGED
+Insert	Header > Blank		CHANGED
 Insert	Header > Blank (Three Columns)		CHANGED
 Insert	Header > Austin		CHANGED
 Insert	Header > Banded		CHANGED
@@ -374,7 +374,7 @@ Insert	Header > Edit Header	header	SAME
 Insert	Header > Remove Header	remove-header	UI MODEL
 Insert	Header > Save Selection to Header Gallery...	-	SKIP
 Insert	Footer > Blank		CHANGED
-Insert	Footer > Blank (Three Columns)		CHANGED MODEL
+Insert	Footer > Blank (Three Columns)		CHANGED
 Insert	Footer > Austin		CHANGED
 Insert	Footer > Banded		CHANGED
 Insert	Footer > Facet		CHANGED
@@ -400,7 +400,7 @@ Insert	Page Number > Bold Numbers		CHANGED
 Insert	Page Number > Page X of Y		CHANGED
 Insert	Page Number > Page Margins		SAME
 Insert	Page Number > Circle, Right		CHANGED MODEL
-Insert	Page Number > Plain Number, Right		CHANGED MODEL
+Insert	Page Number > Plain Number, Right		CHANGED
 Insert	Page Number > Plain Number, Left		CHANGED
 Insert	Page Number > Current Position		SAME
 Insert	Page Number > Plain Number		CHANGED
@@ -706,14 +706,14 @@ Layout	Breaks > Continuous	('section-break', 'continuous')	SAME
 Layout	Breaks > Even Page	('section-break', 'even')	SAME
 Layout	Breaks > Odd Page	('section-break', 'odd')	SAME
 Layout	Line Numbers > None	('line-numbers', 'none')	SAME
-Layout	Line Numbers > Continuous	('line-numbers', 'continuous')	CHANGED MODEL
+Layout	Line Numbers > Continuous	('line-numbers', 'continuous')	CHANGED
 Layout	Line Numbers > Restart Each Page	('line-numbers', 'page')	CHANGED
 Layout	Line Numbers > Restart Each Section	('line-numbers', 'section')	CHANGED
 Layout	Line Numbers > Suppress for Current Paragraph	('line-numbers', 'suppress')	CHANGED
 Layout	Line Numbers > Line Numbering Options...	line-numbers	UI
 Layout	Hyphenation > None	('hyphenation', False)	SAME
-Layout	Hyphenation > Automatic	('hyphenation', True)	CHANGED MODEL
-Layout	Hyphenation > Manual...		SAME MODEL
+Layout	Hyphenation > Automatic	('hyphenation', True)	CHANGED
+Layout	Hyphenation > Manual...		SAME
 Layout	Hyphenation > Hyphenation Options...		UI
 Layout	Page Setup Settings	page-setup	UI
 Layout	Paragraph Settings	paragraph-dialog	UI
@@ -744,30 +744,30 @@ References	Table of Contents > Custom Table of Contents...	toc-dialog	UI
 References	Table of Contents > Remove Table of Contents	remove-toc	CHANGED
 References	Add Text > Do Not Show in Table of Contents	('add-text', 0)	CHANGED
 References	Add Text > Level 1	('add-text', 1)	CHANGED
-References	Add Text > Level 2	('add-text', 2)	CHANGED MODEL
+References	Add Text > Level 2	('add-text', 2)	CHANGED
 References	Add Text > Level 3	('add-text', 3)	CHANGED
-References	Update Table	update-toc	CHANGED MODEL
+References	Update Table	update-toc	CHANGED
 References	Insert Footnote (Ctrl+Alt+F)	.uno:InsertFootnote	CHANGED
-References	Insert Endnote (Ctrl+Alt+D)	.uno:InsertEndnote	SAME MODEL
+References	Insert Endnote (Ctrl+Alt+D)	.uno:InsertEndnote	SAME
 References	Next Footnote	<lambda> ; next-footnote	SAME
-References	Next Footnote > Next Footnote	next-footnote	SAME MODEL
+References	Next Footnote > Next Footnote	next-footnote	SAME
 References	Next Footnote > Previous Footnote	prev-footnote	SAME
 References	Next Footnote > Next Endnote	next-endnote	SAME
 References	Next Footnote > Previous Endnote	prev-endnote	SAME
 References	Show Notes	show-notes	SAME
-References	Footnotes Settings	footnote-dialog	UI MODEL
+References	Footnotes Settings	footnote-dialog	UI
 References	Insert Citation > Add New Source...		UI
 References	Insert Citation > Add New Placeholder...		SAME
 References	Manage Sources	<lambda>	UI
 References	Bibliography > Bibliography		CHANGED
-References	Bibliography > References		SAME MODEL
+References	Bibliography > References		SAME
 References	Bibliography > Works Cited		SAME
 References	Bibliography > Insert Bibliography		SAME
 References	Bibliography > Save Selection to Bibliography Gallery...	-	SKIP
 References	Insert Caption	caption	UI MODEL
 References	Insert Table of Figures	table-of-figures	UI
 References	Update Table	update-toc	CHANGED
-References	Cross-reference	cross-reference	UI MODEL
+References	Cross-reference	cross-reference	UI
 References	Mark Entry (Alt+Shift+X)	mark-entry	UI
 References	Insert Index	insert-index	UI
 References	Update Index	update-toc	CHANGED
@@ -820,21 +820,21 @@ Review	Check Accessibility > Check Accessibility	check-accessibility	SAME
 Review	Check Accessibility > Alt Text		SAME
 Review	Check Accessibility > Navigation Pane		UI
 Review	Language > Set Proofing Language...	language-dialog	UI
-Review	New Comment (Ctrl+Alt+M)	comment	UI
-Review	Delete	.uno:DeleteComment	SAME
+Review	New Comment (Ctrl+Alt+M)	comment	CHANGED
+Review	Delete	.uno:DeleteComment	CHANGED
 Review	Delete > Delete		SAME
 Review	Delete > Delete All Comments Shown		SAME
-Review	Delete > Delete All Comments in Document		SAME MODEL
+Review	Delete > Delete All Comments in Document		SAME
 Review	Previous	prev-comment	SAME
 Review	Next	next-comment	SAME
 Review	Show Comments	<lambda>	SAME
 Review	Track Changes (Ctrl+Shift+E)	.uno:TrackChanges	CHANGED
-Review	Track Changes (Ctrl+Shift+E) > For Everyone		CHANGED MODEL
+Review	Track Changes (Ctrl+Shift+E) > For Everyone		CHANGED
 Review	Track Changes (Ctrl+Shift+E) > Just Mine		SAME
 Review	Track Changes (Ctrl+Shift+E) > Lock Tracking		UI
 Review	Show Markup > Comments		SAME
 Review	Show Markup > Insertions and Deletions		SAME
-Review	Show Markup > Formatting		SAME MODEL
+Review	Show Markup > Formatting		SAME
 Review	Show Markup > Specific People...		UI
 Review	Show Markup > Show Revisions in Balloons		SAME
 Review	Show Markup > Show All Revisions Inline		SAME
@@ -869,7 +869,7 @@ View	Outline	outline-view	UI MODEL
 View	Draft	draft-view	UI MODEL
 View	Focus	focus-mode	SAME
 View	Immersive Reader	immersive-reader	UI MODEL
-View	Vertical	<lambda>	SAME MODEL
+View	Vertical	<lambda>	SAME
 View	Side to Side	side-to-side	UI
 View	Ruler	toggle-ruler	SAME
 View	Navigation Pane	<lambda>	SAME
@@ -917,7 +917,7 @@ Outlining	Show First Line Only	go	SAME
 Outlining	Close Outline View	-	SKIP
 Developer	Rich Text Content Control	<lambda>	CHANGED
 Developer	Plain Text Content Control	<lambda>	SAME
-Developer	Picture Content Control	<lambda>	SAME MODEL
+Developer	Picture Content Control	<lambda>	SAME
 Developer	Check Box Content Control	<lambda>	SAME
 Developer	Combo Box Content Control	<lambda>	SAME
 Developer	Drop-Down List Content Control	<lambda>	SAME
@@ -965,7 +965,7 @@ Picture Format	Color > Grayscale		CHANGED
 Picture Format	Color > Black and White		CHANGED
 Picture Format	Color > Washout		CHANGED
 Picture Format	Transparency > 0%		SAME
-Picture Format	Transparency > 15%		CHANGED MODEL
+Picture Format	Transparency > 15%		CHANGED
 Picture Format	Transparency > 30%		CHANGED
 Picture Format	Transparency > 50%		CHANGED
 Picture Format	Transparency > 65%		CHANGED
@@ -1134,8 +1134,8 @@ Picture Format	Picture Effects > Oblique: Bottom Left		CHANGED
 Picture Format	Picture Effects > Oblique: Bottom Right		CHANGED
 Picture Format	Alt Text	<lambda>	SAME
 Picture Format	Position > In Line with Text		SAME
-Picture Format	Position > Position in Top Left		CHANGED MODEL
-Picture Format	Position > Position in Top Center		CHANGED MODEL
+Picture Format	Position > Position in Top Left		CHANGED
+Picture Format	Position > Position in Top Center		CHANGED
 Picture Format	Position > Position in Top Right		CHANGED
 Picture Format	Position > Position in Middle Left		CHANGED
 Picture Format	Position > Position in Middle Center		CHANGED
@@ -1546,7 +1546,7 @@ Shape Format	Shape Effects > Oblique: Top Right		CHANGED
 Shape Format	Shape Effects > Oblique: Bottom Left		CHANGED
 Shape Format	Shape Effects > Oblique: Bottom Right		CHANGED
 Shape Format	Text Fill > #385623		SAME
-Shape Format	Text Fill > #548135		SAME MODEL
+Shape Format	Text Fill > #548135		SAME
 Shape Format	Text Fill > #A9CD90		SAME
 Shape Format	Text Fill > #C5DEB5		SAME
 Shape Format	Text Fill > #E2EEDA		SAME
@@ -1687,7 +1687,7 @@ Shape Format	Text Outline > #0070C0		SAME
 Shape Format	Text Outline > #002060		SAME
 Shape Format	Text Outline > #7030A0		SAME
 Shape Format	Text Effects > Arch		CHANGED
-Shape Format	Text Effects > Arch: Down		CHANGED MODEL
+Shape Format	Text Effects > Arch: Down		CHANGED
 Shape Format	Text Effects > Circle		CHANGED
 Shape Format	Text Effects > Square		CHANGED
 Shape Format	Text Effects > Triangle: Up		CHANGED
@@ -1714,9 +1714,9 @@ Shape Format	Create Link	<lambda>	SAME
 Shape Format	Break Link	<lambda>	SAME
 Shape Format	Position > In Line with Text		CHANGED
 Shape Format	Position > Position in Top Left		CHANGED MODEL
-Shape Format	Position > Position in Top Center		CHANGED MODEL
+Shape Format	Position > Position in Top Center		CHANGED
 Shape Format	Position > Position in Top Right		CHANGED MODEL
-Shape Format	Position > Position in Middle Left		CHANGED MODEL
+Shape Format	Position > Position in Middle Left		CHANGED
 Shape Format	Position > Position in Middle Center		CHANGED
 Shape Format	Position > Position in Middle Right		CHANGED
 Shape Format	Position > Position in Bottom Left		CHANGED
@@ -1738,7 +1738,7 @@ Shape Format	Bring Forward	<lambda>	CHANGED
 Shape Format	Send Backward	<lambda>	CHANGED
 Shape Format	Delete	<lambda>	CHANGED
 Shape Format	Selection Pane	selection-pane	UI
-Shape Format	Align > Align Left		CHANGED MODEL
+Shape Format	Align > Align Left		CHANGED
 Shape Format	Align > Align Center		CHANGED
 Shape Format	Align > Align Right		CHANGED
 Shape Format	Align > Align Top		CHANGED
