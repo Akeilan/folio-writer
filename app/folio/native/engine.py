@@ -178,6 +178,15 @@ class NativeEngine(GObject.GObject):
             return ed
         import shutil
         import subprocess
+        from . import importers
+        if importers.handles(path):
+            # OpenDocument text and Word 97-2003: read by Folio itself
+            tmpd = tempfile.mkdtemp(prefix="folio-")
+            try:
+                out = importers.to_docx(path, os.path.join(tmpd, "imported.docx"))
+                return core().Editor.open(out)
+            finally:
+                shutil.rmtree(tmpd, ignore_errors=True)
         soffice = shutil.which("soffice") or shutil.which("libreoffice")
         if not soffice:
             raise RuntimeError("needs-converter")
@@ -348,9 +357,21 @@ class NativeEngine(GObject.GObject):
             shutil.rmtree(tmpd, ignore_errors=True)
 
     def _save_converted(self, path, ext):
-        """Other formats (.doc, .odt, .rtf, .txt...) go through LibreOffice's
-        converter, from the .docx."""
+        """OpenDocument text is written by Folio itself; other formats (.doc...) go
+        through LibreOffice's converter when it's installed, from the .docx."""
         import subprocess
+        if ext in ("odt", "ott", "fodt"):
+            from . import odfwrite
+            tmpd = tempfile.mkdtemp(prefix="folio-")
+            try:
+                src = os.path.join(tmpd, "doc.docx")
+                self.ed.save(src)
+                tmp = path + ".folio-tmp"
+                odfwrite.docx_to_odt(src, tmp)
+                os.replace(tmp, path)
+                return True
+            finally:
+                shutil.rmtree(tmpd, ignore_errors=True)
         if not (shutil.which("soffice") or shutil.which("libreoffice")):
             self.save_error = "needs-converter"
             return False
