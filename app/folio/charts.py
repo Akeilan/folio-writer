@@ -1135,6 +1135,7 @@ class DataSheet(Gtk.Window):
     """'Chart in <document>': a small grid to edit the chart's numbers."""
     def __init__(self, win, obj):
         Gtk.Window.__init__(self, title="Chart in %s" % win.doc_name())
+        self.get_style_context().add_class("folio-dialog")
         self.set_transient_for(win)
         self.set_default_size(560, 300)
         self.win = win
