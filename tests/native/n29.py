@@ -42,8 +42,8 @@ def a():
     fresh(); yield 0.2
     K("ctrl+F9"); yield 0.3
     T("PAGE"); yield 0.3
-    check("Ctrl+F9: braces open", win.engine.view.field_code.active and win.engine.view.field_code.code == "PAGE",
-          win.engine.view.field_code.code)
+    check("Ctrl+F9: real braces with the code typed in them", ed.codes_shown()[1] == 1 and body(ed)[0].strip() == "PAGE",
+          (ed.codes_shown(), body(ed)))
     K("F9"); yield 0.5
     check("F9 makes the field", body(ed)[0] == "1" and ed.body_fields(), (body(ed), ed.body_fields()))
 

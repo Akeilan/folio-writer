@@ -76,7 +76,7 @@ BINDINGS = [
     ("alt+shift+x", "mark-entry"), ("F11", ("model", "goto_field", True)),
     ("shift+F11", ("model", "goto_field", False)), ("ctrl+shift+F9", ("model", "unlink_fields")),
     ("ctrl+F11", ("model", "lock_fields", True)), ("ctrl+shift+F11", ("model", "lock_fields", False)),
-    ("alt+F9", ("model", "toggle_field_codes")), ("shift+F9", ("model", "toggle_field_codes")),
+    ("alt+F9", ("model", "toggle_field_codes")), ("shift+F9", ("model", "toggle_field_code_here")),
     ("ctrl+alt+c", ("text", "©")), ("ctrl+alt+r", ("text", "®")),
     ("ctrl+alt+t", ("text", "™")), ("ctrl+alt+period", ("text", "…")),
     ("ctrl+alt+minus", ("text", "—")), ("ctrl+alt+KP_Subtract", ("text", "—")),

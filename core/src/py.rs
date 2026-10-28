@@ -1702,6 +1702,32 @@ impl PyEditor {
         self.ed.bookmark_names()
     }
 
+    /// Shift+F9: the field at the cursor shows its code, or its result again.
+    fn toggle_field_code_here(&mut self) -> bool {
+        let r = self.ed.toggle_field_code_here();
+        self.touched();
+        r
+    }
+
+    /// Ctrl+F9: field braces at the cursor to type a code in.
+    fn insert_field_braces(&mut self) -> bool {
+        let r = self.ed.insert_field_braces();
+        self.touched();
+        r
+    }
+
+    /// After F9: fields at the cursor that showed their code show their result.
+    fn show_results_here(&mut self) -> usize {
+        let r = self.ed.show_results_here();
+        self.touched();
+        r
+    }
+
+    /// Is any field showing its code (all of them, or some).
+    fn codes_shown(&self) -> (bool, usize) {
+        (self.ed.doc.show_codes, self.ed.doc.code_fields.len())
+    }
+
     fn toggle_field_codes(&mut self) {
         self.ed.toggle_field_codes();
         self.touched();

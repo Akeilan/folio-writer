@@ -198,6 +198,8 @@ class NativeActions(Actions):
     # ------------------------------------------------------------ fields
     def do_update_fields(self):
         n = self.ed.update_fields(False)
+        # a field typed as its code (Ctrl+F9) shows its result once worked out
+        n += self.ed.show_results_here()
         from . import refs
         refs.refresh_citations(self.win)
         self.eng.view.after_edit()

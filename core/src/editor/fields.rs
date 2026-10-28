@@ -1169,12 +1169,7 @@ impl Editor {
 impl Editor {
     /// Show field codes instead of results, or back (Alt+F9).
     pub fn toggle_field_codes(&mut self) {
-        self.doc.show_codes = !self.doc.show_codes;
-        self.cache.clear();
-        let p = self.caret.para;
-        self.relayout();
-        self.caret = Pos { para: p, off: self.caret.off.min(self.para_len(p)) };
-        self.anchor = self.caret;
+        self.toggle_all_field_codes();
     }
 }
 

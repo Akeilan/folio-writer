@@ -216,6 +216,7 @@ pub enum Story {
 mod objects;
 mod hf;
 mod fields;
+mod fieldcodes;
 mod refs;
 mod views;
 mod mail;
@@ -1592,11 +1593,30 @@ impl Editor {
         let plain = !text.contains(['\t', '\u{b}', '\u{c}', '\u{e}']);
         // common case: typing into existing text
         let tracking = self.tracking();
+        // typing into a field's code shown in place: always into the code itself
+        if plain {
+            let pieces = self.pieces(p);
+            let code = pieces.iter().find(|(pc, s, e)| {
+                matches!(pc.item, Item::Text(_)) && *s <= off && off <= *e
+                    && pc.node.map_or(false, |n| self.doc.dom.is(n, "w:instrText"))
+            });
+            if let Some((pc, s, _)) = code {
+                let node = pc.node.unwrap();
+                let cur = self.doc.dom.text(node);
+                let k = off - s;
+                let mut new: String = cur.chars().take(k).collect();
+                new.push_str(text);
+                new.extend(cur.chars().skip(k));
+                self.set_t(node, &new);
+                self.pending.clear();
+                return n;
+            }
+        }
         if plain && self.pending.is_empty() {
             let pieces = self.pieces(p);
             let target = pieces.iter().find(|(pc, s, e)| {
                 matches!(pc.item, Item::Text(_)) && pc.change != "del" && *s < off && off <= *e
-                    && pc.node.map(|n| self.doc.dom.is(n, "w:t")).unwrap_or(false)
+                    && pc.node.map(|n| self.doc.dom.is(n, "w:t") || self.doc.dom.is(n, "w:instrText")).unwrap_or(false)
                     // typing just after a field's result goes after the field
                     && (off < *e || !pc.run.map_or(false, |r| self.ends_field_result(r)))
                     // with tracking, only into this author's insertion
@@ -1606,7 +1626,7 @@ impl Editor {
                 if off == 0 {
                     pieces.iter().find(|(pc, s, _)| {
                         *s == 0 && matches!(pc.item, Item::Text(_)) && pc.change != "del"
-                            && pc.node.map(|n| self.doc.dom.is(n, "w:t")).unwrap_or(false)
+                            && pc.node.map(|n| self.doc.dom.is(n, "w:t") || self.doc.dom.is(n, "w:instrText")).unwrap_or(false)
                             && (!tracking || pc.node.map_or(false, |n| self.in_my_ins(n)))
                     })
                 } else {
@@ -1676,6 +1696,7 @@ impl Editor {
             }
         }
         self.doc.dom.insert(parent, idx, run);
+        self.code_text_to_instr(p);
         n
     }
 
@@ -1740,7 +1761,7 @@ impl Editor {
             let a = s.max(*ps) - ps;
             let b = e.min(*pe) - ps;
             let dom = &self.doc.dom;
-            let is_t = dom.is(node, "w:t") || dom.is(node, "w:delText");
+            let is_t = dom.is(node, "w:t") || dom.is(node, "w:delText") || dom.is(node, "w:instrText");
             if let (Item::Text(_), true) = (&pc.item, is_t) {
                 let cur = dom.text(node);
                 let new: String = cur.chars().take(a).chain(cur.chars().skip(b)).collect();
