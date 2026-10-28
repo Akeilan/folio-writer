@@ -1,5 +1,9 @@
 """The ribbon: tabs of captioned groups of buttons, all owned by the app.
 
+One module for Folio Writer, Sheets, Deliver and Post (X2-02). The copy in folio-suite/shared
+is the one to change; folio-suite/tools/sync_shared.sh copies it into each app, and
+sync_shared.sh --check fails when an app's copy differs.
+
 Every control registers:
   * the command it runs (an engine command like '.uno:Bold' or an app
     action name like 'font-dialog'),
@@ -41,6 +45,9 @@ def menu_popover(relative_to, items, on_pick=None):
             box.pack_start(Gtk.Separator(), False, False, 3)
             continue
         if isinstance(it, Gtk.Widget):
+            # a widget shown in an earlier menu moves to this one
+            if it.get_parent() is not None:
+                it.get_parent().remove(it)
             box.pack_start(it, False, False, 0)
             continue
         if it[0] == "#":
@@ -52,6 +59,24 @@ def menu_popover(relative_to, items, on_pick=None):
             box.pack_start(lab, False, False, 0)
             continue
         label, cb = it[0], it[1]
+        if isinstance(cb, list):
+            # a submenu: opens beside its entry
+            b = Gtk.Button()
+            b.set_relief(Gtk.ReliefStyle.NONE)
+            inner = Gtk.Box(spacing=8)
+            inner.pack_start(Gtk.Label(label=label, xalign=0), True, True, 0)
+            inner.pack_end(Gtk.Label(label="›"), False, False, 0)
+            b.add(inner)
+            b.submenu_items = cb
+
+            def open_sub(btn, items=cb):
+                sub = menu_popover(btn, items)
+                sub.set_position(Gtk.PositionType.RIGHT)
+                sub.connect("closed", lambda *_: pop.popdown())
+                sub.popup()
+            b.connect("clicked", open_sub)
+            box.pack_start(b, False, False, 0)
+            continue
         icon = it[2] if len(it) > 2 else None
         b = Gtk.Button()
         b.set_relief(Gtk.ReliefStyle.NONE)
@@ -153,6 +178,7 @@ class RibbonButton(Gtk.Button, Control):
             lab.set_line_wrap(True)
             lab.set_max_width_chars(10)
             box.pack_start(lab, False, False, 0)
+            self.label_widget = lab
             self.add(box)
         elif size == "small":
             box = Gtk.Box(spacing=4)
@@ -173,6 +199,14 @@ class RibbonButton(Gtk.Button, Control):
             ctx.add_class("checked")
         else:
             ctx.remove_class("checked")
+
+    def set_label_text(self, text):
+        """A command whose name follows its state (Protect Sheet / Unprotect Sheet)."""
+        lab = getattr(self, "label_widget", None)
+        if lab is not None:
+            lab.set_text(text)
+        self.label = text
+        self.set_tooltip_text(" ".join(text.split()))
 
 
 class SplitButton(Gtk.Box, Control):
@@ -219,6 +253,15 @@ class SplitButton(Gtk.Box, Control):
         self.setup(ribbon, action, state=state, keytip=keytip, tooltip=tooltip or label)
         self.main.connect("clicked", self.run)
         self.arrow.connect("clicked", lambda *_: self.open_menu())
+
+    def set_swatch(self, color):
+        """Recolour the icon's colour bar (Fill Color, Font Color)."""
+        if color is None or not isinstance(self.icon_widget, Gtk.Image):
+            return
+        pb = icons.swatch_pixbuf(self.icon_name, 16, color)
+        if pb is not None:
+            self.icon_widget.set_from_pixbuf(pb)
+        self.swatch = color
 
     def open_menu(self):
         if callable(self.menu):
