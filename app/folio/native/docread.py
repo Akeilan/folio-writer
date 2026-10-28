@@ -46,6 +46,7 @@ class CFB:
             self.minifat = list(struct.unpack("<%dI" % (len(raw) // 4), raw))
         dirs = self._chain(first_dir)
         self.entries = []
+        self.links = []
         for i in range(len(dirs) // 128):
             e = dirs[i * 128:(i + 1) * 128]
             nlen = struct.unpack_from("<H", e, 64)[0]
@@ -56,6 +57,20 @@ class CFB:
             if ss == 512:
                 size &= 0xFFFFFFFF
             self.entries.append((name, typ, start, size))
+            self.links.append(struct.unpack_from("<III", e, 68))
+        # the streams directly in the root storage (embedded objects have their own)
+        self.top = set()
+        if self.links:
+            stack = [self.links[0][2]]
+            seen = set()
+            while stack:
+                i = stack.pop()
+                if i >= len(self.entries) or i in seen:
+                    continue
+                seen.add(i)
+                self.top.add(i)
+                left, right, _child = self.links[i]
+                stack.extend([left, right])
         root = self.entries[0] if self.entries else None
         self.ministream = self._chain(root[2])[:root[3]] if root and root[2] < 0xFFFFFFFA else b""
 
@@ -87,8 +102,8 @@ class CFB:
         return b"".join(out)
 
     def stream(self, name):
-        for n, typ, start, size in self.entries:
-            if typ == 2 and n == name:
+        for i, (n, typ, start, size) in enumerate(self.entries):
+            if typ == 2 and n == name and (i in self.top or not self.top):
                 if size < self.cutoff:
                     return self._minichain(start)[:size]
                 return self._chain(start)[:size]
@@ -1082,7 +1097,7 @@ class Reader:
         for i, (cp_end, props) in enumerate(sections):
             s = B.section()
             s.update({k: v for k, v in props.items() if k in ("w", "h", "landscape", "cols", "col_space",
-                                                             "title_pg", "break", "page_start")})
+                                                             "title_pg", "break", "page_start", "pgborders")})
             s["margins"].update(props.get("margins", {}))
             for key in ("headers", "footers"):
                 for typ, story in props.get(key, {}).items():
@@ -1250,6 +1265,11 @@ class Reader:
                         props["landscape"] = u8(a, 0) == 2
                     elif op == 0x501C:
                         props["page_start"] = u16(a, 0)
+                    elif op in (0x702B, 0x702C, 0x702D, 0x702E, 0xD234, 0xD235, 0xD236, 0xD237):
+                        side = ("top", "left", "bottom", "right")[(op & 0xF) - (0xB if op < 0x8000 else 4)]
+                        v = brc(a, 0, op >= 0x8000)
+                        if v:
+                            props.setdefault("pgborders", {})[side] = v
             out.append((cp, props))
         self.section_ends = [cp for cp, _ in out]
         return out

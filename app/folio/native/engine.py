@@ -204,8 +204,9 @@ class NativeEngine(GObject.GObject):
     def open(self, path, on_done=None):
         self.open_error = None
         try:
-            if os.path.splitext(path)[1].lower() in (".docx", ".docm", ".dotx", ".dotm", "") \
-                    or _is_zip(path):
+            from . import importers
+            if not importers.handles(path) and (
+                    os.path.splitext(path)[1].lower() in (".docx", ".docm", ".dotx", ".dotm", "") or _is_zip(path)):
                 ed = core().Editor.open(path)
             else:
                 ed = self._import(path)
