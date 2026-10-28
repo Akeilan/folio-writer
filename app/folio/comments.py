@@ -5,7 +5,7 @@ import datetime
 import html
 import json
 
-from gi.repository import GLib, Gtk, Pango
+from gi.repository import Gdk, GLib, Gtk, Pango
 
 
 def comment_text(c):
@@ -72,6 +72,9 @@ class CommentsMargin:
         self.show_markup = True
         self.hidden_authors = set()
         self._pending = None
+        # the balloon being typed in: {"id", "mode": new|edit|reply, "text"}
+        self.editing = None
+        self._editor = None
 
     def card_w(self):
         try:
@@ -192,12 +195,19 @@ class CommentsMargin:
             v.pack_start(t, False, False, 0)
             head.pack_start(v, True, True, 0)
             box.pack_start(head, False, False, 0)
+            ed = self.editing
+            if ed and ed["mode"] in ("new", "edit") and str(item.get("id")) == ed["id"]:
+                box.pack_start(self._edit_box(), False, False, 0)
+                continue
             body = Gtk.Label(label=comment_text(item), xalign=0)
             body.set_line_wrap(True)
             body.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
             body.set_max_width_chars(30)
             body.set_selectable(False)
             box.pack_start(body, False, False, 0)
+        ed = self.editing
+        if ed and ed["mode"] == "reply" and ed["id"] == cid:
+            box.pack_start(self._edit_box(), False, False, 0)
         acts = Gtk.Box(spacing=4)
         for label, cb in (("Reply", lambda: self.reply(cid)),
                           ("Resolve" if c.get("resolved") != "true" else "Reopen",
@@ -297,6 +307,118 @@ class CommentsMargin:
             cr.fill()
         return False
 
+    # ------------------------------------------------------------ typing in a balloon
+    def _edit_box(self):
+        """The text box inside the balloon being typed in, as Word's."""
+        ed = self.editing
+        tv = Gtk.TextView()
+        tv.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        tv.set_size_request(self.card_w() - 16, 44)
+        tv.get_style_context().add_class("folio-comment-edit")
+        tv.get_buffer().set_text(ed.get("text", ""))
+        tv.get_buffer().connect("changed", self._typed)
+        tv.connect("key-press-event", self._edit_key)
+        tv.connect("focus-out-event", self._edit_focus_out)
+        self._editor = tv
+        if ed["mode"] == "reply":
+            tv.set_tooltip_text("Reply")
+        GLib.idle_add(self._focus_editor)
+        return tv
+
+    def _focus_editor(self):
+        tv = self._editor
+        if tv is not None and tv.get_mapped():
+            tv.grab_focus()
+            buf = tv.get_buffer()
+            buf.place_cursor(buf.get_end_iter())
+        elif tv is not None:
+            GLib.timeout_add(50, self._focus_editor)
+        return False
+
+    def _typed(self, buf):
+        if self.editing is not None:
+            self.editing["text"] = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False)
+
+    def _edit_key(self, tv, ev):
+        if ev.keyval == Gdk.KEY_Escape:
+            self.finish()
+            return True
+        if ev.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter) and ev.state & Gdk.ModifierType.CONTROL_MASK:
+            self.finish()
+            return True
+        return False
+
+    def _edit_focus_out(self, tv, ev):
+        # clicking back into the document posts what was typed
+        if self.editing is not None and tv is self._editor:
+            GLib.idle_add(self._post_if_left, tv)
+        return False
+
+    def _post_if_left(self, tv):
+        if self.editing is not None and tv is self._editor and not tv.has_focus():
+            top = tv.get_toplevel()
+            fw = top.get_focus() if isinstance(top, Gtk.Window) else None
+            if fw is None or fw is not tv:
+                self.finish(refocus=False)
+        return False
+
+    def begin(self, cid, mode, text=""):
+        """Type into the balloon of comment cid: new, edit or reply."""
+        if self.editing is not None:
+            self.finish(refocus=False)
+        self.editing = {"id": str(cid), "mode": mode, "text": text}
+        self.active = str(cid)
+        if not self.show_markup:
+            self.show_markup = True
+        self.reload()
+
+    def finish(self, refocus=True):
+        """Post the text typed in the balloon and go back to the document."""
+        ed = self.editing
+        if ed is None:
+            return
+        self.editing = None
+        self._editor = None
+        text = ed.get("text", "")
+        cid = ed["id"]
+        if ed["mode"] == "reply":
+            if text.strip():
+                self.eng.command(".uno:ReplyComment", {"Id": cid, "Text": text,
+                                                       "Author": self.win.app.user_name()})
+            else:
+                self.rebuild()
+        elif ed["mode"] == "new" and not text.strip():
+            # a new comment left empty is discarded
+            self.eng.command(".uno:DeleteComment", {"Id": cid})
+        else:
+            old = comment_text(self.comments.get(cid, {}))
+            if text != old:
+                self.eng.command(".uno:EditAnnotation", {"Id": cid, "Text": text})
+            else:
+                self.rebuild()
+        if refocus:
+            try:
+                self.win.focus_document()
+            except Exception:
+                self.eng.view.grab_focus()
+
+    def new_comment(self):
+        """Review > New Comment / Ctrl+Alt+M: a balloon to type in."""
+        eng = self.eng
+        if eng.ed is None:
+            return None
+        if self.editing is not None:
+            self.finish(refocus=False)
+        own = eng.ed.insert_comment("", self.win.app.user_name())
+        if own is None:
+            return None
+        eng.view.document_changed()
+        eng._schedule_state()
+        from .native import review
+        cid = review._lok_id(own)
+        self.begin(cid, "new")
+        return cid
+
     # ------------------------------------------------------------ actions
     def focus(self, cid):
         self.active = cid
@@ -307,19 +429,14 @@ class CommentsMargin:
         return self.win.dialogs.ask_text(title, "Comment:", text)
 
     def reply(self, cid):
-        t = self._ask("Reply")
-        if t:
-            self.eng.command(".uno:ReplyComment", {"Id": str(cid), "Text": t,
-                                                   "Author": self.win.app.user_name()})
+        self.begin(cid, "reply")
 
     def resolve(self, cid):
         self.eng.command(".uno:ResolveComment", {"Id": str(cid)})
 
     def edit(self, cid):
         c = self.comments.get(cid, {})
-        t = self._ask("Edit Comment", comment_text(c))
-        if t is not None:
-            self.eng.command(".uno:EditAnnotation", {"Id": str(cid), "Text": t})
+        self.begin(cid, "edit", comment_text(c))
 
     def delete(self, cid):
         self.eng.command(".uno:DeleteComment", {"Id": str(cid)})

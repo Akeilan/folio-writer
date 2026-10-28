@@ -566,6 +566,11 @@ class InsertDialogs:
 
     # ============================================================ comments, notes
     def comment(self):
+        margin = getattr(self.win, "comments", None)
+        if getattr(self.eng, "native", False) and margin is not None and hasattr(margin, "new_comment"):
+            # Word's way: a balloon in the margin to type in
+            if margin.new_comment() is not None:
+                return
         m = self.model
         if getattr(self.eng, "native", False):
             sel = self.eng.ed.selected_text() if self.eng.ed else ""
