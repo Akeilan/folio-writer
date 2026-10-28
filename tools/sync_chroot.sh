@@ -14,3 +14,4 @@ fi
 rm -rf $R/tmp/fw; mkdir -p $R/tmp/fw
 cp -r /home/claude/folio-writer/app /home/claude/folio-writer/share /home/claude/folio-writer/tests $R/tmp/fw/
 cp $R/src/fwc/target/release/libfolio_core.so $R/tmp/fw/app/folio_core.so
+cp /home/claude/folio-writer/tools/run_native_tests.sh $R/tmp/fw/
