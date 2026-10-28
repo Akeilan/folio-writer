@@ -204,7 +204,20 @@ impl Editor {
         if a != b {
             return (a, b);
         }
-        let (ws, we) = self.word_at(a);
+        let (mut ws, mut we) = self.word_at(a);
+        // the caret right after a word (before a space): that word, as in the original
+        if a.off > 0 {
+            let blank = self.para_layout(a.para).map_or(false, |pl| {
+                Self::para_chars(pl).iter().filter(|(pos, _)| *pos >= ws.off && *pos < we.off).all(|(_, c)| c.is_whitespace())
+            });
+            if blank {
+                let (s2, e2) = self.word_at(Pos { para: a.para, off: a.off - 1 });
+                if s2 != e2 {
+                    ws = s2;
+                    we = e2;
+                }
+            }
+        }
         if ws.off <= a.off && a.off <= we.off && ws != we {
             (ws, we)
         } else {
