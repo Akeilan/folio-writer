@@ -4,7 +4,6 @@ import os
 
 from gi.repository import GLib, Gtk
 
-from . import mailings as _mailings
 
 
 def _native(win):
@@ -12,10 +11,8 @@ def _native(win):
 
 
 def _M(win):
-    if _native(win):
-        from .native import mailmerge
-        return mailmerge
-    return _mailings
+    from .native import mailmerge
+    return mailmerge
 
 
 def _m(win):
@@ -182,7 +179,8 @@ def envelope_options(parent, st, size_combo=None):
     d.add(nb)
     p1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
     p1.set_border_width(10)
-    size = combo([e[0] for e in _M(win).ENVELOPES],
+    from .native import mailmerge
+    size = combo([e[0] for e in mailmerge.ENVELOPES],
                  size_combo.get_active() if size_combo is not None else
                  st.get("envelope_size", 0))
     p1.pack_start(grid([["Envelope _size:", size]]), False, False, 0)

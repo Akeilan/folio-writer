@@ -9,7 +9,7 @@ import tempfile
 
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
-from . import bridge, docapi
+from . import docapi
 
 
 # ------------------------------------------------------------ screenshot
@@ -327,24 +327,6 @@ def is_smartart(m, obj):
         return False
 
 
-def smartart_of(m, obj):
-    """The SmartArt graphic obj is, or is a shape of (None otherwise)."""
-    if obj is None:
-        return None
-    if is_smartart(m, obj):
-        return obj
-    try:
-        dp = m.getDrawPage()
-        for i in range(dp.getCount()):
-            o = dp.getByIndex(i)
-            if (o.Name or "").startswith("SmartArt ") and hasattr(o, "getCount"):
-                for k in range(o.getCount()):
-                    if o.getByIndex(k) == obj:
-                        return o if is_smartart(m, o) else None
-    except Exception:
-        pass
-    return None
-
 
 def _build(m, layout, lines, color, width=14000, height=8000):
     """[(shape spec)] for the layout: (kind, x, y, w, h, fill, text, alpha)."""
@@ -529,107 +511,6 @@ def edit_items(lines, op, cur=None):
     return _lines(items)
 
 
-def insert_smartart(win, layout, lines=None, color=None, replace=None, extra=None):
-    """Insert (or redraw) a SmartArt graphic: a group of shapes. extra:
-    {'style': n, 'rtl': bool, 'colorful': bool}."""
-    from . import drawing
-    m = win.engine.model
-    lines = lines or DEFAULT_LINES[layout]
-    color = color or SMART_COLORS[0]
-    extra = dict(extra or {})
-    style = STYLES[extra.get("style", 0) % len(STYLES)][1]
-    rtl = extra.get("rtl", False)
-    colorful = extra.get("colorful", False)
-    um = m.getUndoManager()
-    um.enterUndoContext("SmartArt")
-    try:
-        page_no, ox, oy = 1, 2540, 3000
-        name = None
-        if replace is not None:
-            name = replace.Name
-            try:
-                page_no = replace.AnchorPageNo or 1
-                ox, oy = replace.HoriOrientPosition, replace.VertOrientPosition
-            except Exception:
-                pass
-            m.getDrawPage().remove(replace)
-        else:
-            try:
-                page_no = docapi.read_cursor(m).getPage()
-                ps = docapi.page_setup(m)
-                ox, oy = ps["left"], ps["top"] + 1000
-            except Exception:
-                pass
-        coll = bridge.create("com.sun.star.drawing.ShapeCollection")
-        k_item = 0
-        for kind, x, y, w, h, fill, text, alpha in _build(m, layout, lines, color):
-            if rtl:
-                x = 14000 - x - w if kind != "line" else 14000 - x
-                if kind == "line":
-                    w = -w
-                if kind == "right-arrow":
-                    kind = "left-arrow"
-            if colorful and text and fill == color:
-                fill = SMART_COLORS[k_item % len(SMART_COLORS)]
-            if text:
-                k_item += 1
-            if style.get("alpha") and not alpha:
-                alpha = style["alpha"]
-            if kind == "line":
-                sh = drawing.insert_shape(m, "line", page_no, int(ox + x), int(oy + y), int(w),
-                                          int(h))
-                sh.LineColor = fill
-            else:
-                sh = drawing.insert_shape(m, kind, page_no, int(ox + x), int(oy + y), int(w),
-                                          int(h))
-                sh.FillColor = fill
-                sh.LineColor = style.get("line", 0xFFFFFF)
-                if style.get("lw"):
-                    sh.LineWidth = style["lw"]
-                if style.get("shadow"):
-                    try:
-                        sh.Shadow = True
-                        sh.ShadowColor = 0x808080
-                        sh.ShadowXDistance = sh.ShadowYDistance = 100
-                        sh.ShadowTransparence = 50
-                    except Exception:
-                        pass
-                if alpha:
-                    sh.FillTransparence = alpha
-                size = sh.Size
-                for prop in ("TextAutoGrowHeight", "TextAutoGrowWidth"):
-                    try:
-                        setattr(sh, prop, False)
-                    except Exception:
-                        pass
-                if text:
-                    sh.setString(text)
-                    sh.Size = size
-                    try:
-                        sh.CharColor = 0xFFFFFF if not alpha else 0x262626
-                        sh.CharHeight = 14.0
-                        sh.ParaAdjust = 3
-                        sh.TextVerticalAdjust = bridge.enum(
-                            "com.sun.star.drawing.TextVerticalAdjust", "CENTER")
-                    except Exception:
-                        pass
-            coll.add(sh)
-        group = m.getDrawPage().group(coll)
-        if name is None:
-            n = 1
-            dp = m.getDrawPage()
-            names = {dp.getByIndex(i).Name for i in range(dp.getCount())}
-            while "SmartArt %d" % n in names:
-                n += 1
-            name = "SmartArt %d" % n
-        group.Name = name
-        docapi._set_doc_setting(m, _key(name), json.dumps(
-            dict(extra, layout=layout, lines=lines, color=color)))
-        docapi.controller(m).select(group)
-        return group
-    finally:
-        um.leaveUndoContext()
-
 
 def smartart_dialog(win):
     from .widgets import FDialog
@@ -721,145 +602,12 @@ def smartart_dialog(win):
         smartart.insert(win, LAYOUTS[idx][2])
 
 
-def text_pane(win, group):
-    """Type your text here: one line per shape (Tab for a level below)."""
-    from .widgets import FDialog
-    m = win.engine.model
-    info = smartart_info(m, group)
-    if info is None:
-        return
-    d = FDialog(win, "Type your text here")
-    tv = Gtk.TextView()
-    tv.set_size_request(360, 220)
-    tv.get_buffer().set_text("\n".join(info["lines"]))
-    fr = Gtk.Frame()
-    fr.add(tv)
-    d.add(Gtk.Label(label="One line per item. Press Tab at the start of a line to make it "
-                          "a level below.", xalign=0))
-    d.add(fr, expand=True)
-    tv.connect("key-press-event", lambda w, e: (
-        w.get_buffer().insert_at_cursor("\t"), True)[1] if e.keyval == Gdk.KEY_Tab else False)
-    if d.ask() == Gtk.ResponseType.OK:
-        b = tv.get_buffer()
-        lines = b.get_text(*b.get_bounds(), False).split("\n")
-        win.engine.sync(lambda: insert_smartart(win, info["layout"], lines, info["color"],
-                                                replace=group))
-    d.done()
-
 
 def _extra(info):
     return {k: v for k, v in info.items() if k not in ("layout", "lines", "color")}
 
 
-def change_layout(win, group, layout=None, color=None, **extra):
-    m = win.engine.model
-    info = smartart_info(m, group)
-    if info is None:
-        return
-    ex = _extra(info)
-    ex.update(extra)
-    if color is not None:
-        ex["colorful"] = False
-    insert_smartart(win, layout or info["layout"], info["lines"], color or info["color"],
-                    replace=group, extra=ex)
 
 
-def _current_item(m, group):
-    """Which item (shape with text) of the graphic is selected, if any."""
-    try:
-        sel = docapi.controller(m).getSelection()
-        if sel is None or sel == group:
-            return None
-        shp = sel.getByIndex(0) if hasattr(sel, "getByIndex") else sel
-        k = 0
-        for i in range(group.getCount()):
-            sh = group.getByIndex(i)
-            if not sh.getString():
-                continue
-            if sh == shp:
-                return k
-            k += 1
-    except Exception:
-        pass
-    return None
 
 
-def edit_graphic(win, group, op):
-    m = win.engine.model
-    info = smartart_info(m, group)
-    if info is None:
-        return
-    lines = edit_items(info["lines"], op, _current_item(m, group))
-    insert_smartart(win, info["layout"], lines, info["color"], replace=group,
-                    extra=_extra(info))
-
-
-def reset_graphic(win, group):
-    m = win.engine.model
-    info = smartart_info(m, group)
-    if info is None:
-        return
-    insert_smartart(win, info["layout"], info["lines"], SMART_COLORS[0], replace=group)
-
-
-def convert_to_text(win, group):
-    m = win.engine.model
-    info = smartart_info(m, group)
-    if info is None:
-        return
-    um = m.getUndoManager()
-    um.enterUndoContext("Convert to Text")
-    try:
-        anchor = None
-        try:
-            anchor = group.getAnchor()
-        except Exception:
-            pass
-        m.getDrawPage().remove(group)
-        vc = docapi.view_cursor(m)
-        if anchor is not None:
-            vc.gotoRange(anchor.getStart(), False)
-        text = vc.getText()
-        cur = text.createTextCursorByRange(vc.getStart())
-        items = _items(info["lines"])
-        for lvl, t in items:
-            text.insertString(cur, t, False)
-            text.insertControlCharacter(cur, 0, False)
-        c = text.createTextCursorByRange(vc.getStart())
-        c.gotoRange(cur.getStart(), True)
-        docapi.controller(m).select(c)
-    finally:
-        um.leaveUndoContext()
-    win.actions.do_bullets()
-
-    def levels():
-        vc2 = docapi.view_cursor(m)
-        en = vc2.createEnumeration() if hasattr(vc2, "createEnumeration") else None
-        c2 = vc2.getText().createTextCursorByRange(vc2.getStart())
-        c2.gotoRange(vc2.getEnd(), True)
-        en = c2.createEnumeration()
-        for (lvl, _t) in items:
-            if not en.hasMoreElements():
-                break
-            p = en.nextElement()
-            try:
-                p.NumberingLevel = lvl
-            except Exception:
-                pass
-    win.engine.sync(levels)
-
-
-def convert_to_shapes(win, group):
-    m = win.engine.model
-    try:
-        docapi._set_doc_setting(m, _key(group.Name), "")
-        n = 1
-        dp = m.getDrawPage()
-        names = {dp.getByIndex(i).Name for i in range(dp.getCount())}
-        while "Group %d" % n in names:
-            n += 1
-        group.Name = "Group %d" % n
-        docapi.controller(m).select(group)
-        win.update_object_tabs()
-    except Exception as e:
-        print("convert to shapes:", e)

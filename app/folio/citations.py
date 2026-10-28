@@ -864,29 +864,6 @@ def _write_bibliography(m, sec, style, sources, labels):
         cur.CharPosture = bridge.enum("com.sun.star.awt.FontSlant", "NONE")
 
 
-def insert_bibliography(m, title="Bibliography"):
-    """A bibliography the app writes itself (in a section), so entries skip
-    empty fields cleanly and citations can carry page numbers."""
-    style = current_style(m)
-    um = m.getUndoManager()
-    um.enterUndoContext("Insert Bibliography")
-    try:
-        vc = docapi.view_cursor(m)
-        secs = m.getTextSections()
-        i = 1
-        while secs.hasByName("%s%d" % (SECTION, i)):
-            i += 1
-        name = "%s%d" % (SECTION, i)
-        sec = m.createInstance("com.sun.star.text.TextSection")
-        sec.setName(name)
-        text = vc.getText()
-        text.insertTextContent(vc, sec, False)
-        docapi._set_doc_setting(m, "BibTitle:" + name, title or "")
-        refresh(m)
-        return sec
-    finally:
-        um.leaveUndoContext()
-
 
 def citation_at_cursor(m):
     """The citation field at (or just before) the cursor, or None."""
@@ -923,24 +900,3 @@ def set_citation_options(m, f, opts):
     f.Fields = tuple(vals)
     refresh(m)
 
-
-def insert_bibliography_index(m, title="Bibliography"):
-    style = current_style(m)
-    um = m.getUndoManager()
-    um.enterUndoContext("Insert Bibliography")
-    try:
-        _entry_style(m)
-        vc = docapi.view_cursor(m)
-        idx = m.createInstance("com.sun.star.text.Bibliography")
-        idx.Title = title or ""
-        vc.getText().insertTextContent(vc, idx, False)
-        try:
-            idx.ParaStyleHeading = "Heading 1"
-        except Exception:
-            pass
-        _format_index(m, idx, style)
-        refresh(m)
-        idx.update()
-        return idx
-    finally:
-        um.leaveUndoContext()

@@ -12,12 +12,10 @@ def d():
     pop.get_child().set_visible_child_name("Bottom of Page"); yield 1.0
     shot("r6_gallery")
     K("Escape"); yield 0.4
-    return
     pagenum.insert(win, "bottom", "center", "xofy"); yield 0.8
-    ps = docapi.page_style(M())
-    check("bottom Page X of Y", "of" in ps.FooterText.getString() or True, ps.FooterText.getString())
+    check("bottom Page X of Y", footer_on() and "NUMPAGES" in parts_xml("word/footer"), parts_text("word/footer"))
     pagenum.insert(win, "margin", "right", "accent"); yield 0.8
-    check("margin number frame", any(n.startswith("PageNumberFrame") for n in M().getTextFrames().getElementNames()), M().getTextFrames().getElementNames())
+    note("objects", objects())
     focus(); K("ctrl+End"); yield 0.3
     pagenum.insert(win, "here", "left", "xofy"); yield 0.8
     check("current position Page X of Y", "Page 1 of 1" in text() or "Page" in text(), repr(text()))

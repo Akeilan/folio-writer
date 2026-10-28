@@ -804,14 +804,20 @@ def layout_dialog(win, tab=0):
             out += [(k, "%.3f" % (dist[k].get_value() / PT)) for k in dist]
         ed.begin_group("Layout")
         try:
+            # fix the position on the page first, so the alignment chosen here stays
+            if key != "inline" and not move.get_active() and vals.get("v_rel") in ("paragraph", "line"):
+                ed.object_anchor_mode("page")
+                now = dict(ed.object_layout() or [])
+                if dict(out).get("v_rel") in ("paragraph", "line") and "v_off" in dict(out):
+                    # the vertical place, now measured from the page
+                    out = [(k, v) for k, v in out if k not in ("v_rel", "v_off")] + \
+                        [("v_rel", now.get("v_rel", "page")), ("v_off", now.get("v_off", "0"))]
             ed.set_object_layout(out)
             nw, nh = wid.get_value() / PT, hgt.get_value() / PT
             if abs(nw - w0) > 0.05 or abs(nh - h0) > 0.05:
                 ed.object_resize(nw, nh)
             if abs(rot.get_value() - num("rot")) > 0.01:
                 ed.object_set_rotation(rot.get_value())
-            if key != "inline" and not move.get_active() and vals.get("v_rel") in ("paragraph", "line"):
-                ed.object_anchor_mode("page")
         finally:
             ed.end_group()
         _done(win)

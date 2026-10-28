@@ -5,7 +5,6 @@ from urllib.parse import unquote, urlparse
 
 from gi.repository import Gdk, GLib, Gtk
 
-from . import docapi
 
 PICTURES = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".tif", ".tiff", ".webp",
             ".emf", ".wmf"}

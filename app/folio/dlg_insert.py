@@ -652,15 +652,7 @@ class InsertDialogs:
         self.eng.command(".uno:JumpToFooter")
         self.eng.sync(self.win.refresh_hf)
 
-    def remove_header(self):
-        m = self.model
-        if m is not None:
-            docapi.remove_header_footer(m, "header")
 
-    def remove_footer(self):
-        m = self.model
-        if m is not None:
-            docapi.remove_header_footer(m, "footer")
 
     def hf_option(self, key):
         m = self.model
@@ -693,25 +685,9 @@ class InsertDialogs:
         self.eng.sync(self.win.refresh_hf)
         self.win.focus_document()
 
-    def page_number_top(self, align="right"):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.insert_header_footer(m, "header", page_numbers="plain", align=align)
 
-    def page_number_bottom(self, align="center"):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.insert_header_footer(m, "footer", page_numbers="plain", align=align)
 
-    def page_number_x_of_y(self):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.insert_header_footer(m, "footer", page_numbers="page-x-of-y", align="center")
 
-    def page_number_current(self):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.insert_field(m, "page")
 
     def remove_page_numbers(self):
         m = self._model_or_warn()
@@ -917,28 +893,19 @@ class InsertDialogs:
                 del st["table_dims"]
             self.win.app.save_settings()
             self._new_table(nr, nc)
-            m = self.model
-            if m is not None:
-                from . import tablelayout
-                try:
-                    t, _c = tablelayout.current(m)
-                    if t is not None and fit == "fixed" and wtext.lower() != "auto":
-                        from .widgets import parse_len
-                        cw = parse_len(wtext)
-                        if cw:
-                            t.HoriOrient = 0
-                            t.Width = int(cw * nc)
-                    elif t is not None and fit == "contents":
-                        def go():
-                            self.win.actions.cmd(".uno:SelectTable")
-                            self.win.actions.cmd(".uno:SetOptimalColumnWidth")
-                            self.eng.sync(lambda: docapi.view_cursor(m).gotoRange(
-                                t.getCellByPosition(0, 0).getStart(), False))
-                        self.eng.sync(go)
-                    elif t is not None:
-                        t.HoriOrient = 6
-                except Exception as e:
-                    print("table autofit:", e)
+            ed = self.eng.ed
+            if fit == "window":
+                # AutoFit to window: the table spans the text width (100 %)
+                ed.table_apply("table", [("w:tblW", [("w:w", "5000"), ("w:type", "pct")])], "Insert Table")
+            elif fit == "contents":
+                ed.autofit_contents()
+            elif wtext.lower() != "auto":
+                from .widgets import parse_len
+                cw = parse_len(wtext)
+                if cw:
+                    tw = int(round(cw * 1440 / 2540.0))
+                    ed.set_grid_widths([tw] * nc, "Insert Table")
+            self.eng.view.after_edit()
         d.done()
 
     def table_style2(self, spec):
@@ -959,17 +926,6 @@ class InsertDialogs:
         tablestyles.set_option(m, key, cb.get_active() if cb is not None else True)
         self.win.refresh_table_design()
 
-    def table_style(self, scheme):
-        m = self.model
-        if m is None:
-            return
-        schemes = {"plain": (-1, -1, 0x000000, 0x000000), "grid": (0xFFFFFF, -1, 0x000000, 0x000000),
-                   "blue": (0x4472C4, 0xD9E2F3, 0x8EAADB, 0xFFFFFF),
-                   "orange": (0xED7D31, 0xFBE4D5, 0xF4B083, 0xFFFFFF),
-                   "gray": (0xA5A5A5, 0xEDEDED, 0xC9C9C9, 0xFFFFFF),
-                   "green": (0x70AD47, 0xE2EFD9, 0xA8D08D, 0xFFFFFF)}
-        h, b, br, f = schemes.get(scheme, schemes["blue"])
-        docapi.table_style(m, h, b, br, f if h != -1 else 0)
 
     # ============================================================ symbols
     def symbol_popover(self):

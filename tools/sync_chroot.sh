@@ -16,3 +16,4 @@ cp -r /home/claude/folio-writer/app /home/claude/folio-writer/share /home/claude
 cp $R/src/fwc/target/release/libfolio_core.so $R/tmp/fw/app/folio_core.so
 cp /home/claude/folio-writer/tools/run_native_tests.sh $R/tmp/fw/
 cp /home/claude/folio-writer/tools/run_theme_audit.sh $R/tmp/fw/
+cp /home/claude/folio-writer/tools/run_word_tests.sh $R/tmp/fw/

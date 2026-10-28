@@ -3,10 +3,10 @@ exec(open("/home/claude/folio2/tests/word/wc.py").read())
 
 def at_word(word, nth=0, frac=0.5):
     r = find(word, nth)
-    c = vc(); c.gotoRange(r.getStart(), False)
+    r.caret_to_start()
     yield 0.3
     x0, y0, w, h = win._follow_rect
-    c.gotoRange(r.getEnd(), False)
+    r.caret_to_end()
     yield 0.3
     x1 = win._follow_rect[0]
     AT["xy"] = doc_screen(x0 + (x1 - x0) * frac, y0 + h / 2)
@@ -26,8 +26,8 @@ def clicks():
     yield from setup_text()
     yield from at_word("charlie", frac=0.5)
     click(*AT["xy"]); yield 0.5
-    c = vc(); r = c.getText().createTextCursorByRange(c.getStart()); r.gotoStartOfParagraph(True)
-    check("single click places caret inside word", r.getString().startswith("Alpha bravo ch"), repr(r.getString()))
+    r = pos()
+    check("single click places caret inside word", r.startswith("Alpha bravo ch"), repr(r))
     click(*AT["xy"], n=2); yield 0.6
     check("double-click selects word + trailing space", sel() in ("charlie ", "charlie"), repr(sel()))
     note("double-click selection", repr(sel()))
@@ -64,9 +64,9 @@ def drag():
     check("drag selects text", sel() == "bravo charlie delta", repr(sel()))
     # drag and drop the selection to end of paragraph 2
     yield from at_word("charlie", frac=0.5); s = AT["xy"]
-    docapi.controller(M()).select(find("bravo charlie delta")); yield 0.4
+    find("bravo charlie delta").select(); yield 0.4
     yield from at_word("words", frac=1.0); d = AT["xy"]
-    docapi.controller(M()).select(find("bravo charlie delta")); yield 0.4
+    find("bravo charlie delta").select(); yield 0.4
     X("mousemove", s[0], s[1]); X("mousedown", 1)
     for i in range(1, 12):
         X("mousemove", int(s[0] + (d[0] - s[0]) * i / 11), int(s[1] + (d[1] - s[1]) * i / 11)); time.sleep(0.06)
@@ -139,27 +139,27 @@ def statusbar():
 
 def ribbon_ui():
     yield from setup_text()
-    docapi.controller(M()).select(find("Second paragraph")); yield 0.3
+    find("Second paragraph").select(); yield 0.3
     # style gallery click Heading 1
     tiles = find_widget(win.ribbon, lambda w: isinstance(w, Gtk.Button) and "Heading 1" in (w.get_tooltip_text() or ""))
     note("heading tiles", len(tiles))
     if tiles:
         click(*widget_center(tiles[0])); yield 0.8
-        check("style gallery click applies Heading 1", paras()[1].ParaStyleName == "Heading 1", paras()[1].ParaStyleName)
+        check("style gallery click applies Heading 1", style_of(1) == "Heading 1", style_of(1))
     # font box
     combos = find_widget(win.ribbon, lambda w: isinstance(w, Gtk.Entry) and w.get_text() in ("Carlito", "Calibri", "Aptos"))
     note("font entries", [c.get_text() for c in combos])
     if combos:
-        docapi.controller(M()).select(find("Alpha bravo")); yield 0.3
+        find("Alpha bravo").select(); yield 0.3
         click(*widget_center(combos[0]), n=3); yield 0.3
         T("Liberation Serif"); K("Return"); yield 0.8
-        check("typing font name in box applies it", find("Alpha").CharFontName == "Liberation Serif", find("Alpha").CharFontName)
+        check("typing font name in box applies it", find("Alpha").run()["font"] == "Liberation Serif", find("Alpha").run()["font"])
     sizes = find_widget(win.ribbon, lambda w: isinstance(w, Gtk.Entry) and w.get_text() in ("11", "12"))
     if sizes:
-        docapi.controller(M()).select(find("Alpha bravo")); yield 0.3
+        find("Alpha bravo").select(); yield 0.3
         click(*widget_center(sizes[0]), n=3); yield 0.3
         T("15.5"); K("Return"); yield 0.8
-        check("typing 15.5 in size box applies it", abs(find("Alpha").CharHeight - 15.5) < 0.01, find("Alpha").CharHeight)
+        check("typing 15.5 in size box applies it", abs(find("Alpha").run()["size"] - 15.5) < 0.01, find("Alpha").run()["size"])
     focus()
     # keytips
     K("alt"); yield 0.8
@@ -176,7 +176,7 @@ def ribbon_ui():
 
 def ruler():
     yield from setup_text()
-    vc().gotoStart(False); yield 0.3
+    caret_start(); yield 0.3
     r = getattr(win, "ruler", None)
     note("ruler", type(r).__name__)
     shot("w2_ruler")

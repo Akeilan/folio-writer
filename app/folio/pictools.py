@@ -217,37 +217,6 @@ RESOLUTIONS = [("High fidelity: preserves quality of the original picture", 0),
                ("E-mail (96 ppi): minimize document size for sharing", 96)]
 
 
-def compress(obj, ppi, delete_cropped=True):
-    from PIL import Image
-    img = Image.open(export_graphic(obj))
-    has_alpha = img.mode in ("RGBA", "LA") or "transparency" in img.info
-    img = img.convert("RGBA" if has_alpha else "RGB")
-    if delete_cropped:
-        try:
-            c = obj.GraphicCrop
-            if c.Left or c.Right or c.Top or c.Bottom:
-                # crop values are in mm100 of the original size
-                orig = obj.ActualSize if hasattr(obj, "ActualSize") else None
-                ow = orig.Width if orig and orig.Width else (obj.Size.Width + c.Left + c.Right)
-                oh = orig.Height if orig and orig.Height else (obj.Size.Height + c.Top + c.Bottom)
-                sx, sy = img.width / float(ow), img.height / float(oh)
-                box = (int(c.Left * sx), int(c.Top * sy), img.width - int(c.Right * sx),
-                       img.height - int(c.Bottom * sy))
-                if box[2] > box[0] and box[3] > box[1]:
-                    img = img.crop(box)
-                    obj.GraphicCrop = bridge.struct("com.sun.star.text.GraphicCrop")
-        except Exception as e:
-            print("compress crop:", e)
-    if ppi:
-        s = obj.Size
-        want_w = int(s.Width / 2540.0 * ppi)
-        want_h = int(s.Height / 2540.0 * ppi)
-        if img.width > want_w > 0 and img.height > want_h > 0:
-            img = img.resize((want_w, want_h), Image.LANCZOS)
-    size = obj.Size
-    set_image(obj, img, "PNG" if has_alpha else "JPEG", 85 if ppi else 95)
-    obj.Size = size
-
 
 def compress_dialog(win):
     from .native import arrange
@@ -268,78 +237,6 @@ TRANSFORMS = [("#", "Follow Path"), ("Arch", "fontwork-arch-up-curve"),
               ("Fade: Up", "fontwork-fade-up"), ("Fade: Down", "fontwork-fade-down")]
 
 
-def _fontwork_geometry(kind):
-    import uno
-    follow = "arch" in kind or "circle" in kind
-    mode = uno.Enum("com.sun.star.drawing.EnhancedCustomShapeTextPathMode",
-                    "PATH" if follow else "SHAPE")
-    tp = (bridge.prop("TextPath", True), bridge.prop("ScaleX", False),
-          bridge.prop("TextPathMode", mode))
-    return uno.Any("[]com.sun.star.beans.PropertyValue",
-                   (bridge.prop("Type", kind),
-                    bridge.prop("TextPath", uno.Any("[]com.sun.star.beans.PropertyValue", tp))))
-
-
-def transform(m, obj, kind):
-    """Bend WordArt or a text box's text along a path (No Transform = back
-    to plain text)."""
-    import uno
-    if obj.getShapeType().endswith("CustomShape"):
-        geo = list(obj.CustomShapeGeometry)
-        if any(p.Name == "TextPath" for p in geo):
-            size = obj.Size
-            uno.invoke(obj, "setPropertyValue", ("CustomShapeGeometry",
-                                                  _fontwork_geometry(kind)))
-            obj.Size = size
-            return obj
-    # text box / WordArt frame: replace it with a Fontwork shape of the same text
-    try:
-        text = obj.getText().getString()
-        cur = obj.getText().createTextCursor()
-        cur.gotoEnd(True)
-        color = cur.CharColor
-        font = cur.CharFontName
-        bold = cur.CharWeight
-    except Exception:
-        text, color, font, bold = "Your text here", 0x4472C4, "Carlito", 150
-    size = obj.Size
-    um = m.getUndoManager()
-    um.enterUndoContext("Transform")
-    try:
-        sh = m.createInstance("com.sun.star.drawing.CustomShape")
-        sh.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AT_PARAGRAPH")
-        anchor = obj.getAnchor()
-        anchor.getText().insertTextContent(anchor, sh, False)
-        sh.Size = bridge.struct("com.sun.star.awt.Size", Width=max(3000, size.Width),
-                                Height=max(1500, size.Height))
-        uno.invoke(sh, "setPropertyValue", ("CustomShapeGeometry", _fontwork_geometry(kind)))
-        sh.setString(text or "Your text here")
-        sh.FillColor = color if color not in (-1, None) and color >= 0 else 0x4472C4
-        sh.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "NONE")
-        try:
-            sh.CharFontName = font
-            sh.CharWeight = bold
-        except Exception:
-            pass
-        for p in ("HoriOrient", "VertOrient", "HoriOrientPosition", "VertOrientPosition",
-                  "HoriOrientRelation", "VertOrientRelation"):
-            try:
-                setattr(sh, p, getattr(obj, p))
-            except Exception:
-                pass
-        sh.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", "NONE")
-        try:
-            sh.TextAutoGrowHeight = False
-        except Exception:
-            pass
-        sh.Size = bridge.struct("com.sun.star.awt.Size", Width=max(6000, size.Width),
-                                Height=max(2500, size.Height))
-        uno.invoke(sh, "setPropertyValue", ("CustomShapeGeometry", _fontwork_geometry(kind)))
-        anchor.getText().removeTextContent(obj)
-        docapi.controller(m).select(sh)
-        return sh
-    finally:
-        um.leaveUndoContext()
 
 
 # ------------------------------------------------------------ merge shapes

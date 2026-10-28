@@ -159,16 +159,6 @@ class EquationBar(Gtk.Revealer):
         return self.ed.obj
 
     # -------------------------------------------------------------- selection
-    def _selection_changed(self, click=None):
-        m = self.win.engine.model
-        if m is None:
-            return
-        obj = docapi.selected_formula_object(m)
-        if obj is not None:
-            self.edit(obj, click=click)
-            return
-        if self.ed.active:
-            self.close(commit=True, move_cursor=False)
 
     # -------------------------------------------------------------- open/close
     def new_equation(self, linear=None):

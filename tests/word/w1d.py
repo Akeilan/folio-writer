@@ -6,8 +6,8 @@ def d():
     T("- dash item"); yield 0.6
     note("before enter", para_texts())
     K("Return"); yield 0.8
-    note("after enter", [(p.getString(), p.NumberingIsNumber, p.ListLabelString) for p in paras()])
+    note("after enter", [(t, is_listed(i), list_label(i)) for i, t in enumerate(para_texts())])
     T("next item"); yield 0.6
-    note("after typing", [(p.getString(), p.NumberingIsNumber, p.ListLabelString) for p in paras()])
+    note("after typing", [(t, is_listed(i), list_label(i)) for i, t in enumerate(para_texts())])
     shot("w1d_dash")
 run_scenarios(d)

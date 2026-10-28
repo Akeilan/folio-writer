@@ -5,9 +5,9 @@ def a():
     fresh(); yield 0.3
     T("src a b c"); yield 0.6
     note("text", repr(text()))
-    docapi.controller(M()).select(find("src")); yield 0.3
+    find("src").select(); yield 0.3
     K("ctrl+b"); yield 0.5
-    note("src bold", find("src").CharWeight)
+    note("src bold", find("src").run()["bold"])
     win.engine.command(".uno:FormatPaintbrush"); yield 0.5
     note("painter state", win.engine.get(".uno:FormatPaintbrush"))
     yield from word_xy(" a", 0.8)
@@ -15,7 +15,6 @@ def a():
     note("xy", P["xy"])
     K("ctrl+End"); yield 0.3
     click(*P["xy"]); yield 0.8
-    c = vc(); note("cursor after click", repr(c.getText().createTextCursorByRange(c.getStart()).getString()))
-    cc = vc().getText().createTextCursorByRange(vc().getStart()); cc.gotoStartOfParagraph(True); note("left of cursor", repr(cc.getString()))
-    note("a weight", find(" a").CharWeight)
+    note("left of cursor", repr(pos()))
+    note("a weight", find(" a").run()["bold"])
 run_scenarios(a)

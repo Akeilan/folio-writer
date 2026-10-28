@@ -18,9 +18,9 @@ def tabindent():
     fresh(); yield 0.3
     T("Paragraph text"); K("Home"); yield 0.3
     K("Tab"); yield 0.5
-    check("Tab at paragraph start sets first-line indent", paras()[0].ParaFirstLineIndent > 0 and "\t" not in text(), (paras()[0].ParaFirstLineIndent, repr(text())))
+    check("Tab at paragraph start sets first-line indent", pv(0)["ind_first"] > 0 and "\t" not in text(), (pv(0)["ind_first"], repr(text())))
     K("BackSpace"); yield 0.5
-    check("Backspace removes it", paras()[0].ParaFirstLineIndent == 0 and text() == "Paragraph text", (paras()[0].ParaFirstLineIndent, repr(text())))
+    check("Backspace removes it", pv(0)["ind_first"] == 0 and text() == "Paragraph text", (pv(0)["ind_first"], repr(text())))
     fresh(); yield 0.3
     K("Tab"); T("x"); yield 0.5
     check("Tab in an empty paragraph types a tab", text() == "\tx", repr(text()))

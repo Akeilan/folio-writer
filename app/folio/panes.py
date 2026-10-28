@@ -704,17 +704,6 @@ class StylesPane(Pane):
         context_menu(self.win, name, tv, ev)
         return True
 
-    def _delete(self, name):
-        m = self.model
-        eng = engine_style(name)
-        fam = docapi.para_styles(m)
-        if fam.hasByName(eng) and fam.getByName(eng).isUserDefined():
-            if self.win.dialogs.confirm("Do you want to delete style %s from the document?" % name,
-                                        yes="Yes", no="No"):
-                fam.removeByName(eng)
-                self.refresh()
-        else:
-            self.win.dialogs.message("Built-in styles can't be deleted.")
 
 
 def Gdk_rect(ev):

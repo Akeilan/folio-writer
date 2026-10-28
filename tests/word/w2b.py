@@ -2,7 +2,7 @@ exec(open("/home/claude/folio2/tests/common.py").read())
 exec(open("/home/claude/folio2/tests/word/wc.py").read())
 exec(open("/home/claude/folio2/tests/word/w2.py").read().split("def clicks():")[0].split('exec(open("/home/claude/folio2/tests/word/wc.py").read())')[1])
 def nums():
-    return [bool(p.NumberingIsNumber) for p in paras()]
+    return [is_listed(i) for i, t in enumerate(para_texts())]
 def r1():
     yield from setup_text()
     note("bullets after setup", nums())
@@ -14,7 +14,7 @@ def r1():
     yield from at_word("bravo", frac=0.0); a = AT["xy"]
     yield from at_word("echo", frac=1.0); b = AT["xy"]
     click(*a); yield 0.5
-    note("caret before shift-click", repr(vc().getStart().getText().createTextCursorByRange(vc().getStart()).getString()))
+    note("caret before shift-click", repr(pos()))
     X("mousemove", *b); X("keydown", "shift"); time.sleep(0.1); X("click", 1); time.sleep(0.1); X("keyup", "shift"); yield 0.6
     note("shift+click", repr(sel()))
     note("bullets now", nums())
@@ -38,10 +38,10 @@ def r2():
     K("Escape"); yield 0.5
 def r3():
     yield from setup_text()
-    docapi.controller(M()).select(find("bravo charlie delta")); yield 0.6
+    find("bravo charlie delta").select(); yield 0.6
     yield from at_word("charlie", frac=0.5); s = AT["xy"]
     yield from at_word("words", frac=1.0); d = AT["xy"]
-    docapi.controller(M()).select(find("bravo charlie delta")); yield 0.6
+    find("bravo charlie delta").select(); yield 0.6
     note("sel before drag", repr(sel()))
     X("mousemove", s[0], s[1]); time.sleep(0.2); X("mousedown", 1); time.sleep(0.3)
     for i in range(1, 16):

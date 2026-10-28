@@ -2074,11 +2074,15 @@ impl Editor {
     /// Set the Layout dialog's values: position (h/v: relative-to, align or
     /// offset in points), wrapping side, distances (points), options.
     pub fn set_object_layout(&mut self, vals: &[(String, String)]) -> bool {
-        let Some(node) = self.sel_obj else { return false };
+        if self.sel_obj.is_none() {
+            return false;
+        }
         let get = |k: &str| vals.iter().find(|(a, _)| a == k).map(|(_, b)| b.as_str());
         if let Some(w) = get("wrap") {
             self.object_set_wrap(w);
         }
+        // the wrap change may have rebuilt the drawing: work on the object as it is now
+        let Some(node) = self.sel_obj else { return false };
         let Some(a) = self.doc.dom.child(node, "wp:anchor") else { return true };
         self.begin();
         let dom = &mut self.doc.dom;

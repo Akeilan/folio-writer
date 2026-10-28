@@ -4,7 +4,7 @@ import re
 
 from gi.repository import Gtk
 
-from . import bridge, docapi
+from . import docapi
 from .widgets import FDialog, LengthSpin, combo, grid, heading
 
 
@@ -152,19 +152,6 @@ def autofit(m, how):
 
 
 # ------------------------------------------------------------ alignment
-def align_cells(m, horiz, vert):
-    t, _c = current(m)
-    if t is None:
-        return
-    for n in _selected_cells(m, t):
-        cell = t.getCellByName(n)
-        if vert is not None:
-            cell.VertOrient = {"top": 1, "center": 2, "bottom": 3}[vert]
-        if horiz is not None:
-            cur = cell.createTextCursor()
-            cur.gotoStart(False)
-            cur.gotoEnd(True)
-            cur.ParaAdjust = {"left": 0, "center": 3, "right": 1}[horiz]
 
 
 def text_direction(m):
@@ -237,82 +224,6 @@ def table_text(t):
     return out
 
 
-def convert_to_text(m, sep="\t"):
-    t, _c = current(m)
-    if t is None:
-        return
-    data = table_text(t)
-    um = m.getUndoManager()
-    um.enterUndoContext("Convert Table to Text")
-    try:
-        text = m.getText()
-        lines = []
-        for row in data:
-            if sep == "\n":
-                lines.extend(row)
-            else:
-                lines.append(sep.join(row))
-        prev = None
-        en = text.createEnumeration()
-        while en.hasMoreElements():
-            el = en.nextElement()
-            if el.supportsService("com.sun.star.text.TextTable") and \
-                    el.getName() == t.getName():
-                break
-            prev = el
-        if prev is not None:
-            cur = text.createTextCursorByRange(prev.getEnd())
-            for line in lines:
-                text.insertControlCharacter(cur, 0, False)
-                text.insertString(cur, line, False)
-        else:
-            text.insertTextContentBefore(m.createInstance("com.sun.star.text.Paragraph"), t)
-            cur = text.createTextCursor()
-            cur.gotoStart(False)
-            for i, line in enumerate(lines):
-                if i:
-                    text.insertControlCharacter(cur, 0, False)
-                text.insertString(cur, line, False)
-        text.removeTextContent(t)
-    finally:
-        um.leaveUndoContext()
-
-
-def sort_table(m, column, descending=False, header=True, numeric=False):
-    """Sort the body rows by one column. Cell text moves; the table's look
-    (banding, borders) stays with the positions, as in the original."""
-    t, _c = current(m)
-    if t is None:
-        return
-    data = table_text(t)
-    first = 1 if header else 0
-    body = data[first:]
-    if len(body) < 2:
-        return
-
-    def key(row):
-        v = row[column] if column < len(row) else ""
-        if numeric:
-            n = _num(v)
-            return (n is None, n if n is not None else 0)
-        return (v == "", v.lower())
-    body.sort(key=key, reverse=descending)
-    if descending:
-        # keep empty cells last either way
-        body = [r for r in body if key(r)[0] is False] + [r for r in body if key(r)[0]]
-    um = m.getUndoManager()
-    um.enterUndoContext("Sort")
-    try:
-        names = set(t.getCellNames())
-        for i, row in enumerate(body):
-            for c, v in enumerate(row):
-                n = _name(first + i, c)
-                if n in names:
-                    cell = t.getCellByName(n)
-                    if cell.getString() != v:
-                        cell.setString(v)
-    finally:
-        um.leaveUndoContext()
 
 
 FUNCS = ("SUM", "AVERAGE", "COUNT", "MAX", "MIN", "PRODUCT")
@@ -371,111 +282,8 @@ def insert_formula(m, formula):
 
 
 # ------------------------------------------------------------ dialogs
-def sort_dialog(win):
-    m = win.engine.model
-    t, _c = current(m) if m else (None, None)
-    if t is None:
-        return
-    data = table_text(t)
-    header_names = data[0] if data else []
-    d = FDialog(win, "Sort")
-    has_header = Gtk.RadioButton.new_with_mnemonic(None, "Header _row")
-    no_header = Gtk.RadioButton.new_with_mnemonic_from_widget(has_header, "No header ro_w")
-
-    def names():
-        if has_header.get_active():
-            return [h or "Column %d" % (i + 1) for i, h in enumerate(header_names)]
-        return ["Column %d" % (i + 1) for i in range(len(header_names))]
-    by = combo(names(), 0)
-    typ = combo(["Text", "Number"], 0)
-    asc = Gtk.RadioButton.new_with_mnemonic(None, "_Ascending")
-    desc = Gtk.RadioButton.new_with_mnemonic_from_widget(asc, "_Descending")
-    d.add(heading("Sort by"))
-    d.add(grid([[by, "_Type:", typ], [None, asc, desc]]))
-    d.add(heading("My list has"))
-    b = Gtk.Box(spacing=12)
-    b.pack_start(has_header, False, False, 0)
-    b.pack_start(no_header, False, False, 0)
-    d.add(b)
-
-    def relabel(*_):
-        i = by.get_active()
-        by.remove_all()
-        for n in names():
-            by.append_text(n)
-        by.set_active(max(0, i))
-    has_header.connect("toggled", relabel)
-    if d.ask() == Gtk.ResponseType.OK:
-        win.engine.sync(lambda: sort_table(m, max(0, by.get_active()), desc.get_active(),
-                                           has_header.get_active(), typ.get_active() == 1))
-    d.done()
 
 
-def convert_dialog(win):
-    m = win.engine.model
-    t, _c = current(m) if m else (None, None)
-    if t is None:
-        return
-    d = FDialog(win, "Convert Table To Text")
-    d.add(heading("Separate text with"))
-    para = Gtk.RadioButton.new_with_mnemonic(None, "_Paragraph marks")
-    tabs = Gtk.RadioButton.new_with_mnemonic_from_widget(para, "_Tabs")
-    commas = Gtk.RadioButton.new_with_mnemonic_from_widget(para, "Co_mmas")
-    other = Gtk.RadioButton.new_with_mnemonic_from_widget(para, "_Other:")
-    oe = Gtk.Entry(text="-")
-    oe.set_width_chars(3)
-    tabs.set_active(True)
-    for w in (para, tabs, commas):
-        d.add(w)
-    ob = Gtk.Box(spacing=6)
-    ob.pack_start(other, False, False, 0)
-    ob.pack_start(oe, False, False, 0)
-    d.add(ob)
-    if d.ask() == Gtk.ResponseType.OK:
-        sep = "\n" if para.get_active() else "\t" if tabs.get_active() else \
-            ", " if commas.get_active() else (oe.get_text() or "-")
-        win.engine.sync(lambda: convert_to_text(m, sep))
-    d.done()
-
-
-def formula_dialog(win):
-    m = win.engine.model
-    t, _c = current(m) if m else (None, None)
-    if t is None:
-        return
-    d = FDialog(win, "Formula")
-    e = Gtk.Entry(text=default_formula(m))
-    e.set_width_chars(36)
-    e.set_activates_default(True)
-    fmt = combo(["", "#,##0", "#,##0.00", "$#,##0.00", "0%", "0.00%"], 0)
-    paste = combo(["Paste function"] + list(FUNCS), 0)
-
-    def put(*_):
-        i = paste.get_active()
-        if i > 0:
-            e.set_text("=" + FUNCS[i - 1] + "()")
-            e.set_position(len(e.get_text()) - 1)
-            e.grab_focus()
-    paste.connect("changed", put)
-    d.add(grid([["_Formula:", None], [e, None], ["_Number format:", fmt],
-                ["Paste f_unction:", paste]]))
-    if d.ask() == Gtk.ResponseType.OK:
-        text = e.get_text()
-        number_format = fmt.get_active_text()
-
-        def go():
-            ok = insert_formula(m, text)
-            if not ok:
-                win.dialogs.message("Syntax Error or no numbers to calculate.")
-                return
-            if number_format:
-                t2, cell = current(m)
-                try:
-                    cell.NumberFormat = docapi._number_format(m, number_format)
-                except Exception:
-                    pass
-        win.engine.sync(go)
-    d.done()
 
 
 def cell_margins_dialog(win):

@@ -5,10 +5,10 @@ def a():
     T("Base text."); yield 0.4
     win.actions.cmd(".uno:TrackChanges"); yield 0.4
     K("End"); T(" Added by me."); yield 0.8
-    um = M().getUndoManager()
-    note("titles0", um.getAllUndoActionTitles()[:5])
+    check("insertion tracked", "Added by me." in text() and len(changes()) >= 1, (text(), changes()))
     win.engine.command(".uno:RejectAllTrackedChanges"); yield 1.0
-    note("after reject", (text(), um.getAllUndoActionTitles()[:5]))
+    check("Reject All removes the insertion", text() == "Base text." and not changes(), (text(), changes()))
     win.engine.command(".uno:Undo"); yield 1.0
-    note("after undo", (text(), um.getAllUndoActionTitles()[:5]))
+    check("one undo brings it back", "Added by me." in text() and len(changes()) >= 1, (text(), undo_titles()[:5]))
+    win.actions.cmd(".uno:TrackChanges"); yield 0.3
 run_scenarios(a)

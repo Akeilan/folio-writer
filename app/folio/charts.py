@@ -488,20 +488,6 @@ def _filtered(d, f):
             "values": [[d["values"][r][c] for c in keep_c] for r in keep_r]}
 
 
-def set_filter(obj, hidden_series, hidden_cats):
-    import json
-    m = _MODEL[0]
-    full = _full(obj) or get_data(obj)
-    f = {"series": list(hidden_series), "cats": list(hidden_cats)}
-    if f["series"] or f["cats"]:
-        docapi._set_doc_setting(m, _full_key(obj), json.dumps(full))
-        docapi._set_doc_setting(m, "ChartFilter:" + obj.Name, json.dumps(f))
-        _write(obj, _filtered(full, f))
-    else:
-        docapi._set_doc_setting(m, _full_key(obj), "")
-        docapi._set_doc_setting(m, "ChartFilter:" + obj.Name, "")
-        _write(obj, full)
-
 
 def get_data(obj):
     if not is_image(obj) and not special(obj):
@@ -1115,16 +1101,6 @@ def type_dialog(win, current=0, title="Insert Chart"):
     d.done()
     return idx if r == Gtk.ResponseType.OK else None
 
-
-def insert_chart_dialog(win):
-    m = win.engine.model
-    if m is None:
-        return
-    idx = type_dialog(win)
-    if idx is None:
-        return
-    obj = insert_chart(m, idx)
-    DataSheet(win, obj).present()
 
 
 def edit_chart(win, obj):

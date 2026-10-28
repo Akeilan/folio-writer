@@ -5,21 +5,18 @@ def borders():
     fresh(); yield 0.3
     win.dialogs._new_table(3, 3); yield 1.0
     K("ctrl+a"); yield 0.3
-    t = M().getTextTables().getByIndex(0)
-    docapi.controller(M()).select(t.getCellRangeByName("A1:C3")); yield 0.4
-    BM.apply(M(), "none"); yield 0.3
-    BM.apply(M(), "inside-h"); yield 0.4
-    b2 = t.getCellByName("B2")
-    check("inside horizontal", b2.TopBorder.OuterLineWidth > 0 and b2.LeftBorder.OuterLineWidth == 0 and t.getCellByName("A1").TopBorder.OuterLineWidth == 0, (b2.TopBorder.OuterLineWidth, b2.LeftBorder.OuterLineWidth))
+    Rng(cell_rng("A1").a, cell_rng("C3").b).select(); yield 0.4
+    BM.apply_win(win, "none"); yield 0.3
+    BM.apply_win(win, "inside-h"); yield 0.4
+    st = (cell_border("B2", "top"), cell_border("B2", "left"), cell_border("A1", "top"))
+    check("inside horizontal", st == (True, False, False), st)
     shot("l10_tbl")
     fresh(); yield 0.3
-    M().getText().setString("a"); yield 0.2
-    c = M().getText().createTextCursor(); c.gotoEnd(False)
-    M().getText().insertControlCharacter(c, 0, False); M().getText().insertString(c, "b", False)
+    set_text("a\nb"); yield 0.2
     K("ctrl+a"); yield 0.4
-    BM.apply(M(), "inside-h"); yield 0.4
-    ps = paras()
-    check("paragraph inside horizontal", ps[0].BottomBorder.OuterLineWidth > 0 and ps[1].BottomBorder.OuterLineWidth == 0, [p.BottomBorder.OuterLineWidth for p in ps])
+    BM.apply_win(win, "inside-h"); yield 0.4
+    st = [(border("between", i), border("bottom", i)) for i in range(2)]
+    check("paragraph inside horizontal", bool(st[0][0]) and not st[0][1] and not st[1][1], st)
 def menus():
     c = find_control("Layout", "Hyphenation")
     labs = [it[0] for it in c.menu if it and not isinstance(it, Gtk.Widget)]
@@ -37,10 +34,10 @@ def fill():
     check("Fill Effects", bool(dlg("Fill Effects")))
     shot("l10_fill")
     respond("Fill Effects"); yield 1.0
-    ps = docapi.page_style(M())
-    check("gradient page", ps.FillStyle.value == "GRADIENT", ps.FillStyle.value)
+    pf = E.ed.page_fill()
+    check("gradient page", pf is not None and "grad" in pf[0].lower(), pf)
     shot("l10_fillpage")
-    docapi.page_color(M(), None); yield 0.4
+    E.ed.set_page_color(None); E.view.after_edit(); yield 0.4
 def review():
     fresh(); yield 0.3
     T("Base text."); yield 0.4

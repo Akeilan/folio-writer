@@ -4,7 +4,6 @@ numbers; then Format Page Numbers and Remove Page Numbers."""
 import cairo
 from gi.repository import Gtk
 
-from . import bridge, docapi
 
 TW, TH = 64, 82        # thumbnail size
 
@@ -79,66 +78,6 @@ def insert(win, where, align, style):
     _insert_native(win, where, align, style)
     return
 
-
-def _margin_number(m, side, style):
-    """A page number in the side margin, half way down every page: a small
-    frame anchored in the header, positioned against the page."""
-    ps = docapi.page_style(m)
-    docapi.enable_header_footer(m, "header", ps)
-    body = ps.HeaderText
-    cur = body.createTextCursor()
-    cur.gotoEnd(False)
-    fr = m.createInstance("com.sun.star.text.TextFrame")
-    fr.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AT_PARAGRAPH")
-    size = 1000
-    fr.Width = size
-    fr.Height = size
-    try:
-        fr.WidthType = 1
-        fr.SizeType = 1
-    except Exception:
-        pass
-    body.insertTextContent(cur, fr, False)
-    fr.HoriOrient = 0                              # NONE
-    fr.HoriOrientRelation = 7                      # page
-    width = ps.Width
-    edge = ps.RightMargin if side == "right" else ps.LeftMargin
-    fr.HoriOrientPosition = int(width - edge / 2 - size / 2) if side == "right" \
-        else int(edge / 2 - size / 2)
-    fr.VertOrient = 2                              # CENTER
-    fr.VertOrientRelation = 7                      # page
-    none = bridge.struct("com.sun.star.table.BorderLine2")
-    for b in ("LeftBorder", "RightBorder", "TopBorder", "BottomBorder"):
-        setattr(fr, b, none)
-    for d in ("LeftBorderDistance", "RightBorderDistance", "TopBorderDistance",
-              "BottomBorderDistance"):
-        setattr(fr, d, 0)
-    fr.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", "THROUGH")
-    try:
-        fr.TextVerticalAdjust = bridge.enum("com.sun.star.drawing.TextVerticalAdjust",
-                                            "CENTER")
-    except Exception:
-        pass
-    if style == "accent":
-        fr.BackColor = 0x2E6B3F
-        fr.BackTransparent = False
-    else:
-        fr.BackTransparent = True
-    t = fr.getText()
-    c = t.createTextCursor()
-    c.ParaAdjust = 3
-    if style == "accent":
-        c.CharColor = 0xFFFFFF
-        c.CharWeight = 150.0
-    f = m.createInstance("com.sun.star.text.textfield.PageNumber")
-    f.NumberingType = 4
-    f.SubType = bridge.enum("com.sun.star.text.PageNumberType", "CURRENT")
-    t.insertTextContent(c, f, False)
-    names = set(m.getTextFrames().getElementNames())
-    n = 1
-    while "PageNumberFrame%d" % n in names:
-        n += 1
-    fr.Name = "PageNumberFrame%d" % n
 
 
 def menu(win):
