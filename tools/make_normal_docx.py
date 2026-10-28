@@ -94,10 +94,10 @@ def styles():
           '<w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault>'
           '</w:docDefaults>')
     s += style("paragraph", "Normal", "Normal", default=True, ui=0)
-    for n, (b, c, sz, it) in enumerate([(240, "2F5496", 32, False), (40, "2F5496", 26, False),
-                                        (40, "1F3763", 24, False), (40, "2F5496", 0, True),
-                                        (40, "2F5496", 0, False), (40, "1F3763", 0, False),
-                                        (40, "1F3763", 0, True), (40, "272727", 21, False),
+    for n, (b, c, sz, it) in enumerate([(240, "2E6B3F", 32, False), (40, "2E6B3F", 26, False),
+                                        (40, "1F4D2C", 24, False), (40, "2E6B3F", 0, True),
+                                        (40, "2E6B3F", 0, False), (40, "1F4D2C", 0, False),
+                                        (40, "1F4D2C", 0, True), (40, "272727", 21, False),
                                         (40, "272727", 21, True)], 1):
         s += heading(n, b, c, sz, it)
     s += style("character", "DefaultParagraphFont", "Default Paragraph Font", default=True,
