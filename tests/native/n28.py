@@ -185,7 +185,18 @@ def a():
     pdf2 = os.path.join(d, "all.pdf")
     E.save_as(pdf2, "pdf", keep=False, filter_data={"ExportBookmarks": True})
     raw2 = open(pdf2, "rb").read()
-    check("headings become bookmarks", b"/Outlines" in raw2 and b"Chapter" in raw2.replace(b"\x00", b""), len(raw2))
+    # read the outline back (cairo 1.18 keeps it in compressed object streams)
+    import gi
+    gi.require_version("Poppler", "0.18")
+    from gi.repository import Poppler
+    titles = []
+    it = Poppler.IndexIter.new(Poppler.Document.new_from_file("file://" + pdf2, None))
+    while it is not None:
+        a = it.get_action()
+        titles.append(getattr(getattr(a, "any", None), "title", "") or "")
+        if not it.next():
+            break
+    check("headings become bookmarks", any("Chapter" in t for t in titles), titles)
 
     # ---- .txt with no converter (W-03, W-06)
     txt = os.path.join(d, "plain.txt")

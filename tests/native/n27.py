@@ -186,8 +186,8 @@ def a():
     W2, H2, stride, data = re3.render_page(re3.page_count() - 1, 1.0, False, False)
     check("the chart draws after reopening", len(data) > 1000)
     # a chart made elsewhere reads into the model
-    cm = NC.read(open("/home/claude/corpus/poi/test-data/document/61745.docx", "rb") and
-                 zipfile.ZipFile("/home/claude/corpus/poi/test-data/document/61745.docx").read("word/charts/chart1.xml").decode())
+    cm = NC.read(open("/home/claude/folio2/tests/data/61745.docx", "rb") and
+                 zipfile.ZipFile("/home/claude/folio2/tests/data/61745.docx").read("word/charts/chart1.xml").decode())
     check("a Word chart reads in", cm["data"]["cols"] == ["Series 1", "Series 2", "Series 3"] and cm["type"] in (0, 2), (cm["type"], cm["data"]["cols"]))
 
     # ---- smartart
