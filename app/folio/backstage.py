@@ -12,7 +12,7 @@ from . import APP_NAME, SHARE, docapi, icons
 
 NAV = [("back", None), ("home", "Home"), ("new", "New"), ("open", "Open"), None,
        ("info", "Info"), ("save", "Save"), ("saveas", "Save As"), ("print", "Print"),
-       ("export", "Export"), ("close", "Close"), "spacer", ("options", "Options")]
+       ("share", "Share"), ("export", "Export"), ("close", "Close"), "spacer", ("options", "Options")]
 
 EXPORT_TYPES = [
     ("docx", "Document", "Uses the standard document format"),
@@ -721,6 +721,47 @@ class Backstage(Gtk.Box):
         typ.pack_start(sb, False, False, 0)
         stack.add_named(typ, "type")
         h.pack_start(stack, True, True, 0)
+        box.pack_start(h, True, True, 0)
+        return box
+
+    def page_share(self):
+        """File > Share > Email: the document, or a PDF of it, attached to a new message."""
+        box = self._page("Share")
+        h = Gtk.Box(spacing=30)
+        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        left.set_size_request(260, -1)
+        b = Gtk.Button()
+        b.set_relief(Gtk.ReliefStyle.NONE)
+        b.get_style_context().add_class("folio-bs-place")
+        hb = Gtk.Box(spacing=10)
+        hb.pack_start(icons.image("cmd/lc_sendmail", 32), False, False, 0)
+        hb.pack_start(Gtk.Label(label="Email", xalign=0), True, True, 0)
+        b.add(hb)
+        left.pack_start(b, False, False, 0)
+        h.pack_start(left, False, False, 0)
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        right.pack_start(_heading("Email", "folio-bs-cardtitle"), False, False, 0)
+        for label, icon, desc, pdf in (
+                ("Send as\nAttachment", "cmd/lc_sendmail", "Everyone receives a separate copy of this document to review", False),
+                ("Send as\nPDF", "cmd/lc_exportdirecttopdf", "Preserves layout, formatting, fonts, and images\n"
+                                                             "Content can't be easily changed", True)):
+            row = Gtk.Box(spacing=14)
+            bt = Gtk.Button()
+            v = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            v.pack_start(icons.image(icon, 32), False, False, 0)
+            lab = Gtk.Label(label=label)
+            lab.set_justify(Gtk.Justification.CENTER)
+            v.pack_start(lab, False, False, 0)
+            bt.add(v)
+            bt.set_size_request(110, 90)
+            bt.set_tooltip_text(label.replace("\n", " "))
+            bt.connect("clicked", lambda *_a, pdf=pdf: (self.close(), self.win.send_attachment(pdf)))
+            row.pack_start(bt, False, False, 0)
+            d = Gtk.Label(label=desc, xalign=0)
+            d.set_line_wrap(True)
+            row.pack_start(d, False, False, 0)
+            right.pack_start(row, False, False, 0)
+        h.pack_start(right, True, True, 0)
         box.pack_start(h, True, True, 0)
         return box
 

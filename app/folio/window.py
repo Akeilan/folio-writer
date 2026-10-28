@@ -1229,6 +1229,38 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_collapse_all_headings(self):
         self.folds.collapse_all()
 
+    def send_attachment(self, pdf=False):
+        """File > Share > Email: a new message in the mail app with this document (or a PDF of it) attached."""
+        import shutil
+        import subprocess
+        import tempfile
+        name = self.doc_name()
+        d = tempfile.mkdtemp(prefix="folio-share-")
+        path = os.path.join(d, name + (".pdf" if pdf else ".docx"))
+        try:
+            if pdf:
+                ok = self.engine.save_as(path, "pdf", keep=False)
+            else:
+                # a copy as it is now; the document itself stays unsaved
+                with open(path, "wb") as fh:
+                    fh.write(bytes(self.engine.ed.to_bytes()))
+                ok = True
+        except Exception as e:
+            ok = False
+            print("share:", e)
+        if not ok or not os.path.exists(path):
+            self.dialogs.message("%s couldn't make the attachment." % APP_NAME, kind="error")
+            return None
+        post = shutil.which("folio-post")
+        if post:
+            subprocess.Popen([post, "--attach", path])
+        elif shutil.which("xdg-email"):
+            subprocess.Popen(["xdg-email", "--subject", name, "--attach", path])
+        else:
+            self.dialogs.message("Sending needs a mail app: install Folio Post.")
+            return None
+        return path
+
     def act_update_fields(self):
         """F9: update fields, and linked text pasted with Paste link."""
         self.engine.command(".uno:UpdateFields")
