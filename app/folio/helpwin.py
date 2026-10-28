@@ -98,6 +98,7 @@ class HelpWindow(Gtk.Window):
         Gtk.Window.__init__(self, title="Help - " + APP_NAME)
         self.set_transient_for(parent)
         self.set_default_size(720, 560)
+        self.get_style_context().add_class("folio-dialog")
         self.connect("destroy", lambda *_: setattr(HelpWindow, "_inst", None))
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         box.set_border_width(10)
