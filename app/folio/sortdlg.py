@@ -41,28 +41,15 @@ class _NativeTable:
 
 def dialog(win):
     native = getattr(win.engine, "native", False)
-    if native:
-        ed = win.engine.ed
-        got = ed.sort_items(False) if ed is not None else None
-        if not got:
-            win.status.flash("Select the paragraphs or table rows to sort.")
-            return
-        is_table, items = got
-        m = None
-        kind = "table" if is_table else "text"
-        data = _NativeTable(items) if is_table else [it[0] for it in items]
-    else:
-        m = win.engine.model
-        vc = docapi.view_cursor(m)
-        kind, data = _rows(m)
-        if kind == "text" and vc.isCollapsed():
-            # the paragraph's whole list / the whole document, as the original
-            c = vc.getText().createTextCursor()
-            c.gotoStart(False)
-            c.gotoEnd(True)
-            docapi.controller(m).select(c)
-            vc = docapi.view_cursor(m)
-            data = vc.getString().split("\n")
+    ed = win.engine.ed
+    got = ed.sort_items(False) if ed is not None else None
+    if not got:
+        win.status.flash("Select the paragraphs or table rows to sort.")
+        return
+    is_table, items = got
+    m = None
+    kind = "table" if is_table else "text"
+    data = _NativeTable(items) if is_table else [it[0] for it in items]
     opts = {"sep": "\t", "columns_only": False, "case": False}
     d = FDialog(win, "Sort")
     header = Gtk.RadioButton.new_with_mnemonic(None, "Hea_der row")
@@ -149,16 +136,13 @@ def dialog(win):
                 continue
             field = idx + 1
             if kind == "text" and by.get_active_text() == "Paragraphs":
-                field = 0 if native else 1
+                field = 0
             elif kind == "text" and field_names()[0] == "Paragraphs":
                 field = idx          # 'Field n' after 'Paragraphs'
-            keys.append((field if native else max(1, field), TYPES[max(0, typ.get_active())][1],
+            keys.append((field, TYPES[max(0, typ.get_active())][1],
                          asc.get_active()))
         if keys:
-            if native:
-                ok = sort_native(win, keys, header.get_active(), opts)
-            else:
-                ok = sort(m, kind, data, keys, header.get_active(), opts)
+            ok = sort_native(win, keys, header.get_active(), opts)
             if not ok:
                 win.dialogs.message("The selection couldn't be sorted.")
     d.destroy()

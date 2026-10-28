@@ -170,21 +170,12 @@ def apply_to(m, v, where):
 
 
 def dialog(win, tab=0):
-    if getattr(win.engine, "native", False):
-        from .native import pagesetup as NP
-        m = None
-        info = NP.read(win)
-        n_styles = info["section_count"]
-        do_apply = lambda v, where: NP.apply_to(win, v, where)  # noqa: E731
-        do_default = lambda v: NP.set_default(win, v)  # noqa: E731
-    else:
-        m = win.engine.model
-        if m is None:
-            return
-        info = read(m)
-        n_styles = len(used_page_styles(m))
-        do_apply = lambda v, where: apply_to(m, v, where)  # noqa: E731
-        do_default = lambda v: set_default(win, v)  # noqa: E731
+    from .native import pagesetup as NP
+    m = None
+    info = NP.read(win)
+    n_styles = info["section_count"]
+    do_apply = lambda v, where: NP.apply_to(win, v, where)  # noqa: E731
+    do_default = lambda v: NP.set_default(win, v)  # noqa: E731
     d = FDialog(win, "Page Setup")
     nb = Gtk.Notebook()
     d.add(nb)

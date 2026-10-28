@@ -216,38 +216,7 @@ class DrawMode:
             view.grab_focus()
 
     def _create(self, kind, x0, y0, x1, y1):
-        if getattr(self.win, "native", False):
-            return self._create_native(kind, x0, y0, x1, y1)
-        eng = self.win.engine
-        m = eng.model
-        if m is None:
-            return
-        tx0, ty0 = eng.px_to_twips(min(x0, x1), min(y0, y1))
-        tx1, ty1 = eng.px_to_twips(max(x0, x1), max(y0, y1))
-        drag = (tx1 - tx0) > 90 or (ty1 - ty0) > 90
-        if not drag:          # a click: default size
-            tx1, ty1 = tx0 + 1440, ty0 + (1440 if kind != "textbox" else 720)
-            if kind in ("line", "arrow-line", "elbow-connector", "curved-connector"):
-                ty1 = ty0 + (720 if "connector" in kind else 0)
-        page_no, px, py = 1, 0, 0
-        for i, (rx, ry, rw, rh) in enumerate(eng.page_rects(), start=1):
-            if ry <= ty0 < ry + rh:
-                page_no, px, py = i, rx, ry
-                break
-        x = int((tx0 - px) * TWIP)
-        y = int((ty0 - py) * TWIP)
-        w = max(100, int((tx1 - tx0) * TWIP))
-        h = max(100, int((ty1 - ty0) * TWIP))
-        if kind in ("line", "arrow-line", "elbow-connector", "curved-connector"):
-            # keep the direction the user dragged
-            sx, sy = eng.px_to_twips(x0, y0)
-            ex, ey = eng.px_to_twips(x1, y1) if drag else (tx1, ty1)
-            x, y = int((sx - px) * TWIP), int((sy - py) * TWIP)
-            w, h = int((ex - sx) * TWIP), int((ey - sy) * TWIP)
-        try:
-            insert_shape(m, kind, page_no, x, y, w, h)
-        except Exception as e:
-            self.win.dialogs.message("The shape couldn't be inserted: %s" % e)
+        return self._create_native(kind, x0, y0, x1, y1)
 
 
 def _anchor_page(obj, page_no, x, y):

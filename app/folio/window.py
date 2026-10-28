@@ -31,13 +31,10 @@ class DocWindow(Gtk.ApplicationWindow):
             self.keymap.set_symbol_keys(app.settings.get("symbol_keys") or {})
         except Exception as e:
             print("style keys:", e)
-        from . import native
-        self.native = native.wanted(app.settings) and native.available()
-        if self.native:
-            from .native.actions import NativeActions
-            self.actions = NativeActions(self)
-        else:
-            self.actions = Actions(self)
+        # Folio's own engine (the LibreOffice engine went in 2.31)
+        self.native = True
+        from .native.actions import NativeActions
+        self.actions = NativeActions(self)
         self._alt_alone = False
         self.focus_mode = False
         self.read_only = False
@@ -45,17 +42,12 @@ class DocWindow(Gtk.ApplicationWindow):
         self.panes = {}
         self.extend_mode = False
         self._last_positions = []
-
-        if self.native:
-            from .native.engine import NativeEngine
-            self.engine = NativeEngine(app.engine_profile, app.user_name())
-            from .native.autocorrect import AutoCorrect
-            self.engine.view.autocorrect = AutoCorrect(self)
-            from .native.spell import Speller
-            self.engine.view.speller = Speller(self)
-        else:
-            from .engine import Engine
-            self.engine = Engine(app.engine_profile, app.user_name())
+        from .native.engine import NativeEngine
+        self.engine = NativeEngine(app.engine_profile, app.user_name())
+        from .native.autocorrect import AutoCorrect
+        self.engine.view.autocorrect = AutoCorrect(self)
+        from .native.spell import Speller
+        self.engine.view.speller = Speller(self)
         self.engine.connect("state-changed", self.on_state)
         self.engine.connect("zoom-changed", lambda e, z: self.status.show_zoom(z))
         self.engine.connect("model-ready", self.on_model_ready)
@@ -124,10 +116,7 @@ class DocWindow(Gtk.ApplicationWindow):
             vp.set_focus_hadjustment(Gtk.Adjustment())
         self._follow_rect = None
         self._follow_id = 0
-        if not self.native:
-            self.engine.view.connect("cursor-changed", self.on_cursor_moved)
-        else:
-            self.engine.view.connect("cursor-changed", self._native_cursor_moved)
+        self.engine.view.connect("cursor-changed", self._native_cursor_moved)
         # LOKDocView passes every key to the engine but reports it unhandled,
         # so GTK also ran its own arrow-key navigation and moved the focus up
         # into the ribbon (and back, scrolling to page 1). Keys the document
@@ -217,27 +206,22 @@ class DocWindow(Gtk.ApplicationWindow):
         self.ink = InkMode(self)
         from .objecttools import CropMode, LayoutOptions
         self.layout_options = LayoutOptions(self, self.canvas_overlay)
-        if self.native:
-            from .native.objects import scroll_hook
-            self.engine.win = self
-            self.engine.view.objs.attach_button(self.canvas_overlay)
-            scroll_hook(self.engine.view, self.engine.view.objs)
+        from .native.objects import scroll_hook
+        self.engine.win = self
+        self.engine.view.objs.attach_button(self.canvas_overlay)
+        scroll_hook(self.engine.view, self.engine.view.objs)
         self.crop_mode = CropMode(self)
         from .objecttools import EditPoints
         self.edit_points = EditPoints(self)
-        if self.native:
-            from .native import arrange as _arrange
-            _arrange.install(self)
+        from .native import arrange as _arrange
+        _arrange.install(self)
         from .tabledraw import TableDrawMode
         self.table_draw = TableDrawMode(self)
 
         self.connect("key-press-event", self.on_key)
         self.connect("key-release-event", self.on_key_release)
         self.connect("delete-event", self.on_delete)
-        if self.native:
-            self.engine.view.press_hook = lambda ev: self.on_doc_click(self.engine.view, ev)
-        else:
-            self.engine.view.connect("button-press-event", self.on_doc_click)
+        self.engine.view.press_hook = lambda ev: self.on_doc_click(self.engine.view, ev)
         self.engine.view.connect("scroll-event", self.on_doc_scroll)
         self.engine.view.connect("motion-notify-event", self.on_doc_motion)
         self.canvas.connect("scroll-event", self.on_doc_scroll)
@@ -601,12 +585,10 @@ class DocWindow(Gtk.ApplicationWindow):
         """The document model for properties and settings: UNO's, or the new
         engine's stand-in."""
         eng = self.engine
-        if getattr(eng, "native", False):
-            if getattr(eng, "ed", None) is None:
-                return None
-            from .native.uno_model import NativeModel
-            return NativeModel(eng)
-        return eng.model
+        if getattr(eng, "ed", None) is None:
+            return None
+        from .native.uno_model import NativeModel
+        return NativeModel(eng)
 
     def doc_name(self):
         if self.engine.path and not self.engine.is_new:
@@ -903,69 +885,56 @@ class DocWindow(Gtk.ApplicationWindow):
         """Run module.function(model, *args) once the engine is idle."""
         import importlib
         mod, fn = path.rsplit(".", 1)
-        if getattr(self.engine, "native", False):
-            from .native import tables
-            if mod == "tablelayout" and tables.call(self, fn, *args):
-                return
-            if mod == "citations":
-                from .native import refs
-                getattr(refs.cites(), fn)(self, *args)
-                return
-            if mod == "mailings":
-                from .native import mailmerge
-                getattr(mailmerge, fn)(self, *args)
-                self.refresh_mailings()
-                return
-            if mod == "insertextras" and fn == "insert_textbox":
-                from .native import objects
-                objects.insert_builtin_textbox(self, *args)
-                return
-            if mod == "insertextras" and fn in ("insert_wordart", "text_effect", "toggle_char", "insert_doc_property"):
-                from .native import effects
-                getattr(effects, fn)(self, *args)
-                return
-            self.actions._not_yet()
+        from .native import tables
+        if mod == "tablelayout" and tables.call(self, fn, *args):
             return
-
-        def go():
-            m = self.engine.model
-            if m is not None:
-                getattr(importlib.import_module("folio." + mod), fn)(m, *args)
-        self.engine.sync(go)
+        if mod == "citations":
+            from .native import refs
+            getattr(refs.cites(), fn)(self, *args)
+            return
+        if mod == "mailings":
+            from .native import mailmerge
+            getattr(mailmerge, fn)(self, *args)
+            self.refresh_mailings()
+            return
+        if mod == "insertextras" and fn == "insert_textbox":
+            from .native import objects
+            objects.insert_builtin_textbox(self, *args)
+            return
+        if mod == "insertextras" and fn in ("insert_wordart", "text_effect", "toggle_char", "insert_doc_property"):
+            from .native import effects
+            getattr(effects, fn)(self, *args)
+            return
+        self.actions._not_yet()
+        return
 
     NATIVE_FIELDS = {"author": "AUTHOR", "filename": "FILENAME", "title": "TITLE", "page": "PAGE",
                      "pages": "NUMPAGES", "date": "DATE", "time": "TIME", "words": "NUMWORDS",
                      "subject": "SUBJECT", "created": "CREATEDATE", "saved": "SAVEDATE"}
 
     def model_call(self, fn_name, *args):
-        if self.native:
-            if fn_name == "insert_field" and args and args[0] in self.NATIVE_FIELDS:
-                self.engine.ed.insert_field_now(self.NATIVE_FIELDS[args[0]] + " \\* MERGEFORMAT")
-                self.engine.view.after_edit()
-            elif fn_name == "multilevel_list":
-                from . import lists as _lists
-                from .native import lists as _nl
-                _nl.apply_multilevel(self, _lists.MULTI[0][1])
-            elif fn_name == "toggle_field_codes":
+        if fn_name == "insert_field" and args and args[0] in self.NATIVE_FIELDS:
+            self.engine.ed.insert_field_now(self.NATIVE_FIELDS[args[0]] + " \\* MERGEFORMAT")
+            self.engine.view.after_edit()
+        elif fn_name == "multilevel_list":
+            from . import lists as _lists
+            from .native import lists as _nl
+            _nl.apply_multilevel(self, _lists.MULTI[0][1])
+        elif fn_name == "toggle_field_codes":
+            self.engine.ed.toggle_field_codes()
+            self.engine.view.after_edit()
+        elif fn_name == "toggle_field_code_here":
+            # Shift+F9: the field at the cursor (all of them with none there)
+            if not self.engine.ed.toggle_field_code_here():
                 self.engine.ed.toggle_field_codes()
+            self.engine.view.after_edit()
+        elif fn_name == "drop_cap":
+            mode = {"dropped": "drop", "margin": "margin"}.get(args[0] if args else "", "none")
+            if self.engine.ed.set_drop_cap(mode, 3, 0, None):
                 self.engine.view.after_edit()
-            elif fn_name == "toggle_field_code_here":
-                # Shift+F9: the field at the cursor (all of them with none there)
-                if not self.engine.ed.toggle_field_code_here():
-                    self.engine.ed.toggle_field_codes()
-                self.engine.view.after_edit()
-            elif fn_name == "drop_cap":
-                mode = {"dropped": "drop", "margin": "margin"}.get(args[0] if args else "", "none")
-                if self.engine.ed.set_drop_cap(mode, 3, 0, None):
-                    self.engine.view.after_edit()
-            else:
-                self.actions._not_yet()
-            return None
-        m = self.engine.model
-        if m is None:
-            self.dialogs.message("The document is still opening. Try again in a moment.")
-            return None
-        return getattr(docapi, fn_name)(m, *args)
+        else:
+            self.actions._not_yet()
+        return None
 
     def act_new(self):
         self.app.new_window()
@@ -991,18 +960,9 @@ class DocWindow(Gtk.ApplicationWindow):
         self.close_document()
 
     def stop_tracking(self):
-        if getattr(self.engine, "native", False):
-            if self.engine.get(".uno:TrackChanges") == "true":
-                self.engine.command(".uno:TrackChanges")
-            return
-        m = self.engine.model
-        if m is None:
-            return
-        try:
-            if m.RecordChanges:
-                self.engine.command(".uno:TrackChanges")
-        except Exception as e:
-            print("stop tracking:", e)
+        if self.engine.get(".uno:TrackChanges") == "true":
+            self.engine.command(".uno:TrackChanges")
+        return
 
     def act_toggle_ribbon(self):
         mode = getattr(self.ribbon, "display_mode", "always")
@@ -1097,8 +1057,7 @@ class DocWindow(Gtk.ApplicationWindow):
         if isinstance(self.alt_view, OutlineView):
             return
         self.leave_special_views()
-        if self.native:
-            from .native.views import NativeOutlineView as OutlineView
+        from .native.views import NativeOutlineView as OutlineView
         ov = OutlineView(self)
         self.show_alt_view(ov)
         ov.load()
@@ -1152,48 +1111,28 @@ class DocWindow(Gtk.ApplicationWindow):
     def leave_special_views(self):
         if self.alt_view is not None:
             self.close_alt_view()
-        if getattr(self, "draft", False) or (self.native and self.engine.view.continuous):
+        if getattr(self, "draft", False) or self.engine.view.continuous:
             self.act_print_layout()
 
     def act_draft_view(self):
         """Draft: text only, no page edges, margins, headers or pictures in
         place; it wraps at the page's text width."""
         self.leave_special_views()
-        if self.native:
-            from .native import views
-            views.set_layout(self, 1)
-            return
-        if not self.engine.is_on(".uno:BrowseView"):
-            self.engine.command(".uno:BrowseView")
-        self.draft = True
-        self.rulers.v.hide()
-        self.status.set_view(None)
+        from .native import views
+        views.set_layout(self, 1)
+        return
 
     def act_print_layout(self):
         self.close_alt_view()
-        if self.native:
-            from .native import views
-            views.set_layout(self, 0)
-            return
-        if getattr(self, "draft", False):
-            self.draft = False
-            self.rulers.set_visible(self.app.settings.get("ruler", True))
-        if self.engine.is_on(".uno:BrowseView"):
-            self.engine.command(".uno:PrintLayout")
-        self.status.set_view("print")
+        from .native import views
+        views.set_layout(self, 0)
+        return
 
     def act_web_layout(self):
         self.close_alt_view()
-        if self.native:
-            from .native import views
-            views.set_layout(self, 2)
-            return
-        if getattr(self, "draft", False):
-            self.draft = False
-            self.rulers.set_visible(self.app.settings.get("ruler", True))
-        if not self.engine.is_on(".uno:BrowseView"):
-            self.engine.command(".uno:BrowseView")
-        self.status.set_view("web")
+        from .native import views
+        views.set_layout(self, 2)
+        return
 
     def act_read_mode(self):
         from .readmode import ReadMode
@@ -1264,7 +1203,7 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_update_fields(self):
         """F9: update fields, and linked text pasted with Paste link."""
         self.engine.command(".uno:UpdateFields")
-        if self.native and self.engine.ed is not None:
+        if self.engine.ed is not None:
             # a field typed as its code shows its result once worked out
             if self.engine.ed.show_results_here():
                 self.engine.view.after_edit()
@@ -1290,9 +1229,6 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def act_field_braces(self):
         """Ctrl+F9: empty field braces to type a field code in."""
-        if not self.native:
-            self.run("field-dialog")
-            return
         # real braces in the document, the code typed between them as text
         if self.engine.ed.insert_field_braces():
             self.engine.view.after_edit()
@@ -1300,9 +1236,6 @@ class DocWindow(Gtk.ApplicationWindow):
     def insert_canvas(self):
         """Insert > Shapes > New Drawing Canvas: an empty area at the caret
         to draw shapes on."""
-        if not self.native:
-            self.actions._not_yet()
-            return
         ed = self.engine.ed
         r = ed.caret_rect()
         if r is None:
@@ -1320,85 +1253,28 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def object_call_module(self, module, fname, *args):
         """Like object_call, for functions in other modules (picture tools)."""
-        if self.native:
-            from .native import objects
-            if not objects.call(self, fname, *args):
-                self.actions._not_yet()
-            return
-        import importlib
-        m = self.engine.model
-        from . import drawing
-        obj = drawing.selected_shape(m) if m is not None else None
-        if obj is None:
-            return
-        mod = importlib.import_module("folio." + module)
-        um = m.getUndoManager()
-        um.enterUndoContext("Format Picture")
-        try:
-            getattr(mod, fname)(obj, *args)
-        except Exception as e:
-            print(module, fname, e)
-            self.dialogs.message("That didn't work on this picture: %s" % e)
-        finally:
-            um.leaveUndoContext()
+        from .native import objects
+        if not objects.call(self, fname, *args):
+            self.actions._not_yet()
+        return
 
     def merge_shapes(self, op):
-        if self.native:
-            from .native import arrange as _arrange
-            _arrange.merge(self, op)
-            return
-        from . import arrange, pictools
-        m = self.engine.model
-        objs = arrange.selected_objects(m) if m is not None else []
-        if len(objs) < 2:
-            self.dialogs.message("Select two or more shapes to merge (Ctrl+click, or use "
-                                 "the Selection Pane).")
-            return
-        if not pictools._pil():
-            self.dialogs.message("Merging shapes needs the python3-pil package.")
-            return
-        try:
-            pictools.merge_shapes(m, objs, op)
-        except Exception as e:
-            self.dialogs.message("These shapes can't be merged: %s" % e)
-        GLib.timeout_add(200, self.update_object_tabs)
+        from .native import arrange as _arrange
+        _arrange.merge(self, op)
+        return
 
     def wordart_transform(self, kind):
-        if self.native:
-            from .native import arrange as _arrange
-            _arrange.transform(self, kind)
-            return
-        from . import drawing, pictools
-        m = self.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
-        if obj is None:
-            return
-        try:
-            pictools.transform(m, obj, kind)
-        except Exception as e:
-            self.dialogs.message("The text couldn't be transformed: %s" % e)
-        GLib.timeout_add(200, self.update_object_tabs)
+        from .native import arrange as _arrange
+        _arrange.transform(self, kind)
+        return
 
     # ---------------------------------------------------------- background removal
     bg_state = None
 
     def bg_removal_start(self):
-        if self.native:
-            from .native import arrange as _arrange
-            _arrange.bg_start(self)
-            return
-        from . import drawing, pictools
-        m = self.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
-        if obj is None or drawing.kind_of(obj) != "picture":
-            return
-        if not pictools._pil():
-            self.dialogs.message("Remove Background needs the python3-pil package.")
-            return
-        self.bg_state = {"obj": obj, "keep": [], "remove": [], "mode": None}
-        self.bg_apply()
-        self.ribbon.show_contextual("Background Removal", True)
-        self.select_tab("Background Removal")
+        from .native import arrange as _arrange
+        _arrange.bg_start(self)
+        return
 
     def bg_apply(self):
         from . import pictools
@@ -1433,17 +1309,9 @@ class DocWindow(Gtk.ApplicationWindow):
         return True
 
     def bg_finish(self, keep):
-        if self.native:
-            from .native import arrange as _arrange
-            _arrange.bg_finish(self, keep)
-            return
-        from . import pictools
-        st = self.bg_state
-        self.bg_state = None
-        if st is not None and not keep:
-            pictools.reset_picture(st["obj"])
-        self.ribbon.show_contextual("Background Removal", False)
-        self.select_tab("Picture Format")
+        from .native import arrange as _arrange
+        _arrange.bg_finish(self, keep)
+        return
 
     def act_mark_citation(self):
         from . import authorities
@@ -1454,10 +1322,7 @@ class DocWindow(Gtk.ApplicationWindow):
         review.lock_tracking(self)
 
     def act_selection_pane(self):
-        if self.native:
-            from .native.selection import NativeSelectionPane as SelectionPane
-        else:
-            from .arrange import SelectionPane
+        from .native.selection import NativeSelectionPane as SelectionPane
         pane = self.panes.get(SelectionPane)
         if pane is not None and pane.get_parent() is not None:
             self.hide_pane(pane)
@@ -1475,40 +1340,14 @@ class DocWindow(Gtk.ApplicationWindow):
     def arrange_call(self, fn, arg):
         """Align / distribute: several selected objects line up with each
         other; one object aligns to the margins (or page)."""
-        if self.native:
-            from .native import arrange as _arrange
-            if not _arrange.selected(self):
-                self.status.flash("Select a picture or shape first.")
-            elif fn == "distribute":
-                _arrange.distribute(self, arg)
-            else:
-                _arrange.align(self, arg)
-            return
-        from . import arrange, drawing
-        m = self.engine.model
-        if m is None:
-            return
-        objs = arrange.selected_objects(m)
-        if not objs:
-            return
-        if fn == "distribute":
-            if not arrange.distribute(m, objs, arg):
-                self.status.flash("Select three or more objects to distribute them.")
-        elif len(objs) > 1 and self.align_mode in ("auto", "objects"):
-            arrange.align_objects(m, objs, arg)
+        from .native import arrange as _arrange
+        if not _arrange.selected(self):
+            self.status.flash("Select a picture or shape first.")
+        elif fn == "distribute":
+            _arrange.distribute(self, arg)
         else:
-            um = m.getUndoManager()
-            um.enterUndoContext("Align")
-            try:
-                for o in objs:
-                    drawing.align(o, arg, page=self.align_mode == "page")
-            finally:
-                um.leaveUndoContext()
-        try:
-            arrange.select(m, objs)
-        except Exception:
-            pass
-        GLib.timeout_add(150, self.update_object_tabs)
+            _arrange.align(self, arg)
+        return
 
     def act_select_similar(self):
         """Select all text with the same paragraph style as the cursor."""
@@ -1622,24 +1461,11 @@ class DocWindow(Gtk.ApplicationWindow):
     def set_markup_display(self, mode):
         """Display for Review: All Markup / Simple Markup / No Markup /
         Original."""
-        if getattr(self.engine, "native", False):
-            from .native import review as NR
-            NR.set_markup(self.engine, mode)
-            self.comments.set_visible(mode in ("All Markup", "Simple Markup"))
-            self.change_bars.set_mode(mode)
-            return
-        if mode == "Original":
-            self.enter_original()
-            self.comments.set_visible(False)
-            self.change_bars.set_mode("No Markup")
-            return
-        self.leave_original()
-        show = mode == "All Markup"
-        cur = self.engine.get(".uno:ShowTrackedChanges") == "true"
-        if show != cur:
-            self.engine.command(".uno:ShowTrackedChanges")
-        self.comments.set_visible(mode != "No Markup")
+        from .native import review as NR
+        NR.set_markup(self.engine, mode)
+        self.comments.set_visible(mode in ("All Markup", "Simple Markup"))
         self.change_bars.set_mode(mode)
+        return
 
     in_original = False
 
@@ -1720,7 +1546,7 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def toggle_formatting_markup(self):
         self.change_bars.show_formatting = not self.change_bars.show_formatting
-        if getattr(self.engine, "native", False) and self.engine.ed is not None:
+        if self.engine.ed is not None:
             self.engine.ed.set_show_formatting_changes(self.change_bars.show_formatting)
             self.engine.view.document_changed()
         self.change_bars.refresh()
@@ -1728,7 +1554,7 @@ class DocWindow(Gtk.ApplicationWindow):
     def accept_reject_shown(self, accept):
         """Accept / Reject All Changes Shown: only the reviewers shown."""
         bars = self.change_bars
-        if getattr(self.engine, "native", False) and bars.hidden_authors:
+        if bars.hidden_authors:
             shown = [a for a in bars.authors() if a not in bars.hidden_authors]
             self.engine.ed.accept_reject_all(accept, shown)
             self.engine.view.document_changed()
@@ -1817,7 +1643,7 @@ class DocWindow(Gtk.ApplicationWindow):
         """Ctrl+wheel zooms in steps of 10%, as in the original."""
         if not event.state & Gdk.ModifierType.CONTROL_MASK:
             view = self.engine.view
-            if self.native and getattr(view, "side", False):
+            if getattr(view, "side", False):
                 # Side to Side: the wheel turns the pages
                 ok, dx, dy = event.get_scroll_deltas()
                 if event.direction == Gdk.ScrollDirection.UP:
@@ -1844,9 +1670,8 @@ class DocWindow(Gtk.ApplicationWindow):
         """Enable the merge controls once there are recipients; show the record."""
         from . import mailings
         m = self.engine.model
-        if self.native:
-            from .native import mailmerge as mailings
-            m = self if self.engine.ed is not None else None
+        from .native import mailmerge as mailings
+        m = self if self.engine.ed is not None else None
         if m is None or not hasattr(self, "mail_controls"):
             return
         try:
@@ -1866,9 +1691,8 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_merge_preview(self):
         from . import mailings
         m = self.engine.model
-        if self.native:
-            from .native import mailmerge as mailings
-            m = self
+        from .native import mailmerge as mailings
+        m = self
         if m is None:
             return
         cols, rows, inc = mailings.recipients(m)
@@ -1881,9 +1705,8 @@ class DocWindow(Gtk.ApplicationWindow):
     def merge_go(self, where):
         from . import mailings
         m = self.engine.model
-        if self.native:
-            from .native import mailmerge as mailings
-            m = self
+        from .native import mailmerge as mailings
+        m = self
         if m is None:
             return
         cols, rows, inc = mailings.recipients(m)
@@ -1902,9 +1725,8 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_find_recipient(self):
         from . import mailings
         m = self.engine.model
-        if self.native:
-            from .native import mailmerge as mailings
-            m = self
+        from .native import mailmerge as mailings
+        m = self
         t = self.dialogs.ask_text("Find Entry", "Find:")
         if not t:
             return
@@ -1917,11 +1739,8 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_highlight_merge_fields(self):
         from . import mailings
         self.merge_highlight = not self.merge_highlight
-        if self.native:
-            from .native import mailmerge
-            mailmerge.highlight(self, self.merge_highlight)
-        else:
-            mailings.highlight_fields(self.merge_highlight)
+        from .native import mailmerge
+        mailmerge.highlight(self, self.merge_highlight)
         self.engine.view.queue_draw()
         b = self.mail_controls.get("highlight") if hasattr(self, "mail_controls") else None
         if b is not None:
@@ -1930,73 +1749,41 @@ class DocWindow(Gtk.ApplicationWindow):
     multipage = None
 
     def act_multiple_pages(self, side=False):
-        if self.native:
-            # the new engine edits the pages laid out side by side
-            view = self.engine.view
-            if (view.side if side else view.columns > 1):
-                self.close_multipage()
-                return
-            alloc_w = max(400, self.canvas.get_allocated_width())
-            alloc_h = max(300, self.canvas.get_allocated_height())
-            pw, ph = view.ed.page_size(0) if view.ed else (612, 792)
-            ppp96 = 96.0 / 72.0
-            if side:
-                view.set_page_layout(1, side=True)
-                # two pages across the window, as the original shows them
-                z = min((alloc_h - 40) / (ph * ppp96), (alloc_w - 60) / (2 * pw * ppp96))
-            else:
-                n = view.ed.page_count() if view.ed else 1
-                cols = max(2, min(n, int(alloc_w // 260)))
-                view.set_page_layout(cols)
-                z = (alloc_w - (cols + 1) * 20) / (cols * pw * ppp96)
-            view.set_zoom(max(0.1, z))
-            self.status.flash("Pages side by side. Esc returns.")
-            return
-        if self.multipage is not None:
+        # the new engine edits the pages laid out side by side
+        view = self.engine.view
+        if (view.side if side else view.columns > 1):
             self.close_multipage()
-            if bool(self.multipage_side) == bool(side):
-                return
-        from .multipage import MultiPageView
-        mp = MultiPageView(self, side_to_side=side)
-        self.multipage = mp
-        self.multipage_side = side
-        self.canvas_overlay.remove(self.canvas)
-        self.canvas_overlay.add(mp)
-        mp.show_all()
-        self.status.flash("Click a page to edit it. Esc returns.")
+            return
+        alloc_w = max(400, self.canvas.get_allocated_width())
+        alloc_h = max(300, self.canvas.get_allocated_height())
+        pw, ph = view.ed.page_size(0) if view.ed else (612, 792)
+        ppp96 = 96.0 / 72.0
+        if side:
+            view.set_page_layout(1, side=True)
+            # two pages across the window, as the original shows them
+            z = min((alloc_h - 40) / (ph * ppp96), (alloc_w - 60) / (2 * pw * ppp96))
+        else:
+            n = view.ed.page_count() if view.ed else 1
+            cols = max(2, min(n, int(alloc_w // 260)))
+            view.set_page_layout(cols)
+            z = (alloc_w - (cols + 1) * 20) / (cols * pw * ppp96)
+        view.set_zoom(max(0.1, z))
+        self.status.flash("Pages side by side. Esc returns.")
+        return
 
     def act_side_to_side(self):
         self.act_multiple_pages(True)
 
     def close_multipage(self, page=None):
-        if self.native:
-            view = self.engine.view
-            if view.columns > 1 or view.side:
-                view.set_page_layout(1)
-                view.set_zoom(1.0)
-            return
-        mp = self.multipage
-        if mp is None:
-            return
-        self.multipage = None
-        self.canvas_overlay.remove(mp)
-        self.canvas_overlay.add(self.canvas)
-        mp.destroy()
-        self.canvas.show_all()
-        if page and self.engine.model is not None:
-            def jump():
-                vc = docapi.view_cursor(self.engine.model)
-                vc.jumpToPage(page)
-                vc.jumpToStartOfPage()
-            self.engine.sync(jump)
-        self.focus_document()
+        view = self.engine.view
+        if view.columns > 1 or view.side:
+            view.set_page_layout(1)
+            view.set_zoom(1.0)
+        return
 
     def _second_view(self):
-        if self.native:
-            from .native import views
-            return views.second_view(self)
-        from gi.repository import LOKDocView
-        return LOKDocView.View.new_from_widget(self.engine.view, "{}")
+        from .native import views
+        return views.second_view(self)
 
     def act_new_window(self):
         """View > New Window: a second window onto this same document."""
@@ -2370,102 +2157,22 @@ class DocWindow(Gtk.ApplicationWindow):
         return False
 
     def on_doc_click(self, view, event):
-        if self.native:
-            if getattr(self, "draw", None) is not None and self.draw.active:
-                return self.draw._press(view, event)
-            if self.eqbar.ed.active and self.eqbar.ed.press(event):
-                return True
-            ed = self.engine.ed
-            if event.button == 3 and event.type == Gdk.EventType.BUTTON_PRESS and ed is not None:
-                # the shortcut menu (and the Mini Toolbar), as in the original; a
-                # right-click outside the selection moves the caret there first
-                hit = view.page_at(event.x, event.y)
-                if hit is not None and not view.objs.active():
-                    if not (ed.has_selection() and view._in_selection(*hit)):
-                        if ed.object_at(*hit) and ed.select_object_at(*hit):
-                            view.objs.refresh()
-                        else:
-                            ed.click(hit[0], hit[1], hit[2], False)
-                        view.after_move()
-                if self.app.settings.get("mini_toolbar", True):
-                    try:
-                        self.minibar.show(int(event.x), int(event.y) - 4)
-                    except Exception:
-                        pass
-                self.dialogs.context_menu(event)
-                return True
-            if event.button == 2 and event.type == Gdk.EventType.BUTTON_PRESS and ed is not None:
-                hit = view.page_at(event.x, event.y)
-                if hit is not None:
-                    ed.click(hit[0], hit[1], hit[2], False)
-                    view.after_move()
-                self.actions.paste_primary()
-                return True
-            if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS and \
-                    self.engine.ed is not None:
-                hit = view.page_at(event.x, event.y)
-                if hit is not None:
-                    from .native import equations
-                    if equations.click(self, hit[0], hit[1], hit[2]):
-                        self.eqbar.ed._pending_click = (event.x, event.y)
-                        return True
-            return False
-        import time
-        self._last_input = time.time()
-        self.keytips.leave()
-        if self.ribbon_full and self.ribbon.get_visible():
-            self.peek_ribbon(False)
+        if getattr(self, "draw", None) is not None and self.draw.active:
+            return self.draw._press(view, event)
         if self.eqbar.ed.active and self.eqbar.ed.press(event):
             return True
-        from . import hfedit
-        if hfedit.press(self, event):
-            return True
-        if self.text_linker.press(event):
-            return True
-        from . import editfeatures
-        if self.folds.press(event):
-            return True
-        if event.type == Gdk.EventType._2BUTTON_PRESS and \
-                editfeatures.click_and_type(self, event):
-            return True
-        if event.button == 1 and self.change_bars.mode == "Simple Markup" and \
-                self.change_bars.hit(event.x, event.y):
-            # clicking a red change bar shows all markup, as in the original
-            mc = getattr(self, "markup_choice", None)
-            if mc is not None:
-                mc.set_active(0)
-            else:
-                self.set_markup_display("All Markup")
-            return True
-        if event.button == 1 and not (event.state & Gdk.ModifierType.SHIFT_MASK):
-            hit = self._in_left_margin(event.x, event.y)
-            if hit is not None:
-                count = {Gdk.EventType._2BUTTON_PRESS: 2,
-                         Gdk.EventType._3BUTTON_PRESS: 3}.get(event.type, 1)
-                self._margin_select(hit, count)
-                return True
-        if event.type == Gdk.EventType._2BUTTON_PRESS and event.button == 1:
-            # double-click on an embedded object: edit it here, never in-place
-            from .engine import SEL_COMPLEX
-            m = self.engine.model
-            if m is not None and self.engine.selection_type() == SEL_COMPLEX:
-                obj = docapi.selected_object(m)
-                if obj is not None:
-                    if docapi.selected_formula_object(m) is not None:
-                        self.eqbar.edit(obj)
+        ed = self.engine.ed
+        if event.button == 3 and event.type == Gdk.EventType.BUTTON_PRESS and ed is not None:
+            # the shortcut menu (and the Mini Toolbar), as in the original; a
+            # right-click outside the selection moves the caret there first
+            hit = view.page_at(event.x, event.y)
+            if hit is not None and not view.objs.active():
+                if not (ed.has_selection() and view._in_selection(*hit)):
+                    if ed.object_at(*hit) and ed.select_object_at(*hit):
+                        view.objs.refresh()
                     else:
-                        self.edit_object(obj)
-                    return True
-        from . import textmouse
-        if textmouse.press(self, event):
-            return True
-        if event.button == 2 and event.type == Gdk.EventType.BUTTON_PRESS:
-            tx, ty = self.engine.px_to_twips(event.x, event.y)
-            self.engine.click_at(tx, ty)
-            self.engine.sync(self.actions.paste_primary)
-            return True
-        if event.button == 3:
-            # the Mini Toolbar comes with the shortcut menu, as in the original
+                        ed.click(hit[0], hit[1], hit[2], False)
+                    view.after_move()
             if self.app.settings.get("mini_toolbar", True):
                 try:
                     self.minibar.show(int(event.x), int(event.y) - 4)
@@ -2473,34 +2180,32 @@ class DocWindow(Gtk.ApplicationWindow):
                     pass
             self.dialogs.context_menu(event)
             return True
+        if event.button == 2 and event.type == Gdk.EventType.BUTTON_PRESS and ed is not None:
+            hit = view.page_at(event.x, event.y)
+            if hit is not None:
+                ed.click(hit[0], hit[1], hit[2], False)
+                view.after_move()
+            self.actions.paste_primary()
+            return True
+        if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS and \
+                    self.engine.ed is not None:
+            hit = view.page_at(event.x, event.y)
+            if hit is not None:
+                from .native import equations
+                if equations.click(self, hit[0], hit[1], hit[2]):
+                    self.eqbar.ed._pending_click = (event.x, event.y)
+                    return True
         return False
 
     def object_call(self, fname, *args):
-        if self.native:
-            from .native import objects
-            if self.engine.ed is not None and self.engine.ed.selected_object() is None \
+        from .native import objects
+        if self.engine.ed is not None and self.engine.ed.selected_object() is None \
                     and self.engine.ed.story() != "textbox":
-                self.status.flash("Select a picture or shape first.")
-                return
-            if not objects.call(self, fname, *args):
-                self.actions._not_yet()
+            self.status.flash("Select a picture or shape first.")
             return
-        from . import drawing
-        m = self.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
-        if obj is None:
-            return
-        um = m.getUndoManager()
-        um.enterUndoContext("Format Object")
-        try:
-            getattr(drawing, fname)(obj, *args)
-        except Exception as e:
-            print("object", fname, e)
-        finally:
-            um.leaveUndoContext()
-        if fname in ("crop", "crop_to_ratio", "rotate", "reset_picture", "change_picture",
-                     "set_size_locked"):
-            self.object_call_refresh()
+        if not objects.call(self, fname, *args):
+            self.actions._not_yet()
+        return
 
     def select_tab(self, name):
         tab = [t for t in self.ribbon.tabs if t.name == name]
@@ -2509,81 +2214,20 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def lock_aspect(self):
         """Pictures keep their proportions when resized, as in the original."""
-        if self.native:
-            o = self.engine.ed.selected_object() if self.engine.ed else None
-            return bool(o and o["kind"] == "picture")
-        from . import drawing
-        m = self.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
-        return obj is not None and drawing.kind_of(obj) == "picture"
+        o = self.engine.ed.selected_object() if self.engine.ed else None
+        return bool(o and o["kind"] == "picture")
 
     def object_call_refresh(self):
         GLib.timeout_add(100, self.update_object_tabs)
 
     def object_delete(self):
-        if self.native:
-            from .native import objects
-            objects.delete(self)
-            return
-        from . import drawing
-        m = self.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
-        if obj is not None:
-            drawing.delete(m, obj)
-            self.update_object_tabs()
+        from .native import objects
+        objects.delete(self)
+        return
 
     def update_object_tabs(self):
-        if self.native:
-            self.engine._schedule_state()
-            return
-        from . import drawing
-        m = self.engine.model
-        kind = None
-        multi = False
-        if m is not None:
-            obj = drawing.selected_shape(m)
-            if obj is not None:
-                kind = drawing.kind_of(obj)
-            else:
-                from .arrange import selected_objects
-                multi = len(selected_objects(m)) > 1
-        chart = False
-        if kind == "object":
-            from . import charts
-            chart = charts.selected_chart(m) is not None
-        elif kind == "picture":
-            from . import imagecharts
-            if imagecharts.is_image_chart(m, drawing.selected_shape(m)):
-                chart = True
-                kind = "chart-picture"
-        self.ribbon.show_contextual("Chart Design", chart)
-        self.ribbon.show_contextual("Shape Format", kind in ("shape", "textbox") or multi)
-        smart = False
-        if kind == "shape":
-            from . import insertmore
-            smart = insertmore.smartart_of(m, drawing.selected_shape(m)) is not None
-        self.ribbon.show_contextual("SmartArt Design", smart)
-        self.ribbon.show_contextual("Picture Format", kind == "picture")
-        self.layout_options.show(kind in ("picture", "shape", "textbox", "chart-picture"))
-        if kind is None and self.crop_mode.active:
-            self.crop_mode.cancel()
-        if kind is not None:
-            try:
-                w, h = drawing.size_of(drawing.selected_shape(m))
-                for key, v in (("width", w), ("height", h)):
-                    for sb in self.obj_spins.get(key, []):
-                        if not sb.has_focus():
-                            sb._updating = True
-                            sb.set_value(v)
-                            sb._updating = False
-            except Exception:
-                pass
-            from .panes import AltTextPane
-            p = self.panes.get(AltTextPane)
-            if p is not None and p.get_parent() is not None:
-                p.on_shown()
-        self.refresh_hf()
-        return False
+        self.engine._schedule_state()
+        return
 
     def in_header_footer(self):
         m = self.engine.model
@@ -2642,36 +2286,17 @@ class DocWindow(Gtk.ApplicationWindow):
                 sb._updating = False
 
     def on_doc_release(self, view, event):
-        if self.native:
-            if event.button == 1 and not (event.state & Gdk.ModifierType.SHIFT_MASK):
-                x, y = event.x, event.y
-
-                def cc_native():
-                    try:
-                        from .native import controls
-                        controls.on_click(self, x, y)
-                    except Exception as e:
-                        print("content control:", e)
-                    return False
-                GLib.timeout_add(60, cc_native)
-            return False
         if event.button == 1 and not (event.state & Gdk.ModifierType.SHIFT_MASK):
             x, y = event.x, event.y
 
-            def cc_check():
+            def cc_native():
                 try:
-                    from . import contentcontrols
-                    contentcontrols.on_click(self, x, y)
+                    from .native import controls
+                    controls.on_click(self, x, y)
                 except Exception as e:
                     print("content control:", e)
                 return False
-            self.engine.sync(lambda: GLib.timeout_add(90, cc_check))
-        if event.button == 1:
-            self.engine.sync(lambda: GLib.timeout_add(80, self.update_object_tabs))
-            # an equation clicked? (checked once the engine has handled the click)
-            cx, cy = event.x, event.y
-            self.engine.sync(lambda: GLib.timeout_add(
-                60, lambda: (self.eqbar._selection_changed(click=(cx, cy)), False)[1]))
+            GLib.timeout_add(60, cc_native)
         return False
 
     def on_password(self, view, url, modify):
@@ -2869,7 +2494,7 @@ class DocWindow(Gtk.ApplicationWindow):
         if event.keyval == Gdk.KEY_Escape and self.text_linker.pending:
             self.text_linker.cancel()
             return True
-        if self.native and event.keyval == Gdk.KEY_Escape and not self.eqbar.ed.active and \
+        if event.keyval == Gdk.KEY_Escape and not self.eqbar.ed.active and \
                 (self.engine.view.columns > 1 or self.engine.view.side) and \
                 self.engine.ed is not None and self.engine.ed.story() == "body":
             self.close_multipage()
@@ -2905,95 +2530,20 @@ class DocWindow(Gtk.ApplicationWindow):
                 self.run(action)
                 return True
             return False
-        if self.native:
-            # the view does the editing keys itself
-            if action is not None:
-                if action != "extend-selection" and self.extend_mode:
-                    self.extend_mode = False
-                    self.extend_level = 0
-                self.run(action)
-                return True
-            if self.extend_mode and event.keyval == Gdk.KEY_Escape:
+        # the view does the editing keys itself
+        if action is not None:
+            if action != "extend-selection" and self.extend_mode:
                 self.extend_mode = False
                 self.extend_level = 0
-                return True
-            if self.extend_mode and self._extend_key(event):
-                return True
-            if self.acwatch.tab_indent(keyname, list(mods)):
-                return True
-            return False
-        if self.acwatch.tab_indent(keyname, list(mods)):
+            self.run(action)
             return True
-        self.acwatch.before_key(keyname, [m for m in mods if m != "shift"], event)
         if self.extend_mode and event.keyval == Gdk.KEY_Escape:
             self.extend_mode = False
             self.extend_level = 0
             return True
         if self.extend_mode and self._extend_key(event):
             return True
-        if keyname in ("tab", "iso_left_tab") and "ctrl" not in mods and "alt" not in mods:
-            if self._table_tab(event, back=("shift" in mods or keyname == "iso_left_tab")):
-                return True
-        if keyname in ("return", "kp_enter") and not mods:
-            from .engine import SEL_COMPLEX
-            m = self.engine.model
-            if m is not None and self.engine.selection_type() == SEL_COMPLEX:
-                obj = docapi.selected_object(m)
-                if obj is not None:
-                    if docapi.selected_formula_object(m) is not None:
-                        self.eqbar.edit(obj)
-                    else:
-                        self.edit_object(obj)
-                    return True
-        if action is not None:
-            if action in ("find-pane", "goto", "replace") or (
-                    isinstance(action, str) and action.startswith(".uno:GoTo")):
-                self.remember_position()
-            self.run(action)
-            return True
-        if ("ctrl" in mods or "alt" in mods) and keyname not in PASSTHROUGH and \
-                keyname not in ("control_l", "control_r", "alt_l", "alt_r", "shift_l",
-                                "shift_r", "iso_level3_shift"):
-            # not a binding: swallow rather than let the engine act on it,
-            # except Ctrl+arrows/Home/End etc. (navigation)
-            return True
-        if keyname in ("period", "parenright") and "ctrl" not in mods and "alt" not in mods:
-            from . import autolist
-            if autolist.on_marker_char(self, "." if keyname == "period" else ")"):
-                return True
-        if keyname == "space" and not mods:
-            from . import autolist
-            if autolist.on_space(self):
-                return True
-            from . import eqoptions
-            eqoptions.outside_math(self)
-        if keyname in ("left", "right") and not mods and self.native and \
-                self.engine.ed is not None and not self.eqbar.ed.active:
-            from .native import equations
-            if equations.arrow_into(self, keyname == "right"):
-                return True
-        if keyname in ("left", "right") and not mods and self.engine.model is not None:
-            # arrowing into an equation edits it, as in the original
-            d = 1 if keyname == "right" else -1
-            obj = docapi.formula_beside_cursor(self.engine.model, d)
-            if obj is not None:
-                self.eqbar.ed.start(obj, at=("start" if d > 0 else "end"))
-                return True
-        if event.keyval in (Gdk.KEY_Page_Up, Gdk.KEY_Page_Down) or \
-                (event.keyval in (Gdk.KEY_Home, Gdk.KEY_End) and "ctrl" in mods):
-            self.remember_position()
-        if self.macro_recorder.active:
-            self.macro_recorder.key(event)
-        if "alt" not in mods and event.keyval in (
-                Gdk.KEY_Home, Gdk.KEY_End, Gdk.KEY_KP_Home, Gdk.KEY_KP_End):
-            # LOKDocView drops Home/End (with or without Ctrl/Shift); send
-            # them to the engine directly
-            code = 1028 if event.keyval in (Gdk.KEY_Home, Gdk.KEY_KP_Home) else 1029
-            if "ctrl" in mods:
-                code |= 8192
-            if "shift" in mods:
-                code |= 4096
-            self.engine.post_key(code)
+        if self.acwatch.tab_indent(keyname, list(mods)):
             return True
         return False
 

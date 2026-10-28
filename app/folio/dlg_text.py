@@ -74,10 +74,8 @@ class TextDialogs:
         selection, or a style being modified."""
         if self._style_target is not None:
             return self._style_target
-        if getattr(self.win.engine, "native", False):
-            from .native.uno_props import CursorProps
-            return CursorProps(self.win.engine)
-        return docapi.view_cursor(m)
+        from .native.uno_props import CursorProps
+        return CursorProps(self.win.engine)
 
     def font_dialog(self):
         m = self._model_or_warn()
@@ -438,7 +436,7 @@ class TextDialogs:
                             ["_Right:", right, special, by]]), False, False, 0)
         # Mirror indents: Left and Right become Inside and Outside
         mirror = Gtk.CheckButton.new_with_mnemonic("_Mirror indents")
-        ned = getattr(self.eng, "ed", None) if getattr(self.eng, "native", False) else None
+        ned = getattr(self.eng, "ed", None)
         mirror_was = bool(ned is not None and "w:mirrorIndents" in (ned.para_xml() if hasattr(ned, "para_xml") else ""))
         mirror.set_active(mirror_was)
         mirror.set_sensitive(ned is not None)
@@ -678,8 +676,7 @@ class TextDialogs:
         d = FDialog(self.win, "Tabs")
         kinds = [("Left", "LEFT"), ("Center", "CENTER"), ("Right", "RIGHT"),
                  ("Decimal", "DECIMAL")]
-        if getattr(self.eng, "native", False):
-            kinds.append(("Bar", "BAR"))
+        kinds.append(("Bar", "BAR"))
         leaders = [("1 None", " "), ("2 .......", "."), ("3 -------", "-"), ("4 ____", "_")]
         from .widgets import fmt_len, parse_len
         pos = Gtk.Entry()
@@ -921,20 +918,14 @@ class TextDialogs:
 
     # ==================================================== Borders and Shading
     def borders_dialog(self, page_tab=False):
-        if getattr(self.eng, "native", False):
-            from .native import borders
-            borders.dialog(self.win, 1 if page_tab else 0)
-            return
-        if self._model_or_warn() is not None:
-            from . import bordersdlg
-            bordersdlg.dialog(self.win, 1 if page_tab else 0)
+        from .native import borders
+        borders.dialog(self.win, 1 if page_tab else 0)
+        return
 
     def page_borders(self):
-        if getattr(self.eng, "native", False):
-            from .native import pageborders
-            pageborders.dialog(self.win)
-            return
-        self.borders_dialog(page_tab=True)
+        from .native import pageborders
+        pageborders.dialog(self.win)
+        return
 
     def border(self, which):
         """Borders drop-down on the Home tab."""
@@ -956,61 +947,7 @@ class TextDialogs:
 
     # =============================================================== Drop cap
     def drop_cap(self):
-        if getattr(self.eng, "native", False):
-            return self._native_drop_cap()
-        m = self._model_or_warn()
-        if m is None:
-            return
-        vc = docapi.view_cursor(m)
-        cur = vc.DropCapFormat
-        d = FDialog(self.win, "Drop Cap")
-        d.add(heading("Position"))
-        grp = None
-        radios = []
-        hb = Gtk.Box(spacing=16)
-        for label in ("None", "Dropped", "In margin"):
-            rb = Gtk.RadioButton.new_with_label_from_widget(grp, label)
-            grp = grp or rb
-            radios.append(rb)
-            hb.pack_start(rb, False, False, 0)
-        radios[1 if cur.Lines > 1 else 0].set_active(True)
-        d.add(hb)
-        d.add(heading("Options"))
-        lines = Gtk.SpinButton.new_with_range(1, 10, 1)
-        lines.set_value(cur.Lines if cur.Lines > 1 else 3)
-        dist = LengthSpin(cur.Distance, 0, 25400)
-        fonts = self.eng.fonts() or []
-        cur_font = ""
-        try:
-            csn = vc.DropCapCharStyleName
-            if csn:
-                cur_font = docapi.char_styles(m).getByName(csn).CharFontName
-        except Exception:
-            pass
-        font = combo(fonts, cur_font or (vc.CharFontName or "").split(":")[0], entry=True)
-        d.add(grid([["_Font:", font], ["_Lines to drop:", lines],
-                    ["Distance from te_xt:", dist]]))
-        if d.ask() == Gtk.ResponseType.OK:
-            mode = ("none", "dropped", "margin")[[r.get_active() for r in radios].index(True)]
-            docapi.drop_cap(m, mode, int(lines.get_value()), dist.mm100)
-            fname = combo_text(font).strip()
-            if mode != "none" and fname and fname != (vc.CharFontName or "").split(":")[0]:
-                try:
-                    cs = docapi.char_styles(m)
-                    name = "Drop Caps"
-                    if not cs.hasByName(name):
-                        cs.insertByName(name, m.createInstance(
-                            "com.sun.star.style.CharacterStyle"))
-                    cs.getByName(name).CharFontName = fname
-                    docapi.view_cursor(m).DropCapCharStyleName = name
-                except Exception as e:
-                    print("drop cap font:", e)
-            elif mode != "none":
-                try:
-                    docapi.view_cursor(m).DropCapCharStyleName = ""
-                except Exception:
-                    pass
-        d.done()
+        return self._native_drop_cap()
 
     def _native_drop_cap(self):
         ed = self.eng.ed

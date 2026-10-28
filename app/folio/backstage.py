@@ -818,8 +818,7 @@ class Backstage(Gtk.Box):
               "SelectPdfVersion": 2 if opts["pdfa"] else 0}
         if opts["range"] == "current":
             try:
-                fd["PageRange"] = str(eng.ed.caret_page() + 1 if getattr(eng, "native", False)
-                                      else docapi.read_cursor(eng.model).getPage())
+                fd["PageRange"] = str(eng.ed.caret_page() + 1)
             except Exception:
                 pass
         elif opts["range"] == "pages":
@@ -1128,10 +1127,7 @@ class Backstage(Gtk.Box):
             args += ["-o", "media=" + self.CUPS_MEDIA.get(scale, scale), "-o", "fit-to-page"]
         if rng == "current":
             m = self.win.engine.model
-            if getattr(self.win.engine, "native", False):
-                cur = self.win.engine.ed.caret_page() + 1
-            else:
-                cur = docapi.read_cursor(m).getPage() if m is not None else 1
+            cur = self.win.engine.ed.caret_page() + 1
             args += ["-P", str(cur)]
         elif rng == "custom" and pages.strip():
             args += ["-P", pages.replace(" ", "")]
@@ -1144,11 +1140,10 @@ class Backstage(Gtk.Box):
         except FileNotFoundError:
             self.win.dialogs.message("No printing system was found on this computer.")
             return
-        if getattr(self.win.engine, "native", False):
-            import datetime
-            from .native import docprops
-            docprops.set_core(self.win.engine.ed, lastPrinted=datetime.datetime.now(
-                datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+        import datetime
+        from .native import docprops
+        docprops.set_core(self.win.engine.ed, lastPrinted=datetime.datetime.now(
+            datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
         m = self.win.engine.model
         if m is not None:
             try:

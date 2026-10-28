@@ -24,10 +24,8 @@ COLOR_NAMES = {0x000000: "Black", 0xFFFFFF: "White", 0x2F5496: "Accent 1, Darker
 # ------------------------------------------------------------ helpers
 def _model(win):
     eng = win.engine
-    if getattr(eng, "native", False):
-        from .native.uno_model import NativeModel
-        return NativeModel(eng)
-    return eng.model
+    from .native.uno_model import NativeModel
+    return NativeModel(eng)
 
 
 class StyleProxy:
@@ -130,19 +128,13 @@ def count_instances(m, name):
 
 
 def select_all(win, name):
-    if getattr(win.engine, "native", False):
-        from .native.uno_model import NativeModel
-        sid = NativeModel(win.engine).id_of(name)
-        if sid:
-            win.engine.ed.select_style_instances(sid)
-            win.engine.view.after_move()
-        win.focus_document()
-        return
-    m = _model(win)
-    f = instances(m, name)
-    if f is not None:
-        docapi.controller(m).select(f)
+    from .native.uno_model import NativeModel
+    sid = NativeModel(win.engine).id_of(name)
+    if sid:
+        win.engine.ed.select_style_instances(sid)
+        win.engine.view.after_move()
     win.focus_document()
+    return
 
 
 def update_to_match(win, name):
