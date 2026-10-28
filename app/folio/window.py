@@ -949,6 +949,11 @@ class DocWindow(Gtk.ApplicationWindow):
             elif fn_name == "toggle_field_codes":
                 self.engine.ed.toggle_field_codes()
                 self.engine.view.after_edit()
+            elif fn_name == "toggle_field_code_here":
+                # Shift+F9: the field at the cursor (all of them with none there)
+                if not self.engine.ed.toggle_field_code_here():
+                    self.engine.ed.toggle_field_codes()
+                self.engine.view.after_edit()
             elif fn_name == "drop_cap":
                 mode = {"dropped": "drop", "margin": "margin"}.get(args[0] if args else "", "none")
                 if self.engine.ed.set_drop_cap(mode, 3, 0, None):
@@ -1227,6 +1232,10 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_update_fields(self):
         """F9: update fields, and linked text pasted with Paste link."""
         self.engine.command(".uno:UpdateFields")
+        if self.native and self.engine.ed is not None:
+            # a field typed as its code shows its result once worked out
+            if self.engine.ed.show_results_here():
+                self.engine.view.after_edit()
         from . import pastelink
         m = self.engine.model
         if m is not None and pastelink.links(m):
@@ -1252,9 +1261,9 @@ class DocWindow(Gtk.ApplicationWindow):
         if not self.native:
             self.run("field-dialog")
             return
-        from .native.fieldcode import FieldCodeEntry
-        fc = getattr(self.engine.view, "field_code", None) or FieldCodeEntry(self)
-        fc.start()
+        # real braces in the document, the code typed between them as text
+        if self.engine.ed.insert_field_braces():
+            self.engine.view.after_edit()
 
     def insert_canvas(self):
         """Insert > Shapes > New Drawing Canvas: an empty area at the caret
@@ -2851,10 +2860,6 @@ class DocWindow(Gtk.ApplicationWindow):
                                                 & ~Gdk.ModifierType.MOD2_MASK):
             self.keytips.start()
             return True
-        if self.native and in_doc:
-            fc = getattr(self.engine.view, "field_code", None)
-            if fc is not None and fc.active and fc.key(event):
-                return True
         action, mods, keyname = self.keymap.lookup(event)
         if "alt" in mods and "ctrl" not in mods and action is None and len(keyname) == 1:
             # Alt+letter: ribbon KeyTips

@@ -342,6 +342,8 @@ pub struct Document {
     pub notes: Notes,
     /// show field codes instead of their results (Alt+F9)
     pub show_codes: bool,
+    /// fields shown the other way from show_codes (Shift+F9, Ctrl+F9): their begin marks
+    pub code_fields: std::collections::HashSet<NodeId>,
     /// how tracked changes show
     pub markup: Markup,
     /// deletions shown in balloons in the margin (All Markup), not inline
@@ -507,7 +509,7 @@ impl Document {
                 }
             }
         }
-        let mut d = Document { numbering, num_dom, num_part, styles_dom: styles_xml, styles_part, theme_dom: theme, pkg, main, dom, styles, settings, sections: Vec::new(), blocks: Vec::new(), body, images, parts, hf_by_rid, notes, show_codes: false,
+        let mut d = Document { numbering, num_dom, num_part, styles_dom: styles_xml, styles_part, theme_dom: theme, pkg, main, dom, styles, settings, sections: Vec::new(), blocks: Vec::new(), body, images, parts, hf_by_rid, notes, show_codes: false, code_fields: Default::default(),
                                markup: Markup::Simple, balloons: false, show_fmt_changes: true };
         d.scan();
         Ok(d)
@@ -877,7 +879,7 @@ impl Document {
     /// The paragraph's content as the layout and editing see it.
     pub fn para_pieces(&self, p: NodeId, base: &RunProps) -> Vec<Piece> {
         let mut out = Vec::new();
-        let mut st = Walk { field_depth: Vec::new(), instr: Vec::new() };
+        let mut st = Walk { field_depth: Vec::new(), instr: Vec::new(), codes: Vec::new() };
         self.walk(p, base, &mut out, "", None, &mut st);
         // the review display: deletions gone in the final view, insertions
         // in the original
@@ -926,10 +928,19 @@ impl Document {
                 }
                 "w:fldSimple" => {
                     // a field without its parts: its instruction as an attribute
+                    let show = self.show_codes != self.code_fields.contains(&c);
+                    let visible = !st.hidden();
+                    let instr = dom.attr(c, "w:instr").unwrap_or("").to_string();
+                    if show && visible {
+                        out.push(Piece { item: Item::Atom(format!("{{{}}}", instr), 0), run: None, node: Some(c),
+                                         rpr: base.clone(), change, link, field: None, note: None, fmt_change: false });
+                    }
                     st.field_depth.push(false);
-                    st.instr.push(dom.attr(c, "w:instr").unwrap_or("").to_string());
+                    st.codes.push(show);
+                    st.instr.push(instr);
                     self.walk(c, base, out, change, link, st);
                     st.field_depth.pop();
+                    st.codes.pop();
                     st.instr.pop();
                 }
                 _ => {}
@@ -942,11 +953,10 @@ impl Document {
         let dom = &self.dom;
         let direct = dom.child(r, "w:rPr").map(|n| RunProps::parse(dom, n)).unwrap_or_default();
         let rpr = self.styles.run(base, &direct);
-        let codes = self.show_codes;
         let fmt_change = self.show_fmt_changes
             && dom.child(r, "w:rPr").map_or(false, |rp| dom.child(rp, "w:rPrChange").is_some());
-        let hidden_code = if codes { st.in_result() } else { st.in_code() };
-        let field = if codes { None } else { st.result_kind() };
+        let hidden_code = st.hidden();
+        let field = if st.codes.iter().any(|&c| c) { None } else { st.result_kind() };
         let push = |item: Item, node: NodeId, out: &mut Vec<Piece>| {
             let item = if hidden_code {
                 match item {
@@ -993,7 +1003,8 @@ impl Document {
                             i.push_str(&t);
                         }
                     }
-                    let item = if codes && !st.in_result() { Item::Atom(t, 0) } else { Item::Hidden(t) };
+                    // a field's code shown: text to edit in place, as in Word
+                    let item = if !st.hidden() && !t.is_empty() { Item::Text(t) } else { Item::Hidden(t) };
                     out.push(Piece { item, run: Some(r), node: Some(c), rpr: rpr.clone(), change, link,
                                      field: None, note: None, fmt_change });
                 }
@@ -1023,25 +1034,33 @@ impl Document {
                     let mut brace = None;
                     match dom.attr(c, "w:fldCharType") {
                         Some("begin") => {
-                            if codes && !st.in_result() {
+                            let show = self.show_codes != self.code_fields.contains(&c);
+                            if show && !st.hidden() {
                                 brace = Some("{");
                             }
                             st.field_depth.push(true);
+                            st.codes.push(show);
                             st.instr.push(String::new());
                         }
                         Some("separate") => {
+                            let show = st.codes.last().copied().unwrap_or(false);
+                            // visible to the fields around this one?
+                            let outer_hidden = st.hidden_outer();
                             if let Some(l) = st.field_depth.last_mut() {
                                 *l = false;
                             }
-                            if codes && !st.in_result_outer() {
+                            if show && !outer_hidden {
                                 brace = Some("}");
                             }
                         }
                         Some("end") => {
                             let had_code = st.field_depth.last().copied().unwrap_or(false);
+                            let show = st.codes.last().copied().unwrap_or(false);
+                            let outer_hidden = st.hidden_outer();
                             st.field_depth.pop();
+                            st.codes.pop();
                             st.instr.pop();
-                            if codes && had_code && !st.in_result() {
+                            if show && had_code && !outer_hidden {
                                 brace = Some("}");
                             }
                         }
@@ -1202,9 +1221,22 @@ struct Walk {
     field_depth: Vec<bool>,
     /// each open field's instruction
     instr: Vec<String>,
+    /// each open field: shown as its code (true) or its result
+    codes: Vec<bool>,
 }
 
 impl Walk {
+    /// Content hidden by an open field: its code while the result shows, or the reverse.
+    fn hidden(&self) -> bool {
+        self.field_depth.iter().zip(self.codes.iter()).any(|(&in_code, &show)| in_code != show)
+    }
+
+    /// Hidden by a field around the innermost one.
+    fn hidden_outer(&self) -> bool {
+        let n = self.field_depth.len().min(self.codes.len());
+        n > 0 && self.field_depth[..n - 1].iter().zip(self.codes[..n - 1].iter()).any(|(&a, &b)| a != b)
+    }
+
     fn in_code(&self) -> bool {
         self.field_depth.iter().any(|&c| c)
     }
