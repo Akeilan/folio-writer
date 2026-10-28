@@ -973,10 +973,10 @@ impl Renderer {
     fn draw_pic_fx(&mut self, cr: &cairo::Context, pic: &crate::pictures::Pic, fx: &crate::effects::Fx,
                    px: f64, py: f64) {
         use crate::effects as E;
-        let (w, h) = (pic.w, pic.h);
+        let (mut w, mut h) = (pic.w, pic.h);
         let (dx, dy) = cr.user_to_device_distance(1.0, 0.0).unwrap_or((1.0, 0.0));
         let k = (dx * dx + dy * dy).sqrt().clamp(0.5, 6.0);
-        let (iw, ih) = ((w * k).ceil().max(1.0) as i32, (h * k).ceil().max(1.0) as i32);
+        let (mut iw, mut ih) = ((w * k).ceil().max(1.0) as i32, (h * k).ceil().max(1.0) as i32);
         if iw > 8000 || ih > 8000 {
             return;
         }
@@ -1012,11 +1012,26 @@ impl Renderer {
         if pic.rot != 0.0 {
             cr.rotate(pic.rot.to_radians());
         }
-        if let Some((la, lo, rv)) = fx.camera {
-            let (a, b, c, d) = E::camera_matrix(la, lo, rv);
-            cr.transform(cairo::Matrix::new(a, b, c, d, 0.0, 0.0));
+        let mut warped = false;
+        if let (Some(cam), Some(fov)) = (fx.camera, fx.persp) {
+            // a perspective camera: the picture drawn foreshortened, not skewed
+            if let Some((out, x0, y0, nw, nh)) = E::perspective_warp(&mut surf, w, h, k, cam, fov) {
+                surf = out;
+                iw = surf.width();
+                ih = surf.height();
+                w = nw;
+                h = nh;
+                cr.translate(x0, y0);
+                warped = true;
+            }
         }
-        cr.translate(-w / 2.0, -h / 2.0);
+        if !warped {
+            if let Some((la, lo, rv)) = fx.camera {
+                let (a, b, c, d) = E::camera_matrix(la, lo, rv);
+                cr.transform(cairo::Matrix::new(a, b, c, d, 0.0, 0.0));
+            }
+            cr.translate(-w / 2.0, -h / 2.0);
+        }
         let paint_mask = |cr: &cairo::Context, m: &cairo::ImageSurface, pad: i32, color: u32, alpha: f64| {
             cr.save().ok();
             cr.scale(1.0 / k, 1.0 / k);

@@ -46,6 +46,8 @@ pub struct Fx {
     pub bevel: Option<(f64, f64, String)>,
     /// 3-D rotation: latitude, longitude, revolution (degrees)
     pub camera: Option<(f64, f64, f64)>,
+    /// the camera's field of view (degrees) for perspective presets: drawn foreshortened
+    pub persp: Option<f64>,
     /// -1..1
     pub brightness: f64,
     pub contrast: f64,
@@ -191,6 +193,15 @@ pub fn parse(dom: &XmlDoc, sppr: Option<NodeId>, blip: Option<NodeId>, colors: &
                                                      val(dom, r, "rev", 0.0) / 60000.0));
             let r = r.or_else(|| camera_preset(dom.attr(cam, "prst").unwrap_or("")));
             fx.camera = r.filter(|(a, b, c)| a.abs() + b.abs() + c.abs() > 0.01);
+            let prst = dom.attr(cam, "prst").unwrap_or("");
+            let fov = val(dom, cam, "fov", -1.0);
+            fx.persp = if fov > 0.0 {
+                Some((fov / 60000.0).clamp(1.0, 179.0))
+            } else if prst.starts_with("perspective") {
+                Some(45.0)
+            } else {
+                None
+            };
         }
         if let Some(b) = dom.child(sp, "a:sp3d").and_then(|s| dom.child(s, "a:bevelT")) {
             fx.bevel = Some((val(dom, b, "w", 76200.0) / EMU, val(dom, b, "h", 76200.0) / EMU,
@@ -389,4 +400,126 @@ pub fn multiply_alpha(s: &mut cairo::ImageSurface, m: &mut cairo::ImageSurface) 
             }
         }
     }
+}
+
+
+/// Where a point (centred coordinates, points) of a flat picture ends up under a 3-D
+/// rotation seen through a camera with this field of view.
+pub fn project(x: f64, y: f64, lat: f64, lon: f64, rev: f64, dist: f64) -> (f64, f64) {
+    let (la, lo, rv) = (lat.to_radians(), lon.to_radians(), rev.to_radians());
+    // turn about the vertical axis, tip, then spin (as camera_matrix)
+    let x1 = x * lo.cos();
+    let z1 = x * lo.sin();
+    let y2 = y * la.cos() + z1 * la.sin();
+    let z2 = z1 * la.cos() - y * la.sin();
+    let (cs, sn) = (rv.cos(), rv.sin());
+    let x3 = cs * x1 - sn * y2;
+    let y3 = sn * x1 + cs * y2;
+    let s = dist / (dist + z2).max(dist * 0.05);
+    (x3 * s, y3 * s)
+}
+
+/// The 3x3 projective map taking the four points `from` to `to` (row major, h33 = 1).
+pub fn homography(from: [(f64, f64); 4], to: [(f64, f64); 4]) -> Option<[f64; 9]> {
+    let mut a = [[0.0f64; 9]; 8];
+    for i in 0..4 {
+        let (x, y) = from[i];
+        let (u, v) = to[i];
+        a[2 * i] = [x, y, 1.0, 0.0, 0.0, 0.0, -u * x, -u * y, u];
+        a[2 * i + 1] = [0.0, 0.0, 0.0, x, y, 1.0, -v * x, -v * y, v];
+    }
+    for c in 0..8 {
+        let mut piv = c;
+        for r in c + 1..8 {
+            if a[r][c].abs() > a[piv][c].abs() {
+                piv = r;
+            }
+        }
+        if a[piv][c].abs() < 1e-12 {
+            return None;
+        }
+        a.swap(c, piv);
+        for r in 0..8 {
+            if r != c {
+                let f = a[r][c] / a[c][c];
+                for k in c..9 {
+                    a[r][k] -= f * a[c][k];
+                }
+            }
+        }
+    }
+    let mut h = [0.0; 9];
+    for i in 0..8 {
+        h[i] = a[i][8] / a[i][i];
+    }
+    h[8] = 1.0;
+    Some(h)
+}
+
+/// A picture (ARGB32, premultiplied) drawn foreshortened by a perspective 3-D rotation.
+/// `k` is the surface's pixels per point. Returns the new surface and where its top-left
+/// corner sits relative to the picture's centre (points).
+pub fn perspective_warp(src: &mut cairo::ImageSurface, w: f64, h: f64, k: f64, cam: (f64, f64, f64),
+                        fov: f64) -> Option<(cairo::ImageSurface, f64, f64, f64, f64)> {
+    let dist = (w.max(h) / 2.0) / (fov.to_radians() / 2.0).tan().max(0.05) * 1.6;
+    let (la, lo, rv) = cam;
+    let corners = [(-w / 2.0, -h / 2.0), (w / 2.0, -h / 2.0), (w / 2.0, h / 2.0), (-w / 2.0, h / 2.0)];
+    let q: Vec<(f64, f64)> = corners.iter().map(|&(x, y)| project(x, y, la, lo, rv, dist)).collect();
+    let x0 = q.iter().map(|p| p.0).fold(f64::MAX, f64::min);
+    let x1 = q.iter().map(|p| p.0).fold(f64::MIN, f64::max);
+    let y0 = q.iter().map(|p| p.1).fold(f64::MAX, f64::min);
+    let y1 = q.iter().map(|p| p.1).fold(f64::MIN, f64::max);
+    let (ow, oh) = (((x1 - x0) * k).ceil().max(1.0) as i32, ((y1 - y0) * k).ceil().max(1.0) as i32);
+    if ow > 9000 || oh > 9000 {
+        return None;
+    }
+    // output (points, centred) -> source pixel
+    let (sw, sh) = (src.width(), src.height());
+    let src_px = [(0.0, 0.0), (sw as f64, 0.0), (sw as f64, sh as f64), (0.0, sh as f64)];
+    let hm = homography([q[0], q[1], q[2], q[3]], src_px)?;
+    let stride_s = src.stride() as usize;
+    src.flush();
+    let sdata = src.data().ok()?.to_vec();
+    let mut out = cairo::ImageSurface::create(cairo::Format::ARgb32, ow, oh).ok()?;
+    let stride_o = out.stride() as usize;
+    {
+        let mut od = out.data().ok()?;
+        let fetch = |x: i32, y: i32| -> [f64; 4] {
+            if x < 0 || y < 0 || x >= sw || y >= sh {
+                return [0.0; 4];
+            }
+            let i = y as usize * stride_s + x as usize * 4;
+            [sdata[i] as f64, sdata[i + 1] as f64, sdata[i + 2] as f64, sdata[i + 3] as f64]
+        };
+        for v in 0..oh {
+            for u in 0..ow {
+                let px = x0 + (u as f64 + 0.5) / k;
+                let py = y0 + (v as f64 + 0.5) / k;
+                let d = hm[6] * px + hm[7] * py + hm[8];
+                if d.abs() < 1e-12 {
+                    continue;
+                }
+                let sx = (hm[0] * px + hm[1] * py + hm[2]) / d - 0.5;
+                let sy = (hm[3] * px + hm[4] * py + hm[5]) / d - 0.5;
+                if sx < -1.0 || sy < -1.0 || sx > sw as f64 || sy > sh as f64 {
+                    continue;
+                }
+                let (fx, fy) = (sx.floor(), sy.floor());
+                let (ax, ay) = (sx - fx, sy - fy);
+                let (ix, iy) = (fx as i32, fy as i32);
+                let p00 = fetch(ix, iy);
+                let p10 = fetch(ix + 1, iy);
+                let p01 = fetch(ix, iy + 1);
+                let p11 = fetch(ix + 1, iy + 1);
+                let o = v as usize * stride_o + u as usize * 4;
+                for c in 0..4 {
+                    let val = p00[c] * (1.0 - ax) * (1.0 - ay) + p10[c] * ax * (1.0 - ay)
+                        + p01[c] * (1.0 - ax) * ay + p11[c] * ax * ay;
+                    od[o + c] = val.round().clamp(0.0, 255.0) as u8;
+                }
+            }
+        }
+    }
+    out.mark_dirty();
+    Some((out, x0, y0, x1 - x0, y1 - y0))
 }
