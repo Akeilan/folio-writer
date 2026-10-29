@@ -2,7 +2,7 @@ import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f,
 exec(open(TESTS + "/word/wc.py").read())
 H = TESTS + "/word/helpers/"
 procs = []
-ENV = dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99"))
+ENV = dict(os.environ, DISPLAY=(os.environ.get("XTEST_DISPLAY") or os.environ.get("DISPLAY") or ":99"))
 def spawn(*args):
     p = subprocess.Popen(list(args), env=ENV, stdin=subprocess.PIPE if args[0] == "xclip" else None)
     procs.append(p); return p
