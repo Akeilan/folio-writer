@@ -1,4 +1,4 @@
-# Run inside Folio Writer with FOLIO_ENGINE=native (FOLIO_TEST_SCRIPT): presses every ribbon
+# Run inside Folio Page with FOLIO_ENGINE=native (FOLIO_TEST_SCRIPT): presses every ribbon
 # control and menu item and writes /tmp/fw_walk.txt: tab, label, action(s), result —
 # OK, NOT_YET (the new engine refused it), ERROR (an exception), SKIP.
 # Picture Format / Shape Format / table tabs run with such an object selected.
@@ -193,7 +193,7 @@ OBJ = ("Picture Format", "Shape Format", "Table Design", "Table Layout", "Chart 
 walk(items_of(exclude=OBJ))
 
 # a picture, selected
-pic = os.path.join(os.environ.get("FOLIO_SHARE", "/usr/share/folio-writer"), "icons", "folio-writer-128.png")
+pic = os.path.join(os.environ.get("FOLIO_SHARE", "/usr/share/folio-page"), "icons", "folio-page-128.png")
 
 
 PICPOS = {}

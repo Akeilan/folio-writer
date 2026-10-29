@@ -752,7 +752,7 @@ class _Writer:
             base.append(("rIdComments", "comments", "comments.xml"))
         self.files["word/_rels/document.xml.rels"] = body.rels_xml(base).encode()
         self.files["docProps/core.xml"] = self.core_xml().encode()
-        self.files["docProps/app.xml"] = (HDR + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Folio Writer</Application></Properties>').encode()
+        self.files["docProps/app.xml"] = (HDR + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Folio Page</Application></Properties>').encode()
         self.files["_rels/.rels"] = (HDR + (
             '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
             '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>'

@@ -1640,7 +1640,7 @@ def build_ribbon(win):
         SplitButton(r, "Track\nChanges", "cmd/lc_trackchanges", ".uno:TrackChanges", [
             ("For Everyone", lambda: A.cmd(".uno:TrackChanges")),
             ("Just Mine", lambda: win.status.flash(
-                "Just Mine is for documents shared online, which Folio Writer doesn't do; "
+                "Just Mine is for documents shared online, which Folio Page doesn't do; "
                 "For Everyone tracks your changes.")),
             ("Lock Tracking", lambda: win.lock_tracking())],
             size="large", state=".uno:TrackChanges", keytip="G",

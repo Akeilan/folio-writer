@@ -360,7 +360,7 @@ PAGE = """<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="Generator" content="Folio Writer">
+<meta name="Generator" content="Folio Page">
 <title>%s</title>
 <style>
 body { font-family: Calibri, Carlito, sans-serif; font-size: 11pt; max-width: 8.5in; margin: 1in auto; }
@@ -540,7 +540,7 @@ class RtfWriter:
         colors = ";" + "".join("\\red%d\\green%d\\blue%d;" % (int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16))
                                for c in self.colors)
         return ("{\\rtf1\\ansi\\ansicpg1252\\deff0\\uc1{\\fonttbl%s}{\\colortbl%s}\n"
-                "{\\*\\generator Folio Writer;}\\viewkind4\n%s}" % (fonts, colors, content))
+                "{\\*\\generator Folio Page;}\\viewkind4\n%s}" % (fonts, colors, content))
 
 
 def docx_to_rtf(docx):

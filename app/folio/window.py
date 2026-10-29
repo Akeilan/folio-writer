@@ -22,7 +22,7 @@ class DocWindow(Gtk.ApplicationWindow):
             self.maximize()
         self.connect("configure-event", self._remember_geometry)
         self.connect("window-state-event", self._remember_state)
-        self.set_icon_name("folio-writer")
+        self.set_icon_name("folio-page")
         self.doc_words = ""
         self.untitled = None
         self.keymap = KeyMap()
@@ -1475,7 +1475,7 @@ class DocWindow(Gtk.ApplicationWindow):
             return
         w = Gtk.Window(title="%s:2 - %s" % (self.doc_name(), APP_NAME))
         w.set_default_size(*self.get_size())
-        w.set_icon_name("folio-writer")
+        w.set_icon_name("folio-page")
         sw = Gtk.ScrolledWindow()
         sw.get_style_context().add_class("folio-canvas")
         sw.add(v2)

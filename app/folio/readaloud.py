@@ -35,7 +35,7 @@ class Speaker:
 
             def connect():
                 try:
-                    c = speechd.SSIPClient("folio-writer")
+                    c = speechd.SSIPClient("folio-page")
                     c.set_data_mode(speechd.DataMode.SSML)
                     box["c"] = c
                 except Exception:

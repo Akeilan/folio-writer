@@ -1,0 +1,6 @@
+#!/bin/sh
+# Folio Page launcher
+export FOLIO_SHARE=/usr/share/folio-page
+PYTHONPATH=/usr/lib/folio-page${PYTHONPATH:+:$PYTHONPATH}
+export PYTHONPATH
+exec "${FOLIO_PYTHON:-/usr/bin/python3}" -m folio "$@"

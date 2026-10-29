@@ -12,7 +12,7 @@ _CANDIDATES = [
     os.path.join(_HERE, "..", "..", "folio_core.so"),
     os.path.normpath(os.path.join(_HERE, "..", "..", "..", "core", "target", "release",
                                   "libfolio_core.so")),
-    "/usr/lib/folio-writer/folio_core.so",
+    "/usr/lib/folio-page/folio_core.so",
 ]
 
 _core = None

@@ -1,7 +1,7 @@
-"""Folio Writer."""
+"""Folio Page."""
 import os
 
-VERSION = "2.32.0"
-APP_NAME = "Folio Writer"
-APP_ID = "org.folio.Writer"
-SHARE = os.environ.get("FOLIO_SHARE", "/usr/share/folio-writer")
+VERSION = "2.33.0"
+APP_NAME = "Folio Page"
+APP_ID = "org.folio.Page"
+SHARE = os.environ.get("FOLIO_SHARE", "/usr/share/folio-page")

@@ -1,11 +1,11 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: folio-writer
+Upstream-Name: folio-page
 Source: personal build
 
 Files: *
 Copyright: 2026 Ron Shillings
 License: MPL-2.0
- Folio Writer's own code (interface, dialogs, keyboard handling, equation
+ Folio Page's own code (interface, dialogs, keyboard handling, equation
  editor) is original work. It displays and edits documents through the
  LibreOfficeKit document engine of the installed LibreOffice packages and
  uses the Colibre icon theme shipped with them (both MPL-2.0).
@@ -20,6 +20,6 @@ License: public-domain
  are in the public domain. They were read with the Hershey-Fonts Python
  package (MIT, Copyright 2020 apshu), which is not shipped.
 
-Files: usr/share/folio-writer/fonts/STIX2Math.otf
+Files: usr/share/folio-page/fonts/STIX2Math.otf
 Copyright: 2001-2021 The STIX Fonts Project Authors
-License: OFL-1.1 (see /usr/share/doc/folio-writer/STIX-OFL.txt)
+License: OFL-1.1 (see /usr/share/doc/folio-page/STIX-OFL.txt)

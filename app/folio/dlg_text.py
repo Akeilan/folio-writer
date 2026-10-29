@@ -664,7 +664,7 @@ class TextDialogs:
 
     def _ask_default_scope(self):
         """'doc' / 'all' / None, as the original asks."""
-        d = FDialog(self.win, "Folio Writer")
+        d = FDialog(self.win, "Folio Page")
         d.add(Gtk.Label(label="Do you want to set the default paragraph formatting to:",
                         xalign=0))
         this = Gtk.RadioButton.new_with_mnemonic(None, "This _document only?")

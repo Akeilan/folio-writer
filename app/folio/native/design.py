@@ -53,7 +53,7 @@ def set_as_default(win):
     base = os.path.splitext(os.path.basename(src))[0]
     tpl = os.path.splitext(src)[0] + ".docx"
     if not os.path.exists(tpl):
-        for d in ("/usr/share/folio-writer/templates",
+        for d in ("/usr/share/folio-page/templates",
                   os.path.join(os.path.dirname(__file__), "..", "..", "..", "share", "templates")):
             p = os.path.join(d, base + ".docx")
             if os.path.exists(p):

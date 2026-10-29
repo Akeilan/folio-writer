@@ -1,4 +1,4 @@
-"""Folio Writer application: windows, recent files, settings."""
+"""Folio Page application: windows, recent files, settings."""
 import json
 import os
 import subprocess
@@ -13,7 +13,7 @@ from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 from . import APP_ID, APP_NAME, SHARE, VERSION  # noqa: E402
 
 CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
-                      "folio-writer")
+                      "folio-page")
 
 def install_autocorrect(user):
     try:
@@ -44,7 +44,7 @@ class FolioApp(Gtk.Application):
         Gtk.Application.__init__(self, application_id=APP_ID,
                                  flags=Gio.ApplicationFlags.HANDLES_OPEN)
         GLib.set_application_name(APP_NAME)
-        GLib.set_prgname("folio-writer")
+        GLib.set_prgname("folio-page")
         os.makedirs(CONFIG, exist_ok=True)
         self.engine_profile = os.path.join(CONFIG, "engine")
         self.settings_path = os.path.join(CONFIG, "settings.json")
@@ -364,12 +364,27 @@ MIME_DEFAULTS = [
 
 def make_default():
     for t in MIME_DEFAULTS:
-        subprocess.run(["xdg-mime", "default", "folio-writer.desktop", t],
+        subprocess.run(["xdg-mime", "default", "folio-page.desktop", t],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def migrate_settings():
+    """Folio Writer became Folio Page (2.33): the first start copies the old settings, recent files,
+    templates, Quick Parts, sources and dictionaries over. The old folder stays as it was."""
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    old = os.path.join(base, "folio-writer")
+    if os.path.isdir(old) and not os.path.exists(CONFIG):
+        import shutil
+        try:
+            shutil.copytree(old, CONFIG, symlinks=True,
+                            ignore=shutil.ignore_patterns("engine", "*.lock", "lock"))
+        except Exception:
+            pass
 
 
 def main(argv=None):
     argv = list(argv if argv is not None else sys.argv)
+    migrate_settings()
     if "--version" in argv:
         print("%s %s" % (APP_NAME, VERSION))
         return 0
@@ -388,10 +403,10 @@ def main(argv=None):
         print("Settings reset.")
         return 0
     app = FolioApp()
-    if not app.settings.get("mime_registered") and os.path.exists(
-            "/usr/share/applications/folio-writer.desktop"):
+    if not app.settings.get("mime_registered_page") and os.path.exists(
+            "/usr/share/applications/folio-page.desktop"):
         make_default()
-        app.settings["mime_registered"] = True
+        app.settings["mime_registered_page"] = True
         app.save_settings()
     code = app.run(argv)
     sys.stdout.flush()

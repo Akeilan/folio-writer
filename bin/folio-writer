@@ -1,6 +1,0 @@
-#!/bin/sh
-# Folio Writer launcher
-export FOLIO_SHARE=/usr/share/folio-writer
-PYTHONPATH=/usr/lib/folio-writer${PYTHONPATH:+:$PYTHONPATH}
-export PYTHONPATH
-exec "${FOLIO_PYTHON:-/usr/bin/python3}" -m folio "$@"

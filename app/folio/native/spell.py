@@ -11,7 +11,7 @@ WORD = re.compile(r"[^\W\d_]+(?:['’][^\W\d_]+)*", re.UNICODE)
 _DICTS = {}
 
 
-USER_WORDS = "~/.config/folio-writer/dictionary.txt"
+USER_WORDS = "~/.config/folio-page/dictionary.txt"
 
 
 def user_words_path():
@@ -66,7 +66,7 @@ def reload_user_words():
 
 
 # ---------------------------------------------------------------- custom dictionaries
-DICT_DIR = "~/.config/folio-writer/dictionaries"
+DICT_DIR = "~/.config/folio-page/dictionaries"
 _EXTRA = []
 _STATE = {"active": {}}
 

@@ -125,5 +125,5 @@ NAVIGATION
   F9                   Update fields
 
 COMMAND LINE
-  folio-writer --reset-settings   re-apply the default look and shortcuts
-  folio-writer --make-default     open .docx/.doc/.rtf/.odt files with Folio
+  folio-page --reset-settings   re-apply the default look and shortcuts
+  folio-page --make-default     open .docx/.doc/.rtf/.odt files with Folio

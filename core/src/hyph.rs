@@ -11,7 +11,7 @@ pub struct Patterns {
     max_len: usize,
 }
 
-const DIRS: &[&str] = &["/usr/share/folio-writer/hyphen", "/usr/share/hyphen", "/usr/share/myspell/dicts"];
+const DIRS: &[&str] = &["/usr/share/folio-page/hyphen", "/usr/share/folio-writer/hyphen", "/usr/share/hyphen", "/usr/share/myspell/dicts"];
 
 fn load(lang: &str) -> Option<Patterns> {
     let name = format!("hyph_{lang}.dic");
