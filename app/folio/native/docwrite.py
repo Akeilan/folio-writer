@@ -406,7 +406,7 @@ class Writer:
             lfo.append(struct.pack("<iiiBBBB", lsid, 0, 0, 0, 0, 0, 0))
             lfodata.append(struct.pack("<I", 0xFFFFFFFF))
             self.lfo_of[ni] = ni + 1
-        plflst = struct.pack("<H", len(lstf)) + b"".join(lstf) + b"".join(lvls)
+        plflst = (struct.pack("<H", len(lstf)) + b"".join(lstf), b"".join(lvls))
         plflfo = struct.pack("<I", len(lfo)) + b"".join(lfo) + b"".join(lfodata)
         return plflst, plflfo
 
@@ -830,7 +830,9 @@ class Writer:
         clx = struct.pack("<BI", 2, 16) + struct.pack("<II", 0, total) + struct.pack("<HIH", 0, fc_text, 0)
         put(33, clx)
         if plflst:
-            put(73, plflst)
+            # the LVLs follow PlfLst in the table stream, outside its count
+            put(73, plflst[0])
+            tb.extend(plflst[1])
             put(74, plflfo)
         # ---- FIB
         fib = self.fib(fclcb, ccp, len(wd), fc_text, fc_text + 2 * total,
