@@ -90,7 +90,7 @@ BINDINGS = [
     ("ctrl+F1", "toggle-ribbon"), ("F1", "help"), ("F9", "update-fields"),
     ("ctrl+alt+shift+z", "go-back"),
     # ---- view
-    ("ctrl+alt+p", "print-layout"), ("ctrl+alt+o", "outline-view"), ("ctrl+alt+n", "draft-view"),
+    ("ctrl+alt+k", "autoformat-now"), ("ctrl+alt+p", "print-layout"), ("ctrl+alt+o", "outline-view"), ("ctrl+alt+n", "draft-view"),
     ("ctrl+plus", "zoom-in"), ("ctrl+KP_Add", "zoom-in"),
     ("ctrl+alt+minus+zoom", "zoom-out"),
 ]

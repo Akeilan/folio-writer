@@ -147,6 +147,8 @@ class AutoCorrect:
             h = self._heading_line()
             if h:
                 return h
+            if self.opt("ac_define_styles", False) and self._define_style():
+                done = True
             done = self._border_line() or done
             done = self._table_line() or done
             return done
@@ -405,6 +407,17 @@ class AutoCorrect:
             ed.end_group()
         self.win.engine.view.after_edit()
         return "handled"
+
+    def _define_style(self):
+        """Define styles based on your formatting (W3-09)."""
+        p, off, text = self._before()
+        if off != len(self.ed.para_text_of(p)) or self.ed.cell_name():
+            return False
+        from . import autoformat
+        name = autoformat.define_style(self.ed, p)
+        if name:
+            self.win.engine.view.after_edit()
+        return bool(name)
 
     def _table_line(self):
         """+----+----+ then Enter: a table with a column per gap."""

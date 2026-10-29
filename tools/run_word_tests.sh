@@ -16,7 +16,7 @@ for f in ${@:-tests/word/[cdlrwx]*.py}; do
   if [ "$APP" = installed ]; then
     DISPLAY=${DISPLAY:-:99} FOLIO_ENGINE=native FOLIO_TEST_SCRIPT=/tmp/fw/$f timeout 300 folio-writer >/tmp/$(basename $f).out 2>&1
   else
-    DISPLAY=${DISPLAY:-:99} FOLIO_ENGINE=native FOLIO_SHARE=/tmp/fw/share FOLIO_TEST_SCRIPT=/tmp/fw/$f PYTHONPATH=app${EXTRA_PYTHONPATH:+:$EXTRA_PYTHONPATH} timeout 300 python3 -m folio >/tmp/$(basename $f).out 2>&1
+    DISPLAY=${DISPLAY:-:99} FOLIO_ENGINE=native FOLIO_SHARE=/tmp/fw/share FOLIO_TEST_SCRIPT=/tmp/fw/$f PYTHONPATH=app${EXTRA_PYTHONPATH:+:$EXTRA_PYTHONPATH} timeout 300 ${PYRUN:-python3} -m folio >/tmp/$(basename $f).out 2>&1
   fi
   echo "$(basename $f) rc=$? pass=$(grep -c ^PASS /tmp/ftest.log) fail=$(grep -c ^FAIL /tmp/ftest.log) err=$(grep -c '^ERROR' /tmp/ftest.log) done=$(grep -c ALLDONE /tmp/ftest.log)"
   grep "^FAIL\|^ERROR" /tmp/ftest.log | sed "s#^#$(basename $f): #" >> /tmp/word_fail.txt

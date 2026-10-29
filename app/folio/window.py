@@ -259,10 +259,12 @@ class DocWindow(Gtk.ApplicationWindow):
         ("spelling", "Spelling & Grammar", "cmd/sc_spellingandgrammardialog", "Spelling & Grammar (F7)"),
         ("table", "Draw Table", "cmd/sc_inserttable", "Insert Table"),
         ("format-painter", "Format Painter", "cmd/sc_formatpaintbrush", "Format Painter"),
+        ("autoformat", "AutoFormat...", "cmd/sc_autoformat", "AutoFormat (Ctrl+Alt+K formats at once)"),
     ]
     QAT_ACTIONS = {"new": "new", "open": "backstage-open", "save": "save", "undo": "undo",
                    "redo": "redo-repeat", "print": "backstage-print", "spelling": "spelling",
-                   "table": "insert-table-dialog", "format-painter": ".uno:FormatPaintbrush"}
+                   "table": "insert-table-dialog", "format-painter": ".uno:FormatPaintbrush",
+                   "autoformat": "autoformat"}
 
     def build_qat(self):
         qat = self.qat
@@ -1056,6 +1058,8 @@ class DocWindow(Gtk.ApplicationWindow):
         ov.load()
         self.ribbon.show_contextual("Outlining", True)
         self.select_tab("Outlining")
+        from . import masterui
+        masterui.update(self)
         self.status.set_view(None)
         ov.tv.grab_focus()
 
@@ -1066,6 +1070,14 @@ class DocWindow(Gtk.ApplicationWindow):
         self.ribbon.show_contextual("Outlining", False)
         self.status.set_view("print")
         self.select_tab("Home")
+
+    def act_autoformat(self):
+        from . import autoformatdlg
+        autoformatdlg.dialog(self)
+
+    def act_autoformat_now(self):
+        from . import autoformatdlg
+        autoformatdlg.autoformat_now(self)
 
     def outline(self):
         from .outlineview import OutlineView

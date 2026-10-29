@@ -502,6 +502,15 @@ def _snapshot(win):
     return path
 
 
+def clear(ed):
+    """Everything taken out of a document (a field the first pass leaves goes on the next)."""
+    for _ in range(4):
+        ed.select_all()
+        ed.delete(True, False)
+        if not any(r[1] for r in ed.outline_paras()) and not ed.fields_all():
+            break
+
+
 def merged_document(win, which="all", first=1, last=None, answers=None):
     """Finish & Merge into a file: a copy of the document for each record (labels:
     as many records as the page takes). Returns (path, count)."""
@@ -521,8 +530,7 @@ def merged_document(win, which="all", first=1, last=None, answers=None):
     src = _snapshot(win)
     E = core().Editor.open(src)
     out = core().Editor.open(src)
-    out.select_all()
-    out.delete(True, False)
+    clear(out)
     frags = []
     seq = 0
     k = 0
@@ -873,8 +881,7 @@ def email_messages(win, to_column, subject, fmt="html", which="all", first=1, la
             E.select_all()
             frag = E.copy_fragment()
             one = core().Editor.open(src)
-            one.select_all()
-            one.delete(True, False)
+            clear(one)
             if frag:
                 one.move_caret("doc_end", False)
                 one.paste_fragment(frag, True)
