@@ -2166,26 +2166,6 @@ def build_ribbon(win):
         obj = charts.selected(win)
         if obj is None:
             return
-        if charts.is_image(obj) and fn not in ("edit", "type", "title", "set_title"):
-            from . import imagecharts as IC
-            opt = {"set_colors": lambda c: {"colors": list(c)},
-                   "set_legend": lambda w: {"legend": w},
-                   "set_data_labels": lambda w: {"labels": w is not None,
-                                                 "values": w is not None and w != "center"},
-                   "set_chart_style": lambda i: {"style": i},
-                   "quick_layout": lambda i: [{"legend": "top", "labels": True, "values": False},
-                                              {"legend": "right", "labels": True,
-                                               "values": True},
-                                              {"legend": "none", "labels": True,
-                                               "values": True},
-                                              {"legend": "bottom", "labels": False,
-                                               "values": True}][i % 4]}.get(fn)
-            if opt is None:
-                win.status.flash("That option isn't available for this chart type.")
-                return
-            IC.set_option(m, obj, **opt(*args))
-            win.focus_document()
-            return
         if fn == "edit":
             charts.edit_chart(win, obj)
         elif fn == "type":
