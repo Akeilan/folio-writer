@@ -66,20 +66,23 @@ def a():
     check("doc compatibility mode", "Compatibility Mode" in win.get_title(), win.get_title())
     check("no converter run for .doc", not CALLS, CALLS)
     shot("n30_doc"); yield 0.2
-    # ---- Save on a .doc: Save As a .docx
+    # ---- Save on a .doc: saved in place as Word 97-2003, by Folio itself (W3-06)
+    import shutil as _sh
+    _sh.copy(os.path.join(DATA, "sample.doc"), "/tmp/n30_copy.doc")
+    win.open_file("/tmp/n30_copy.doc"); yield 2.0
     asked = []
 
     def save_file(name, fmt=None):
         asked.append(fmt)
-        return "/tmp/n30_from_doc.docx"
+        return None
     win.dialogs.save_file = save_file
-    if os.path.exists("/tmp/n30_from_doc.docx"):
-        os.remove("/tmp/n30_from_doc.docx")
     ok = win.save(); yield 1.0
-    check("doc save asks for a .docx", asked == ["docx"], asked)
-    check("doc saved as docx", ok and zipfile.is_zipfile("/tmp/n30_from_doc.docx"), ok)
-    check("told why", any("97-2003" in m for m in MSG), MSG)
-    check("now a docx", E.format == "docx" and "Compatibility" not in win.get_title(), (E.format, win.get_title()))
+    check("doc saved in place", ok and not asked, (ok, asked))
+    with open("/tmp/n30_copy.doc", "rb") as fh:
+        check("still a Word 97-2003 file", fh.read(8) == bytes.fromhex("d0cf11e0a1b11ae1"))
+    check("no converter run for .doc save", not CALLS, CALLS)
+    win.open_file("/tmp/n30_copy.doc"); yield 2.0
+    check("saved doc reopens", "Import test" in body(E.ed), body(E.ed)[:3])
     # ---- the gallery's templates (.ott) open as new documents
     from folio import SHARE
     gal = os.path.join(SHARE, "templates", "gallery")

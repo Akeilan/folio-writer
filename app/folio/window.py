@@ -613,18 +613,11 @@ class DocWindow(Gtk.ApplicationWindow):
     def save(self):
         if self.engine.path is None or self.engine.is_new:
             return self.save_as()
-        if self.engine.format not in ("docx", "doc", "rtf", "odt", "dotx"):
+        if self.engine.format not in ("docx", "doc", "dot", "rtf", "odt", "dotx"):
             return self.save_as()
         if self.read_only:
             self.dialogs.message("This document is read-only. Use Save As to save a copy.")
             return self.save_as()
-        if self.engine.format in ("doc", "dot"):
-            import shutil
-            if not (shutil.which("soffice") or shutil.which("libreoffice")):
-                # Word 97-2003 files are read, not written: they're saved in the current format
-                self.dialogs.message("%s saves Word 97-2003 documents as Word Documents (.docx). "
-                                     "Choose where to save the new file." % APP_NAME)
-                return self.save_as("docx")
         ok = self.engine.save()
         self._after_save(ok)
         return ok

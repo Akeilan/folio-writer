@@ -480,7 +480,8 @@ class Reader:
                 chars.append(raw.decode("cp1252", "replace"))
             else:
                 raw = self.wd[fc:fc + 2 * n]
-                chars.append(raw.decode("utf-16-le", "replace"))
+                # one Python character per UTF-16 unit, so positions match; pairs are joined at the end
+                chars.append("".join(map(chr, struct.unpack("<%dH" % (len(raw) // 2), raw[:len(raw) // 2 * 2]))))
         self.text = "".join(chars)
 
     def fc_of(self, cp):
@@ -1829,5 +1830,24 @@ class Reader:
         return spec
 
 
+def _join_pairs(v):
+    if isinstance(v, str):
+        if any("\ud800" <= c <= "\udfff" for c in v):
+            return v.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "replace")
+        return v
+    if isinstance(v, list):
+        return [_join_pairs(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _join_pairs(x) for k, x in v.items()}
+    return v
+
+
 def read(path):
-    return Reader(path).read()
+    doc = Reader(path).read()
+    for s in doc.sections:
+        s["blocks"] = _join_pairs(s["blocks"])
+        for key in ("headers", "footers"):
+            if s.get(key):
+                s[key] = _join_pairs(s[key])
+    doc.comments = _join_pairs(doc.comments)
+    return doc

@@ -16,6 +16,7 @@ SAVE_TYPES = [
     ("docm", None),
     ("dotx", "Document Template (*.dotx)"),
     ("doc", "Document 97-2003 (*.doc)"),
+    ("dot", "Document Template 97-2003 (*.dot)"),
     ("odt", "OpenDocument Text (*.odt)"),
     ("rtf", "Rich Text Format (*.rtf)"),
     ("txt", "Plain Text (*.txt)"),
