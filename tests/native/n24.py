@@ -193,7 +193,7 @@ def a():
         rbs = [w for w in find_widget(d, lambda w: isinstance(w, Gtk.RadioButton))]
         rbs[-1].set_active(True)
     answer("Compress Pictures", tweak=comp)
-    import folio.pictools as PT_
+    import folio.native.arrange as PT_
     PT_.compress_dialog(win); yield 0.9
     im = Image.open(io.BytesIO(bytes(ed.object_image()[0])))
     check("Compress Pictures resamples", im.width < 600, (im.size, n0, len(ed.object_image()[0])))
