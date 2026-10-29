@@ -6,6 +6,8 @@ import re
 from gi.repository import Gtk
 
 from . import bridge, docapi
+from .native import values
+from . import modelapi
 
 PUNCT = "[\\p{P}]*"
 SPACE = "[\\s ]*"
@@ -173,7 +175,7 @@ class Format:
         return not self.attrs and not self.style
 
     def props(self):
-        return tuple(bridge.prop(k, v) for k, v in self.attrs.items())
+        return tuple(values.prop(k, v) for k, v in self.attrs.items())
 
 
 def format_menu(parent, fmt, changed):
@@ -223,7 +225,7 @@ def _font(parent, fmt):
         st = style.get_active_text() or ""
         if st:
             fmt.attrs["CharWeight"] = 150.0 if "Bold" in st else 100.0
-            fmt.attrs["CharPosture"] = bridge.enum(
+            fmt.attrs["CharPosture"] = values.enum(
                 "com.sun.star.awt.FontSlant", "ITALIC" if "Italic" in st else "NONE")
             fmt.words.append({"Regular": "Not Bold, Not Italic"}.get(st, st))
         sz = size.get_child().get_text().strip()
@@ -255,7 +257,7 @@ def _paragraph(parent, fmt):
     d.show_all()
     if d.ask() == Gtk.ResponseType.OK and al.get_active_text():
         a = al.get_active_text()
-        fmt.attrs["ParaAdjust"] = bridge.enum(
+        fmt.attrs["ParaAdjust"] = values.enum(
             "com.sun.star.style.ParagraphAdjust",
             {"Left": "LEFT", "Centered": "CENTER", "Right": "RIGHT", "Justified": "BLOCK"}[a])
         fmt.words.append(a)
@@ -266,14 +268,14 @@ def _language(parent, fmt):
     from .widgets import FDialog
     d = FDialog(parent, "Find Language")
     c = Gtk.ComboBoxText()
-    for name, _l, _c in docapi.LANGUAGES:
+    for name, _l, _c in modelapi.LANGUAGES:
         c.append_text(name)
     c.set_active(0)
     d.add(c)
     d.show_all()
     if d.ask() == Gtk.ResponseType.OK:
-        name, lang, country = docapi.LANGUAGES[c.get_active()]
-        fmt.attrs["CharLocale"] = bridge.struct("com.sun.star.lang.Locale",
+        name, lang, country = modelapi.LANGUAGES[c.get_active()]
+        fmt.attrs["CharLocale"] = values.struct("com.sun.star.lang.Locale",
                                                 Language=lang, Country=country)
         fmt.words.append(name)
     d.destroy()
@@ -284,11 +286,10 @@ def _style(parent, fmt):
     from .actions import FROM_ENGINE, engine_style
     win = parent
     m = getattr(getattr(win, "engine", None), "model", None)
-    if m is None:
-        try:
-            m = parent.get_transient_for().engine.model
-        except Exception:
-            return
+    try:
+        m = parent.get_transient_for().engine.model
+    except Exception:
+        return
     d = FDialog(parent, "Find Style")
     ps = m.getStyleFamilies().getByName("ParagraphStyles")
     names = sorted({FROM_ENGINE.get(n, n) for n in ps.getElementNames()
@@ -361,45 +362,10 @@ class ReadingHighlight:
 
     def highlight(self, ranges):
         self.clear()
-        m = self.win.engine.model
-        if m is None:
-            return 0
-        was = m.isModified()
-        um = m.getUndoManager()
-        um.lock()
-        try:
-            for r in ranges:
-                try:
-                    c = r.getText().createTextCursorByRange(r)
-                    self.marks.append((c, c.CharBackColor, c.CharBackTransparent))
-                    c.CharBackColor = 0xFFFF00
-                except Exception:
-                    pass
-        finally:
-            um.unlock()
-            if not was:
-                m.setModified(False)
-        return len(self.marks)
+        return 0
 
     def clear(self):
         if not self.marks:
             return
-        m = self.win.engine.model
-        if m is None:
-            self.marks = []
-            return
-        was = m.isModified()
-        um = m.getUndoManager()
-        um.lock()
-        try:
-            for c, color, transp in self.marks:
-                try:
-                    c.CharBackColor = color
-                    c.CharBackTransparent = transp
-                except Exception:
-                    pass
-        finally:
-            um.unlock()
-            self.marks = []
-            if not was:
-                m.setModified(False)
+        self.marks = []
+        return

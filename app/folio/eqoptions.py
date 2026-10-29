@@ -8,6 +8,7 @@ from . import docapi
 from .eqn import render as R
 from .eqn import symbols as S
 from .widgets import FDialog, combo, grid
+from . import modelapi
 
 FONTS = [("Caladea", "Caladea"), ("Latin Modern Roman", "Latin Modern Roman"),
          ("DejaVu Serif", "DejaVu Serif"), ("Liberation Serif", "Liberation Serif"),
@@ -30,7 +31,7 @@ def apply(app):
     o = options(app)
     font = o.get("font", "Caladea")
     R.set_family(font)
-    docapi.MATH_TEXT_FONT[0] = font
+    modelapi.MATH_TEXT_FONT[0] = font
     for k, v in o.get("autocorrect", {}).items():
         S.CONTROL_WORDS[k] = v
     for k in o.get("removed_words", []):

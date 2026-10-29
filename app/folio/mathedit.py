@@ -16,6 +16,7 @@ from . import docapi
 from .eqn import latex, model as M, render as R, unicodemath as U
 from .eqn import symbols as S
 from .eqn.unicodemath import Atom, Seq
+from . import modelapi
 
 LINEAR_MARK = "%% folio:linear"
 OP_CHARS = set(S.OPERATORS) | set("←↔↦⟶⟵,;:!") | S.RELATIONS
@@ -162,7 +163,7 @@ class InlineEditor:
         # park the engine's own cursor after the equation; its position
         # tells us where the equation is on the page
         try:
-            vc = docapi.view_cursor(m)
+            vc = modelapi.view_cursor(m)
             vc.gotoRange(obj.getAnchor().getStart(), False)
             vc.goRight(1, False)
         except Exception:
@@ -219,18 +220,6 @@ class InlineEditor:
             GLib.source_remove(self._blink)
             self._blink = 0
         self.win.ribbon.show_contextual("Equation", False)
-        m = self.win.engine.model
-        if m is not None:
-            try:
-                anchor = obj.getAnchor()
-                if empty:
-                    anchor.getText().removeTextContent(obj)
-                elif move_cursor:
-                    vc = docapi.view_cursor(m)
-                    vc.gotoRange(anchor.getStart(), False)
-                    vc.goRight(1, False)
-            except Exception:
-                pass
         self.win.engine.view.queue_draw()
 
     # ------------------------------------------------------------ geometry

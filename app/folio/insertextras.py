@@ -158,9 +158,6 @@ def organizer(win):
 
 # ------------------------------------------------------------ signature line
 def signature_dialog(win):
-    m = win.engine.model
-    if m is None and False:
-        return
     d = FDialog(win, "Signature Setup")
     signer = Gtk.Entry()
     title = Gtk.Entry()
@@ -219,9 +216,6 @@ TEXTBOXES = [("Simple Text Box", "simple"), ("Sidebar", "sidebar"), ("Quote", "q
 
 # ------------------------------------------------------------ object
 def object_dialog(win):
-    m = win.engine.model
-    if m is None and False:
-        return
     d = FDialog(win, "Object")
     nb = Gtk.Notebook()
     new_list = Gtk.ListBox()

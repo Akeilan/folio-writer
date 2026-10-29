@@ -16,6 +16,7 @@ import time
 from gi.repository import Gdk, GLib, Gtk
 
 from . import docapi
+from . import modelapi
 
 MM = 1440.0 / 2540.0
 TRI = 11            # triangle size (px)
@@ -25,7 +26,7 @@ TRI = 11            # triangle size (px)
 def in_body(m):
     """Is the cursor in the main text (not a header, footer, frame or cell)?"""
     try:
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         return "HeadFoot" not in vc.getText().getImplementationName() and \
             vc.getText() == m.getText()
     except Exception:
@@ -33,7 +34,7 @@ def in_body(m):
 
 
 def _keep_cursor(m):
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     t = vc.getText()
     return vc, t.createTextCursorByRange(vc.getStart()), t.createTextCursorByRange(vc.getEnd())
 
@@ -93,42 +94,12 @@ class HeadingFolds:
             self.stale = True
 
     def _headings(self):
-        m = self.win.engine.model
-        if m is None:
-            return []
-        try:
-            return docapi.headings(m)
-        except Exception:
-            return []
+        return []
 
     def refresh(self):
         """Where each heading is on the page (measured with the view cursor,
         which is put back where it was)."""
-        m = self.win.engine.model
-        if m is None or not in_body(m):
-            # measuring moves the view cursor and puts it back by position; in a
-            # header or footer that would land on the last page's copy of it
-            return
-        self.stale = False
-        hs = self._headings()
-        if not hs or len(hs) > 400:
-            self.marks = []
-            return
-        out = []
-        vc, a, b = _keep_cursor(m)
-        try:
-            for lvl, _t, par in hs:
-                try:
-                    vc.gotoRange(par.getStart(), False)
-                    p = _to_twips(self.win, vc.getPosition())
-                    h = (par.CharHeight or 11) * 20 * 1.3
-                except Exception:
-                    continue
-                if p is not None:
-                    out.append((par, lvl, p[0], p[1], h))
-        finally:
-            _restore(vc, a, b)
-        self.marks = out
+        return
 
     def _is_collapsed(self, par):
         t = par.getText()
@@ -172,42 +143,7 @@ class HeadingFolds:
         return cur
 
     def toggle(self, par, level):
-        m = self.win.engine.model
-        if m is None:
-            return
-        was = m.isModified()
-        k = self._is_collapsed(par)
-        um = m.getUndoManager()
-        try:
-            um.lock()           # folding is a view on the document, not an edit
-        except Exception:
-            pass
-        try:
-            if k is not None:
-                _start, rng = self.collapsed.pop(k)
-                _unhide(rng)
-                # headings inside that stay collapsed
-                for _k2, (_s2, r2) in self.collapsed.items():
-                    try:
-                        r2.CharHidden = True
-                    except Exception:
-                        pass
-            else:
-                rng = self._range_after(par, level)
-                if not rng.getString() and rng.isCollapsed():
-                    return
-                rng.CharHidden = True
-                start = par.getText().createTextCursorByRange(par.getStart())
-                self.collapsed[id(start)] = (start, rng)
-        finally:
-            try:
-                um.unlock()
-            except Exception:
-                pass
-            if not was:
-                m.setModified(False)
-        self.stale = True
-        self.win.engine.view.queue_draw()
+        return
 
     def expand_all(self):
         for k in list(self.collapsed):
@@ -226,15 +162,12 @@ class HeadingFolds:
             _unhide(rng)
 
     def _close_all(self):
-        m = self.win.engine.model
-        was = m.isModified() if m is not None else True
+        was = True
         for _s, rng in self.collapsed.values():
             try:
                 rng.CharHidden = True
             except Exception:
                 pass
-        if m is not None and not was:
-            m.setModified(False)
 
     # -- mouse
     def _tri_rect(self, mark):
@@ -271,15 +204,7 @@ class HeadingFolds:
     def _text_selected(self):
         """Measuring moves the view cursor, which would drop a selected picture,
         shape or equation (and break a resize in progress): only with text."""
-        m = self.win.engine.model
-        if m is None or getattr(self.win, "eqbar", None) is not None and \
-                self.win.eqbar.ed.active:
-            return False
-        try:
-            sel = docapi.controller(m).getSelection()
-            return sel is not None and sel.supportsService("com.sun.star.text.TextRanges")
-        except Exception:
-            return False
+        return False
 
     def press(self, event):
         if event.button != 1 or not self.marks:
@@ -319,22 +244,7 @@ class HeadingFolds:
 
 # ============================================================ spike
 def spike_cut(win):
-    m = win.engine.model
-    if m is None:
-        return
-    if not win.engine.get(".uno:StateWordCount", "").startswith("Selected"):
-        try:
-            if docapi.view_cursor(m).isCollapsed():
-                win.status.flash("Select something to add to the Spike.")
-                return
-        except Exception:
-            return
-    win.actions.do_copy(cut=True)
-    html, text = getattr(win.actions, "_clip_data", (None, ""))
-    win.app.spike = getattr(win.app, "spike", [])
-    win.app.spike.append((html, text))
-    win.status.flash("Added to the Spike (%d item%s)." % (
-        len(win.app.spike), "" if len(win.app.spike) == 1 else "s"))
+    return
 
 
 def spike_paste(win):
@@ -358,7 +268,7 @@ def spike_paste(win):
 
 # ============================================================ resume reading
 def _para_index(m):
-    vc = docapi.read_cursor(m)
+    vc = modelapi.read_cursor(m)
     text = m.getText()
     try:
         here = vc.getStart()
@@ -385,23 +295,8 @@ def _para_index(m):
 
 
 def remember_position(win):
-    m = win.engine.model
     path = win.engine.path
-    if m is None or not path:
-        return
-    try:
-        i, snippet = _para_index(m)
-    except Exception:
-        return
-    store = win.app.settings.setdefault("resume", {})
-    if i is None or i < 3:
-        store.pop(path, None)
-    else:
-        store[path] = {"para": i, "snippet": snippet[:60], "time": time.time()}
-        if len(store) > 50:
-            for k in sorted(store, key=lambda k: store[k].get("time", 0))[:len(store) - 50]:
-                store.pop(k, None)
-    win.app.save_settings()
+    return
 
 
 def _ago(t):
@@ -452,7 +347,7 @@ def offer_resume(win):
             while en.hasMoreElements():
                 p = en.nextElement()
                 if k == rec["para"]:
-                    docapi.view_cursor(m).gotoRange(p.getStart(), False)
+                    modelapi.view_cursor(m).gotoRange(p.getStart(), False)
                     break
                 k += 1
         except Exception as e:
@@ -536,19 +431,4 @@ def set_collapsed_by_default(win, m, vc, on):
 
 def apply_collapsed_defaults(win):
     """On opening: collapse the headings set to be collapsed by default."""
-    m = win.engine.model
-    if m is None:
-        return False
-    items = set(_collapsed_list(m))
-    if not items:
-        return False
-    was = m.isModified()
-    for lvl, text, par in docapi.headings(m):
-        if text in items and win.folds._is_collapsed(par) is None:
-            try:
-                win.folds.toggle(par, lvl)
-            except Exception as e:
-                print("collapse:", e)
-    if not was:
-        m.setModified(False)
     return False

@@ -2,6 +2,8 @@
 paragraphs, or on the selected table cells (outside, inside, inside
 horizontal / vertical, diagonal)."""
 from . import bridge, docapi, tablelayout
+from .native import values
+from . import modelapi
 
 SIDES = {"top": "TopBorder", "bottom": "BottomBorder", "left": "LeftBorder",
          "right": "RightBorder"}
@@ -9,12 +11,12 @@ SIDES = {"top": "TopBorder", "bottom": "BottomBorder", "left": "LeftBorder",
 
 def _line(width_pt=0.5, color=0):
     w = int(round(width_pt * 2540 / 72))
-    return bridge.struct("com.sun.star.table.BorderLine2", Color=color, LineWidth=w,
+    return values.struct("com.sun.star.table.BorderLine2", Color=color, LineWidth=w,
                          OuterLineWidth=w)
 
 
 def _none():
-    return bridge.struct("com.sun.star.table.BorderLine2")
+    return values.struct("com.sun.star.table.BorderLine2")
 
 
 def _on(line):
@@ -95,7 +97,7 @@ def _cells(m, t, which):
 
 
 def _paragraphs(m, which):
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     text = vc.getText()
     c = text.createTextCursorByRange(vc.getStart())
     c.gotoStartOfParagraph(False)

@@ -17,25 +17,10 @@ class HFOverlay:
         win.engine.view.connect_after("draw", self._draw)
 
     def update(self, inside):
-        m = self.win.engine.model
         changed = inside != self.inside
         self.inside = inside
-        if m is None:
-            self.geom = None
-            return
-        try:
-            ps = docapi.page_style(m)
-            g = {"top": ps.TopMargin, "bottom": ps.BottomMargin,
-                 "head": ps.HeaderHeight if ps.HeaderIsOn else 0,
-                 "foot": ps.FooterHeight if ps.FooterIsOn else 0,
-                 "hon": bool(ps.HeaderIsOn), "fon": bool(ps.FooterIsOn)}
-            self.label_first = not ps.FirstIsShared
-            self.odd_even = not ps.HeaderIsShared
-        except Exception:
-            g = None
-        if g != self.geom or changed:
-            self.geom = g
-            self.win.engine.view.queue_draw()
+        self.geom = None
+        return
 
     def _label(self, kind, page_no):
         if self.label_first and page_no == 1:

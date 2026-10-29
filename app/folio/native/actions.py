@@ -155,6 +155,9 @@ class NativeActions(Actions):
                 self.hf_option(arg)
             elif kind == "hf-position":
                 self.hf_position(*arg)
+            elif kind == "style-set":
+                from . import design
+                design.style_set(self.win, arg)
             elif kind in ("doc-theme", "doc-colors", "doc-fonts"):
                 from . import design
                 {"doc-theme": design.theme, "doc-colors": design.colors,

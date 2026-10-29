@@ -4,10 +4,11 @@ from gi.repository import Gtk
 
 from . import docapi
 from .widgets import FDialog, LengthSpin, color_button, combo, grid, heading
+from . import modelapi
 
 
 def _table(m):
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     try:
         return vc.TextTable, vc.Cell
     except Exception:
@@ -49,7 +50,7 @@ class TableDialogs:
         m = self._model_or_warn()
         if m is None:
             return
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         text = vc.getString()
         if not text.strip():
             self.message("Select the text you want to convert to a table first.")
@@ -122,11 +123,11 @@ class TableDialogs:
         m = self.model
         if m is None:
             return
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         try:
             t, c = vc.TextTable, vc.Cell
             cur = t.createCursorByCellName(c.CellName)
-            docapi.controller(m).select(cur)
+            modelapi.controller(m).select(cur)
         except Exception:
             pass
 

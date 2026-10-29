@@ -2,6 +2,7 @@
 line and (1) against the right margin, as in the original. The paragraph
 gets a centre and a right tab stop: <tab>equation<tab>(1)."""
 from . import bridge, docapi
+from .native import values
 
 
 def _para_cursor(obj):
@@ -36,44 +37,15 @@ def current(obj):
 def _stops(m):
     ps = docapi.page_setup(m)
     width = ps["width"] - ps["left"] - ps["right"]
-    centre = bridge.struct("com.sun.star.style.TabStop")
+    centre = values.struct("com.sun.star.style.TabStop")
     centre.Position = int(width / 2)
-    centre.Alignment = bridge.enum("com.sun.star.style.TabAlign", "CENTER")
-    right = bridge.struct("com.sun.star.style.TabStop")
+    centre.Alignment = values.enum("com.sun.star.style.TabAlign", "CENTER")
+    right = values.struct("com.sun.star.style.TabStop")
     right.Position = int(width)
-    right.Alignment = bridge.enum("com.sun.star.style.TabAlign", "RIGHT")
+    right.Alignment = values.enum("com.sun.star.style.TabAlign", "RIGHT")
     return (centre, right)
 
 
 def apply(win, obj, number):
     """Set (number) or remove (None) the equation's number."""
-    m = win.engine.model
-    if m is None:
-        return
-    old = current(obj)
-    if old == number or (old is None and not number):
-        return
-    text, anchor = _para_cursor(obj)
-    um = m.getUndoManager()
-    um.enterUndoContext("Equation Number")
-    try:
-        after = _after(text, anchor)
-        after.gotoEndOfParagraph(True)
-        before = text.createTextCursorByRange(anchor.getStart())
-        before.gotoStartOfParagraph(True)
-        if number:
-            after.setString("\t" + number)
-            if before.getString() != "\t":
-                before.setString("\t")
-            par = text.createTextCursorByRange(anchor.getStart())
-            par.ParaTabStops = _stops(m)
-            par.ParaAdjust = 0
-        else:
-            after.setString("")
-            if before.getString() == "\t":
-                before.setString("")
-            par = text.createTextCursorByRange(anchor.getStart())
-            par.ParaTabStops = ()
-            par.ParaAdjust = 3
-    finally:
-        um.leaveUndoContext()
+    return

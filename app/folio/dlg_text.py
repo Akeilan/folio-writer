@@ -3,8 +3,10 @@ from gi.repository import GLib, Gtk, Pango, PangoCairo
 
 from . import bridge, docapi
 from .actions import CHAR_STYLES, engine_style, word_style
+from .native import values
 from .widgets import (FDialog, LengthSpin, PointSpin, Preview, color_button, combo,
                       combo_text, grid, heading, list_select, list_selected, listbox, rgb)
+from . import modelapi
 
 UNDERLINES = [("(none)", 0), ("Words only", -1), ("Single", 1), ("Double", 2),
               ("Thick", 12), ("Dotted", 3), ("Dash", 5), ("Dot-dash", 7),
@@ -18,11 +20,11 @@ SAMPLE = "The quick brown fox jumps over the lazy dog."
 
 
 def _italic():
-    return bridge.enum("com.sun.star.awt.FontSlant", "ITALIC")
+    return values.enum("com.sun.star.awt.FontSlant", "ITALIC")
 
 
 def _upright():
-    return bridge.enum("com.sun.star.awt.FontSlant", "NONE")
+    return values.enum("com.sun.star.awt.FontSlant", "NONE")
 
 
 def _is_italic(v):
@@ -187,7 +189,7 @@ class TextDialogs:
                       "%d%%" % cur["scale"], entry=True)
         spacing_kind = combo(["Normal", "Expanded", "Condensed"],
                              0 if cur["kerning"] == 0 else (1 if cur["kerning"] > 0 else 2))
-        spacing_by = PointSpin(abs(docapi.to_pt(cur["kerning"])), 0, 1584, 0.1)
+        spacing_by = PointSpin(abs(modelapi.to_pt(cur["kerning"])), 0, 1584, 0.1)
         spacing_by.set_digits(1)
         pos_kind = combo(["Normal", "Raised", "Lowered"],
                          0 if cur["esc"] == 0 or abs(cur["esc"]) in (33, 101) else
@@ -384,7 +386,7 @@ class TextDialogs:
         except ValueError:
             pass
         sk = spacing_kind.get_active()
-        kv = docapi.pt(spacing_by.points)
+        kv = modelapi.pt(spacing_by.points)
         newk = 0 if sk == 0 else (kv if sk == 1 else -kv)
         if newk != cur["kerning"]:
             vc.CharKerning = newk
@@ -442,18 +444,18 @@ class TextDialogs:
         mirror.set_sensitive(ned is not None)
         p1.pack_start(mirror, False, False, 0)
         p1.pack_start(heading("Spacing"), False, False, 0)
-        before = PointSpin(round(docapi.to_pt(cur["before"])), 0, 1584, 6)
-        after = PointSpin(round(docapi.to_pt(cur["after"])), 0, 1584, 6)
+        before = PointSpin(round(modelapi.to_pt(cur["before"])), 0, 1584, 6)
+        after = PointSpin(round(modelapi.to_pt(cur["after"])), 0, 1584, 6)
         # line spacing rule
         if cur["mode"] == 0:
             rule = {100: 0, 150: 1, 200: 2}.get(cur["height"], 5)
             at_v = cur["height"] / 100.0
         elif cur["mode"] == 1:
-            rule, at_v = 3, docapi.to_pt(cur["height"])
+            rule, at_v = 3, modelapi.to_pt(cur["height"])
         elif cur["mode"] == 3:
-            rule, at_v = 4, docapi.to_pt(cur["height"])
+            rule, at_v = 4, modelapi.to_pt(cur["height"])
         else:
-            rule, at_v = 3, docapi.to_pt(cur["height"])
+            rule, at_v = 3, modelapi.to_pt(cur["height"])
         rule_c = combo(LINE_RULES, rule)
         at = Gtk.SpinButton.new_with_range(0, 1584, 0.25)
         at.set_digits(2)
@@ -570,7 +572,7 @@ class TextDialogs:
         if default_scope is not None:
             # the Normal style takes the formatting (and the template, for
             # every new document)
-            vc = docapi.para_styles(m).getByName("Standard")
+            vc = modelapi.para_styles(m).getByName("Standard")
             cur = dict(cur, align=None, left=None, right=None, first=None, before=None,
                        after=None, mode=None, height=None, context=None, outline=0)
         a = ALIGN[align.get_active()][1]
@@ -586,21 +588,21 @@ class TextDialogs:
             vc.ParaRightMargin = right.mm100
         if fl != cur["first"]:
             vc.ParaFirstLineIndent = fl
-        if docapi.pt(before.points) != cur["before"] and \
-                abs(before.points - docapi.to_pt(cur["before"])) > 0.4:
-            vc.ParaTopMargin = docapi.pt(before.points)
-        if abs(after.points - docapi.to_pt(cur["after"])) > 0.4:
-            vc.ParaBottomMargin = docapi.pt(after.points)
+        if modelapi.pt(before.points) != cur["before"] and \
+                abs(before.points - modelapi.to_pt(cur["before"])) > 0.4:
+            vc.ParaTopMargin = modelapi.pt(before.points)
+        if abs(after.points - modelapi.to_pt(cur["after"])) > 0.4:
+            vc.ParaBottomMargin = modelapi.pt(after.points)
         rr = rule_c.get_active()
-        new_ls = bridge.struct("com.sun.star.style.LineSpacing")
+        new_ls = values.struct("com.sun.star.style.LineSpacing")
         if rr < 3:
             new_ls.Mode, new_ls.Height = 0, (100, 150, 200)[rr]
         elif rr == 5:
             new_ls.Mode, new_ls.Height = 0, int(round(at.get_value() * 100))
         elif rr == 3:
-            new_ls.Mode, new_ls.Height = 1, docapi.pt(at.get_value())
+            new_ls.Mode, new_ls.Height = 1, modelapi.pt(at.get_value())
         else:
-            new_ls.Mode, new_ls.Height = 3, docapi.pt(at.get_value())
+            new_ls.Mode, new_ls.Height = 3, modelapi.pt(at.get_value())
         if (new_ls.Mode, new_ls.Height) != (cur["mode"], cur["height"]):
             vc.ParaLineSpacing = new_ls
         if context.get_active() != cur["context"]:
@@ -613,7 +615,7 @@ class TextDialogs:
         if keeplines.get_active() == cur["split"]:
             vc.ParaSplit = not keeplines.get_active()
         if pagebreak.get_active() != cur["pagebreak"]:
-            vc.BreakType = bridge.enum("com.sun.star.style.BreakType",
+            vc.BreakType = values.enum("com.sun.star.style.BreakType",
                                        "PAGE_BEFORE" if pagebreak.get_active() else "NONE")
         if nolines.get_active() == cur["linenum"]:
             vc.ParaLineNumberCount = not nolines.get_active()
@@ -730,9 +732,9 @@ class TextDialogs:
             mm = parse_len(pos.get_text(), -1)
             if mm < 0:
                 return
-            ts = bridge.struct("com.sun.star.style.TabStop")
+            ts = values.struct("com.sun.star.style.TabStop")
             ts.Position = mm
-            ts.Alignment = bridge.enum("com.sun.star.style.TabAlign",
+            ts.Alignment = values.enum("com.sun.star.style.TabAlign",
                                        kinds[[r.get_active() for r in kind_rb].index(True)][1])
             ts.FillChar = leaders[[r.get_active() for r in lead_rb].index(True)][1]
             ts.DecimalChar = "."
@@ -769,7 +771,7 @@ class TextDialogs:
     def apply_styles(self):
         """Apply Styles box (Ctrl+Shift+S): type a style name and press Enter."""
         m = self.model
-        names = sorted({word_style(n) for n, _ in docapi.style_names(m)} if m else [],
+        names = sorted({word_style(n) for n, _ in modelapi.style_names(m)} if m else [],
                        key=str.lower)
         d = FDialog(self.win, "Apply Styles", buttons=(("Reapply", Gtk.ResponseType.OK),
                                                        ("Cancel", Gtk.ResponseType.CANCEL)))
@@ -821,7 +823,7 @@ class TextDialogs:
         if sides is None:
             return
         if which in ("bottom", "top", "left", "right"):
-            vc = docapi.view_cursor(m)
+            vc = modelapi.view_cursor(m)
             now = {s for s, p in (("top", "TopBorder"), ("bottom", "BottomBorder"),
                                   ("left", "LeftBorder"), ("right", "RightBorder"))
                    if getattr(vc, p).OuterLineWidth > 0}

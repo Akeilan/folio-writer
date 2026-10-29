@@ -8,6 +8,7 @@ from gi.repository import GLib, Gtk
 from . import docapi
 from .widgets import (FDialog, LengthSpin, Preview, color_button, combo, combo_text,
                       fmt_len, grid, heading, list_selected, listbox)
+from . import modelapi
 
 PAPER = [("Letter", 21590, 27940), ("Legal", 21590, 35560), ("Executive", 18415, 26670),
          ("A3", 29700, 42000), ("A4", 21000, 29700), ("A5", 14800, 21000),
@@ -60,56 +61,6 @@ def special_to_replacement(s):
             out.append(ch)
         i += 1
     return "".join(out)
-
-
-def count_lines(m, selection=False):
-    """Lines of the document (or of the selection), as laid out on the
-    pages: the view cursor walks down a line at a time while the screen is
-    held still, then goes back."""
-    ctl = docapi.controller(m)
-    vc = ctl.getViewCursor()
-    try:
-        sel = ctl.getSelection()
-        keep = sel.getByIndex(0) if sel.getCount() else None
-    except Exception:
-        keep = None
-    text = m.getText()
-    m.lockControllers()
-    n = 0
-    try:
-        if selection and keep is not None:
-            end = keep.getEnd()
-            vc.gotoRange(keep.getStart(), False)
-            vc.gotoStartOfLine(False)
-            n = 1
-            for _i in range(200000):
-                if not vc.goDown(1, False):
-                    break
-                vc.gotoStartOfLine(False)
-                try:
-                    if text.compareRegionStarts(vc.getStart(), end) < 0:
-                        break
-                except Exception:
-                    break
-                n += 1
-        else:
-            vc.gotoStart(False)
-            n = 1
-            for _i in range(200000):
-                if not vc.goDown(1, False):
-                    break
-                n += 1
-    except Exception as e:
-        print("lines:", e)
-        n = 0
-    finally:
-        try:
-            if keep is not None:
-                ctl.select(keep)
-        except Exception:
-            pass
-        m.unlockControllers()
-    return n
 
 
 def set_line_number_starts(m, start=1, each_section=False):
@@ -238,31 +189,6 @@ def _comment_authors(m):
     return out
 
 
-def _goto_comment_by(m, author):
-    vc = docapi.view_cursor(m)
-    found = []
-    en = m.getTextFields().createEnumeration()
-    while en.hasMoreElements():
-        f = en.nextElement()
-        try:
-            if f.supportsService("com.sun.star.text.textfield.Annotation") and \
-                    f.Author == author:
-                found.append(f.getAnchor())
-        except Exception:
-            pass
-    for a in found:
-        try:
-            if m.getText().compareRegionStarts(vc.getEnd(), a.getStart()) > 0:
-                vc.gotoRange(a.getStart(), False)
-                return True
-        except Exception:
-            pass
-    if found:
-        vc.gotoRange(found[0].getStart(), False)
-        return True
-    return False
-
-
 GOTO_KINDS = ["Page", "Section", "Line", "Bookmark", "Comment", "Footnote", "Endnote",
               "Field", "Table", "Graphic", "Equation", "Object", "Heading"]
 
@@ -278,161 +204,6 @@ class DocDialogs:
     def find_replace(self, tab=0, text=None):
         from .native import find
         return find.dialog(self.win, tab, text)
-
-    def _goto(self, m, kind, val):
-        vc = docapi.view_cursor(m)
-        rel = val[:1] in "+-" and val[1:].isdigit()
-        if kind == "Page":
-            try:
-                cur = vc.getPage()
-                n = int(val) if not rel else cur + int(val)
-            except ValueError:
-                n = vc.getPage() + 1
-            pages = docapi.statistics(m).get("PageCount", 1)
-            vc.jumpToPage(max(1, min(pages, n)))
-            vc.jumpToStartOfPage()
-            return
-        if kind == "Line":
-            try:
-                n = int(val) if val else 1
-            except ValueError:
-                return
-            if rel or not val:
-                if n < 0:
-                    vc.goUp(-n, False)
-                else:
-                    vc.goDown(n or 1, False)
-                vc.gotoStartOfLine(False)
-                return
-            vc.gotoStart(False)
-            vc.goDown(max(0, n - 1), False)
-            return
-        if kind == "Section":
-            starts = _section_starts(m)
-            if len(starts) <= 1 and val and not rel and val != "1":
-                self.message("There's only one section in this document.")
-            cur = 0
-            for i, r in enumerate(starts):
-                try:
-                    if m.getText().compareRegionStarts(r, vc.getStart()) >= 0:
-                        cur = i
-                except Exception:
-                    pass
-            try:
-                n = int(val) - 1 if val and not rel else cur + (int(val) if rel else 1)
-            except ValueError:
-                n = cur + 1
-            n = max(0, min(len(starts) - 1, n))
-            vc.gotoRange(starts[n], False)
-            return
-        if kind == "Comment" and val and val != "Any reviewer" and not rel:
-            if not _goto_comment_by(m, val):
-                self.message("There are no more comments by %s." % val)
-            return
-        if kind == "Field":
-            fields = _fields(m)
-            if val and val != "Any field" and not rel:
-                fields = [f for f in fields if _field_name(f) == val]
-            if not fields:
-                self.message("There are no fields in this document.")
-                return
-            idx = getattr(self, "_goto_idx", {}).get("Field", -1)
-            idx = (idx + (int(val) if rel else 1)) % len(fields)
-            self._goto_idx = dict(getattr(self, "_goto_idx", {}), Field=idx)
-            a = fields[idx].getAnchor()
-            vc.gotoRange(a.getStart(), False)
-            vc.gotoRange(a.getEnd(), True)
-            return
-        if kind in ("Footnote", "Endnote") and val.isdigit():
-            coll = m.getFootnotes() if kind == "Footnote" else m.getEndnotes()
-            n = int(val)
-            if not 1 <= n <= coll.getCount():
-                self.message("There's no %s %d." % (kind.lower(), n))
-                return
-            vc.gotoRange(coll.getByIndex(n - 1).getAnchor().getStart(), False)
-            return
-        if kind == "Bookmark":
-            if not docapi.goto_bookmark(m, val):
-                self.message("There's no bookmark called “%s”." % val)
-            return
-        if kind == "Heading":
-            for _l, t, p in docapi.headings(m):
-                if t == val or not val:
-                    docapi.goto_start(m, p)
-                    return
-            return
-        if kind in ("Comment", "Footnote", "Endnote"):
-            back = val.startswith("-")
-            if not docapi.goto_next(m, kind.lower(), forward=not back):
-                self.message("There are no more %ss." % kind.lower())
-            return
-        coll = {"Table": m.getTextTables, "Graphic": m.getGraphicObjects,
-                "Equation": None, "Object": m.getEmbeddedObjects}.get(kind)
-        items = []
-        if kind == "Equation":
-            items = docapi.formulas(m)
-        elif kind == "Graphic":
-            dp = m.getDrawPage()
-            items = [dp.getByIndex(i) for i in range(dp.getCount())]
-            items = [x for x in items if not x.supportsService(
-                "com.sun.star.text.TextEmbeddedObject")]
-        elif coll is not None:
-            c = coll()
-            items = [c.getByName(n) for n in c.getElementNames()]
-        if not items:
-            self.message("There are no %ss in this document." % kind.lower())
-            return
-        try:
-            n = int(val) if val and not rel else None
-        except ValueError:
-            n = None
-        idx = getattr(self, "_goto_idx", {}).get(kind, -1)
-        idx = (n - 1) if n else (idx + (int(val) if rel else 1))
-        idx %= len(items)
-        self._goto_idx = dict(getattr(self, "_goto_idx", {}), **{kind: idx})
-        try:
-            anchor = items[idx].getAnchor()
-            vc.gotoRange(anchor.getStart(), False)
-            docapi.select(m, items[idx])
-        except Exception:
-            pass
-
-    # ============================================================ Word count
-    def word_count(self):
-        m = self._model_or_warn()
-        if m is None:
-            return
-        sel = docapi.selection_text(m)
-        stats = docapi.statistics(m)
-        if sel:
-            c = docapi.count_text(sel)
-            pages = stats.get("PageCount", 1)
-        else:
-            c = {"words": stats.get("WordCount", 0), "chars": stats.get("CharacterCount", 0),
-                 "nospace": stats.get("NonWhitespaceCharacterCount", 0),
-                 "paras": stats.get("ParagraphCount", 0)}
-            pages = stats.get("PageCount", 1)
-        d = FDialog(self.win, "Word Count", buttons=(("Close", Gtk.ResponseType.CLOSE),))
-        d.add(Gtk.Label(label="Statistics:", xalign=0))
-        rows = []
-        if pages is not None:
-            rows.append(("Pages", pages))
-        rows += [("Words", c["words"]), ("Characters (no spaces)", c["nospace"]),
-                 ("Characters (with spaces)", c["chars"]), ("Paragraphs", c["paras"])]
-        lines = count_lines(m, bool(sel))
-        if lines:
-            rows.append(("Lines", lines))
-        g = Gtk.Grid(column_spacing=40, row_spacing=4)
-        for i, (k, v) in enumerate(rows):
-            g.attach(Gtk.Label(label=k, xalign=0), 0, i, 1, 1)
-            g.attach(Gtk.Label(label="{:,}".format(v), xalign=1), 1, i, 1, 1)
-        g.set_margin_start(12)
-        d.add(g)
-        inc = Gtk.CheckButton(label="Include textboxes, footnotes and endnotes")
-        inc.set_active(True)
-        d.add(inc)
-        d.ask()
-        d.done()
 
     # ================================================================== Zoom
     def zoom_dialog(self):
@@ -529,15 +300,16 @@ class DocDialogs:
         self.win.status.set_zoom(1.0)
 
     def _page_px(self):
-        """Page width/height in document pixels at zoom 1.0."""
+        """Page width/height in document pixels at zoom 1.0, and the page setup (1/100 mm)."""
         ed = getattr(self.eng, "ed", None)
         if ed is not None and ed.page_count():
+            from .native import pagesetup as NP
             w, h = ed.page_size(0)
-            return w * 96 / 72.0, h * 96 / 72.0, None
-        m = self.model
-        if m is not None:
-            ps = docapi.page_setup(m)
-            return ps["width"] / 2540.0 * 96, ps["height"] / 2540.0 * 96, ps
+            try:
+                ps = NP.read(self.win)
+            except Exception:
+                ps = None
+            return w * 96 / 72.0, h * 96 / 72.0, ps
         return 816, 1056, None
 
     def _single_column(self):
@@ -602,22 +374,11 @@ class DocDialogs:
         return
 
     def columns(self, n):
-        if n != "more":
-            from .native import pagesetup as NP
-            NP.columns(self.win, int(n))
-            return
-        m = self._model_or_warn()
-        if m is None:
-            return
         if n == "more":
             self.page_setup(2)
             return
-        docapi.set_columns(m, int(n))
-
-    def page_color(self, color):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.page_color(m, color)
+        from .native import pagesetup as NP
+        NP.columns(self.win, int(n))
 
     # ============================================================== Watermark
     def watermark(self, text):
@@ -740,16 +501,6 @@ class DocDialogs:
             break
         d.done()
 
-    # ========================================================= Line numbers
-    def line_numbers(self, mode=None):
-        m = self._model_or_warn()
-        if m is None:
-            return
-        if mode is None:
-            self.line_numbers_dialog()
-            return
-        docapi.line_numbering(m, mode)
-
     def line_numbers_dialog(self):
         m = self._model_or_warn()
         if m is None:
@@ -815,70 +566,3 @@ class DocDialogs:
         from .native import layoutopts
         layoutopts.manual_dialog(self.win)
         return
-
-    def hyphenation(self, auto=None):
-        m = self._model_or_warn()
-        if m is None:
-            return
-        if auto is None:
-            auto = not docapi.para_styles(m).getByName("Standard").ParaIsHyphenation
-        docapi.hyphenation(m, auto)
-
-    # ===================================================== Document spacing
-    def doc_spacing(self, preset):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.doc_spacing(m, preset)
-
-    def doc_spacing_none(self):
-        self.doc_spacing("none")
-
-    def doc_spacing_compact(self):
-        self.doc_spacing("compact")
-
-    def doc_spacing_tight(self):
-        self.doc_spacing("tight")
-
-    def doc_spacing_open(self):
-        self.doc_spacing("open")
-
-    def doc_spacing_relaxed(self):
-        self.doc_spacing("relaxed")
-
-    def doc_spacing_double(self):
-        self.doc_spacing("double")
-
-    def doc_spacing_default(self):
-        self.doc_spacing("default")
-
-    def doc_fonts(self, pair):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.apply_fonts(m, pair)
-            self.win.design_changed()
-
-    def doc_colors(self, name):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.apply_colors(m, name)
-            self.win.design_changed()
-
-    def doc_theme(self, name):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.apply_theme(m, name)
-            self.win.design_changed()
-
-    def style_set(self, name):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.apply_style_set(m, name)
-            self.win.design_changed()
-
-    def set_as_default(self):
-        m = self._model_or_warn()
-        if m is None:
-            return
-        if self.confirm("Do you want to set the current style set and theme as the default?\n\n"
-                        "New documents will use these settings.", yes="Yes", no="No"):
-            self.win.app.save_styles_as_default(self.win.engine)

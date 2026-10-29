@@ -6,10 +6,11 @@ from gi.repository import Gtk
 
 from . import docapi
 from .widgets import FDialog, LengthSpin, combo, grid, heading
+from . import modelapi
 
 
 def current(m):
-    vc = docapi.read_cursor(m)
+    vc = modelapi.read_cursor(m)
     try:
         return vc.TextTable, vc.Cell
     except Exception:
@@ -38,13 +39,13 @@ def _name(row, col):
 def _selected_cells(m, t):
     """Names of the selected cells (or the cell with the cursor)."""
     try:
-        sel = docapi.controller(m).getSelection()
+        sel = modelapi.controller(m).getSelection()
         names = getattr(sel, "CellRangeName", None) if hasattr(sel, "CellRangeName") else None
     except Exception:
         names = None
-    vc = docapi.read_cursor(m)
+    vc = modelapi.read_cursor(m)
     try:
-        sel = docapi.controller(m).getSelection()
+        sel = modelapi.controller(m).getSelection()
         rn = sel.getRangeName() if hasattr(sel, "getRangeName") else None
     except Exception:
         rn = None
@@ -288,7 +289,7 @@ def insert_formula(m, formula):
 
 def cell_margins_dialog(win):
     m = win.engine.model
-    cur = cell_margins(m) if m else None
+    cur = None
     if cur is None:
         return
     d = FDialog(win, "Table Options")

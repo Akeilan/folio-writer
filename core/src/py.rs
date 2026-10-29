@@ -886,6 +886,16 @@ impl PyEditor {
         self.ed.object_image().map(|(b, n)| (pyo3::types::PyBytes::new_bound(py, &b), n))
     }
 
+    fn object_alt_text(&self) -> Option<(String, bool)> {
+        self.ed.object_alt_text()
+    }
+
+    fn set_object_alt_text(&mut self, text: &str, decorative: bool) -> bool {
+        let ok = self.ed.set_object_alt_text(text, decorative);
+        self.touched();
+        ok
+    }
+
     fn object_set_image(&mut self, data: &[u8], ext: &str) -> bool {
         let ok = self.ed.object_set_image(data, ext);
         self.touched();
@@ -1405,6 +1415,12 @@ impl PyEditor {
         ok
     }
 
+    fn delete_style(&mut self, id: &str) -> bool {
+        let ok = self.ed.delete_style(id);
+        self.touched();
+        ok
+    }
+
     #[pyo3(signature = (name, kind="paragraph", based_on=None))]
     fn create_style(&mut self, name: &str, kind: &str, based_on: Option<&str>) -> String {
         let id = self.ed.create_style(name, kind, based_on);
@@ -1443,6 +1459,7 @@ impl PyEditor {
         d.set_item("align", p.jc.clone().unwrap_or_else(|| "left".into()))?;
         let sid = p.style.clone().unwrap_or_default();
         d.set_item("style_id", sid.clone())?;
+        d.set_item("char_style_id", r.style.clone().unwrap_or_default())?;
         d.set_item("style", ui_name(st.style_name(&sid).unwrap_or(&sid)))?;
         d.set_item("line", p.line.unwrap_or(240))?;
         d.set_item("ind_left", p.ind_left.unwrap_or(0))?;
@@ -2195,6 +2212,21 @@ impl PyEditor {
 
     fn page_hf_kind(&self, pg: usize) -> usize {
         self.ed.page_hf_kind(pg)
+    }
+
+    /// Editing a footer (rather than a header)?
+    fn story_is_footer(&self) -> bool {
+        self.ed.story_is_footer()
+    }
+
+    fn hf_linked(&self, sec: usize, footer: bool, which: usize) -> bool {
+        self.ed.hf_linked(sec, footer, which)
+    }
+
+    fn set_hf_linked(&mut self, sec: usize, footer: bool, which: usize, on: bool) -> bool {
+        let r = self.ed.set_hf_linked(sec, footer, which, on);
+        self.touched();
+        r
     }
 
     #[pyo3(signature = (sec, footer, which=0))]

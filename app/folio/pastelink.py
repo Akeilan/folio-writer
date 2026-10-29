@@ -5,27 +5,16 @@ target gets a section linked to that bookmark."""
 import time
 
 from . import bridge, docapi
+from .native import values
+from . import modelapi
 
 SOURCE = {}
 
 
 def remember_copy(win, text):
     """Called on Copy: keep the copied range so it can be linked to later."""
-    m = win.engine.model
-    if m is None or not text:
-        SOURCE.clear()
-        return
-    try:
-        vc = docapi.view_cursor(m)
-        if vc.isCollapsed():
-            SOURCE.clear()
-            return
-        rng = vc.getText().createTextCursorByRange(vc)
-    except Exception:
-        SOURCE.clear()
-        return
     SOURCE.clear()
-    SOURCE.update(win=win, range=rng, text=text, time=time.time())
+    return
 
 
 def available(win, clip_text):
@@ -55,7 +44,7 @@ def paste(win):
     rng.getText().insertTextContent(rng, bm, True)
     src.save()
     m = win.engine.model
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     text = vc.getText()
     sec = m.createInstance("com.sun.star.text.TextSection")
     secs = m.getTextSections()
@@ -63,7 +52,7 @@ def paste(win):
     while secs.hasByName("Link%d" % k):
         k += 1
     sec.setName("Link%d" % k)
-    link = bridge.struct("com.sun.star.text.SectionFileLink")
+    link = values.struct("com.sun.star.text.SectionFileLink")
     link.FileURL = docapi.uno_url(src.engine.path)
     link.FilterName = ""
     sec.FileLink = link
@@ -97,7 +86,7 @@ def update(win):
 
 def section_at_cursor(m):
     try:
-        sec = docapi.read_cursor(m).TextSection
+        sec = modelapi.read_cursor(m).TextSection
         while sec is not None:
             if sec.FileLink.FileURL:
                 return sec

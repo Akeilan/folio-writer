@@ -5,6 +5,8 @@ from gi.repository import Gtk
 
 from ._lazy import bridge, docapi, uno
 from .widgets import FDialog, Preview, combo, grid, heading
+from .native import values
+from . import modelapi
 
 LEADERS = [("(none)", ""), ("........", "."), ("--------", "-"), ("________", "_")]
 FORMATS = ["From template", "Classic", "Distinctive", "Fancy", "Modern", "Formal", "Simple"]
@@ -15,7 +17,7 @@ FORMAT_STYLE = {"Classic": (True, True, False, ""), "Distinctive": (True, False,
 
 
 def _tok(kind, **kw):
-    return (bridge.prop("TokenType", kind),) + tuple(bridge.prop(k, v) for k, v in kw.items())
+    return (values.prop("TokenType", kind),) + tuple(values.prop(k, v) for k, v in kw.items())
 
 
 def level_tokens(show_pages=True, right=True, leader=".", links=True, number=True,
@@ -78,7 +80,7 @@ def _style_format(m, prefix, fmt, levels):
         try:
             st.CharWeight = 150.0 if (bold and i == 1) else 100.0
             st.CharCaseMap = 1 if (caps and i == 1) else 0
-            st.CharPosture = bridge.enum("com.sun.star.awt.FontSlant",
+            st.CharPosture = values.enum("com.sun.star.awt.FontSlant",
                                          "ITALIC" if (ital and i == 2) else "NONE")
         except Exception as e:
             print("toc format:", e)
@@ -231,81 +233,7 @@ def _sample_headings(m=None):
 
 # ================================================================ TOC
 def toc_dialog(win, existing=None):
-    m = win.engine.model
-    if m is None:
-        return
-    if existing is None:
-        cur = docapi.tocs(m)
-        existing = cur[0] if cur else None
-    show, right, leader, links = read_level_format(existing) if existing is not None \
-        else (True, True, ".", True)
-    d = FDialog(win, "Table of Contents")
-    nb = Gtk.Notebook()
-    page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-    page.set_border_width(10)
-    pages, ralign, lead, hl = _common_controls(show, right, leader, links)
-    fmt = combo(FORMATS, 0)
-    levels = Gtk.SpinButton.new_with_range(1, 9, 1)
-    levels.set_value(existing.Level if existing is not None else 3)
-    state = {"levels": lambda: int(levels.get_value()), "pages": pages.get_active,
-             "right": ralign.get_active, "leader": lambda: LEADERS[max(0, lead.get_active())][1],
-             "links": hl.get_active, "format": lambda: fmt.get_active_text() or ""}
-    pv, previews = _previews(state, _sample_headings(m))
-    page.pack_start(pv, False, False, 0)
-    left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-    for w in (pages, ralign):
-        left.pack_start(w, False, False, 0)
-    left.pack_start(grid([["Ta_b leader:", lead]]), False, False, 0)
-    cols = Gtk.Box(spacing=12, homogeneous=True)
-    cols.pack_start(left, True, True, 0)
-    cols.pack_start(hl, True, True, 0)
-    hl.set_valign(Gtk.Align.START)
-    page.pack_start(cols, False, False, 0)
-    page.pack_start(heading("General"), False, False, 0)
-    page.pack_start(grid([["For_mats:", fmt], ["Show _levels:", levels]]), False, False, 0)
-    bb = Gtk.Box(spacing=6)
-    bb.set_halign(Gtk.Align.END)
-    opt = Gtk.Button(label="_Options...", use_underline=True)
-    mod = Gtk.Button(label="_Modify...", use_underline=True)
-    bb.pack_start(opt, False, False, 0)
-    bb.pack_start(mod, False, False, 0)
-    page.pack_start(bb, False, False, 0)
-    nb.append_page(page, Gtk.Label(label="Table of Contents"))
-    d.add(nb)
-    opts = {"outline": existing.CreateFromOutline if existing is not None else True,
-            "marks": existing.CreateFromMarks if existing is not None else False,
-            "styles": None}
-    _wire([pages, ralign, lead, hl, fmt, levels], previews, pages, ralign, lead)
-    fmt.connect("changed", lambda *_: mod.set_sensitive(fmt.get_active() == 0))
-    opt.connect("clicked", lambda *_: _toc_options(win, m, opts, existing))
-    mod.connect("clicked", lambda *_: _modify_styles(win, ["TOC %d" % i for i in range(1, 10)]))
-    d.show_all()
-    if d.ask() == Gtk.ResponseType.OK:
-        um = m.getUndoManager()
-        um.enterUndoContext("Table of Contents")
-        try:
-            idx = existing
-            if idx is None:
-                idx = m.createInstance("com.sun.star.text.ContentIndex")
-                idx.Title = "Contents"
-                vc = docapi.view_cursor(m)
-                vc.getText().insertTextContent(vc, idx, False)
-            idx.Level = int(levels.get_value())
-            idx.CreateFromOutline = opts["outline"]
-            idx.CreateFromMarks = opts["marks"]
-            if opts["styles"] is not None:
-                _set_level_styles(idx, opts["styles"])
-            ld = LEADERS[max(0, lead.get_active())][1]
-            new_ld = _style_format(m, "Contents", fmt.get_active_text(), 9)
-            if new_ld is not None and fmt.get_active() > 0:
-                ld = new_ld or ld
-            set_level_format(idx, 1, level_tokens(pages.get_active(), ralign.get_active(),
-                                                  ld, hl.get_active(), True))
-            idx.update()
-        finally:
-            um.leaveUndoContext()
-    d.destroy()
-    win.focus_document()
+    return
 
 
 def _set_level_styles(idx, styles):
@@ -391,108 +319,7 @@ def _toc_options(win, m, opts, existing):
 
 # ================================================================ figures
 def figures_dialog(win, labels):
-    m = win.engine.model
-    if m is None:
-        return
-    existing = None
-    ix = m.getDocumentIndexes()
-    for i in range(ix.getCount()):
-        x = ix.getByIndex(i)
-        if x.supportsService("com.sun.star.text.IllustrationsIndex"):
-            existing = x
-            break
-    show, right, leader, links = read_level_format(existing) if existing is not None \
-        else (True, True, ".", True)
-    d = FDialog(win, "Table of Figures")
-    page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-    page.set_border_width(10)
-    pages, ralign, lead, hl = _common_controls(show, right, leader, links)
-    fmt = combo(FORMATS, 0)
-    label = combo(labels + ["(none)"], existing.LabelCategory if existing is not None and
-                  existing.LabelCategory in labels else "Figure")
-    incl = Gtk.CheckButton.new_with_mnemonic("Include label and _number")
-    incl.set_active(existing is None or existing.LabelDisplayType != 6)
-    state = {"levels": lambda: 1, "pages": pages.get_active, "right": ralign.get_active,
-             "leader": lambda: LEADERS[max(0, lead.get_active())][1], "links": hl.get_active,
-             "format": lambda: fmt.get_active_text() or ""}
-
-    def entries():
-        lab = label.get_active_text() or "Figure"
-        pre = (lab + " %d: ") if incl.get_active() and lab != "(none)" else ""
-        return [(1, (pre % i if pre else "") + t, p) for i, (t, p) in
-                enumerate((("Text", 1), ("Text", 3), ("Text", 5), ("Text", 7)), 1)]
-    ent = entries()
-    pv, previews = _previews(state, ent)
-
-    def regen(*_):
-        ent[:] = entries()
-        for p in previews:
-            p.queue_draw()
-    page.pack_start(pv, False, False, 0)
-    left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-    for w in (pages, ralign):
-        left.pack_start(w, False, False, 0)
-    left.pack_start(grid([["Ta_b leader:", lead]]), False, False, 0)
-    cols = Gtk.Box(spacing=12, homogeneous=True)
-    cols.pack_start(left, True, True, 0)
-    cols.pack_start(hl, True, True, 0)
-    hl.set_valign(Gtk.Align.START)
-    page.pack_start(cols, False, False, 0)
-    page.pack_start(heading("General"), False, False, 0)
-    page.pack_start(grid([["For_mats:", fmt], ["Caption _label:", label], [incl, None]]),
-                    False, False, 0)
-    bb = Gtk.Box(spacing=6)
-    bb.set_halign(Gtk.Align.END)
-    opt = Gtk.Button(label="_Options...", use_underline=True)
-    mod = Gtk.Button(label="_Modify...", use_underline=True)
-    bb.pack_start(opt, False, False, 0)
-    bb.pack_start(mod, False, False, 0)
-    page.pack_start(bb, False, False, 0)
-    nb = Gtk.Notebook()
-    nb.append_page(page, Gtk.Label(label="Table of Figures"))
-    d.add(nb)
-    opts = {"style": None}
-    _wire([pages, ralign, lead, hl, fmt], previews, pages, ralign, lead)
-    label.connect("changed", regen)
-    incl.connect("toggled", regen)
-    fmt.connect("changed", lambda *_: mod.set_sensitive(fmt.get_active() == 0))
-    opt.connect("clicked", lambda *_: _tof_options(win, m, opts))
-    mod.connect("clicked", lambda *_: _modify_styles(win, ["Table of Figures"]))
-    d.show_all()
-    ok = d.ask() == Gtk.ResponseType.OK
-    lab = label.get_active_text() or "Figure"
-    d.destroy()
-    if not ok:
-        return
-    if lab != "(none)" and not opts["style"] and not docapi.references(m).get(lab):
-        win.dialogs.message("No table of figures entries found.")
-    um = m.getUndoManager()
-    um.enterUndoContext("Table of Figures")
-    try:
-        idx = existing
-        if idx is None:
-            idx = m.createInstance("com.sun.star.text.IllustrationsIndex")
-            idx.Title = ""
-            vc = docapi.view_cursor(m)
-            vc.getText().insertTextContent(vc, idx, False)
-        if opts["style"]:
-            idx.CreateFromLabels = False
-            try:
-                idx.CreateFromParagraphStyle = opts["style"]
-            except Exception as e:
-                print("tof style:", e)
-        else:
-            idx.CreateFromLabels = True
-            if lab != "(none)":
-                idx.LabelCategory = lab
-        idx.LabelDisplayType = 2 if incl.get_active() else 6
-        set_level_format(idx, 1, level_tokens(pages.get_active(), ralign.get_active(),
-                                              LEADERS[max(0, lead.get_active())][1],
-                                              hl.get_active(), False))
-        idx.update()
-    finally:
-        um.leaveUndoContext()
-    win.focus_document()
+    return
 
 
 def _tof_options(win, m, opts):
@@ -513,165 +340,4 @@ def _tof_options(win, m, opts):
 
 # ================================================================ index
 def index_dialog(win):
-    m = win.engine.model
-    if m is None:
-        return
-    existing = None
-    ix = m.getDocumentIndexes()
-    for i in range(ix.getCount()):
-        x = ix.getByIndex(i)
-        if x.supportsService("com.sun.star.text.DocumentIndex"):
-            existing = x
-            break
-    show, right, leader, _links = read_level_format(existing, 1) if existing is not None \
-        else (True, False, ".", False)
-    d = FDialog(win, "Index")
-    page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-    page.set_border_width(10)
-    indented = Gtk.RadioButton.new_with_mnemonic(None, "In_dented")
-    runin = Gtk.RadioButton.new_with_mnemonic_from_widget(indented, "Ru_n-in")
-    if existing is not None and getattr(existing, "IsCommaSeparated", False):
-        runin.set_active(True)
-    cols = Gtk.SpinButton.new_with_range(1, 4, 1)
-    try:
-        cols.set_value(existing.TextColumns.getColumnCount() if existing is not None else 2)
-    except Exception:
-        cols.set_value(2)
-    langs = [n for n, _l, _c in docapi.LANGUAGES]
-    lang = combo(langs, 0)
-    ralign = Gtk.CheckButton.new_with_mnemonic("_Right align page numbers")
-    ralign.set_active(right)
-    lead = combo([n for n, _c in LEADERS],
-                 next((i for i, (_n, c) in enumerate(LEADERS) if c == leader), 1))
-    fmt = combo(FORMATS, 0)
-
-    state = {"cols": lambda: int(cols.get_value())}
-
-    def draw(cr, W, H):
-        cr.set_source_rgb(1, 1, 1)
-        cr.paint()
-        cr.select_font_face("Sans")
-        cr.set_font_size(9)
-        n = int(cols.get_value())
-        cw = (W - 10) / n
-        items = [(0, "Aristotle, 2"), (0, "Asteroid belt. See Jupiter"), (0, "Atmosphere"),
-                 (1, "Earth"), (2, "exosphere, 4"), (2, "ionosphere, 3"), (1, "Mars, 7")]
-        if runin.get_active():
-            items = [(0, "Aristotle, 2"), (0, "Asteroid belt. See Jupiter"),
-                     (0, "Atmosphere: Earth: exosphere, 4; ionosphere, 3; Mars, 7")]
-        x0, y = 6, 16
-        col = 0
-        for lvl, t in items:
-            if y > H - 6:
-                col += 1
-                if col >= n:
-                    break
-                x0, y = 6 + col * cw, 16
-            x = x0 + 8 * lvl
-            parts = t.rsplit(", ", 1) if "," in t and not runin.get_active() else [t]
-            cr.set_source_rgb(0.1, 0.1, 0.1)
-            cr.move_to(x, y)
-            cr.show_text(parts[0])
-            if len(parts) == 2:
-                if ralign.get_active():
-                    pw = cr.text_extents(parts[1]).x_advance
-                    tx = x + cr.text_extents(parts[0]).x_advance + 3
-                    px = x0 + cw - 6 - pw
-                    ld = LEADERS[max(0, lead.get_active())][1]
-                    if ld:
-                        lw = cr.text_extents(ld).x_advance or 3
-                        while tx + lw < px - 2:
-                            cr.move_to(tx, y)
-                            cr.show_text(ld)
-                            tx += lw
-                    cr.move_to(px, y)
-                    cr.show_text(parts[1])
-                else:
-                    cr.show_text(", " + parts[1])
-            y += 13
-    lab = Gtk.Label(label="Print Pre_view", xalign=0, use_underline=True)
-    page.pack_start(lab, False, False, 0)
-    prev = Preview(draw, 300, 110)
-    fr = Gtk.Frame()
-    fr.add(prev)
-    page.pack_start(fr, False, False, 0)
-    tb = Gtk.Box(spacing=12)
-    tb.pack_start(Gtk.Label(label="Type:"), False, False, 0)
-    tb.pack_start(indented, False, False, 0)
-    tb.pack_start(runin, False, False, 0)
-    page.pack_start(tb, False, False, 0)
-    page.pack_start(grid([["Colu_mns:", cols], ["_Language:", lang]]), False, False, 0)
-    page.pack_start(ralign, False, False, 0)
-    page.pack_start(grid([["Ta_b leader:", lead], ["For_mats:", fmt]]), False, False, 0)
-    bb = Gtk.Box(spacing=6)
-    bb.set_halign(Gtk.Align.END)
-    mark = Gtk.Button(label="Mar_k Entry...", use_underline=True)
-    auto = Gtk.Button(label="A_utoMark...", use_underline=True)
-    mod = Gtk.Button(label="_Modify...", use_underline=True)
-    for b in (mark, auto, mod):
-        bb.pack_start(b, False, False, 0)
-    page.pack_start(bb, False, False, 0)
-    nb = Gtk.Notebook()
-    nb.append_page(page, Gtk.Label(label="Index"))
-    d.add(nb)
-
-    def refresh(*_):
-        lead.set_sensitive(ralign.get_active())
-        prev.queue_draw()
-    for w, sig in ((cols, "value-changed"), (ralign, "toggled"), (lead, "changed"),
-                   (runin, "toggled"), (fmt, "changed")):
-        w.connect(sig, refresh)
-    refresh()
-    fmt.connect("changed", lambda *_: mod.set_sensitive(fmt.get_active() == 0))
-    mark.connect("clicked", lambda *_: (d.response(Gtk.ResponseType.CANCEL),
-                                        win.dialogs.mark_entry()))
-    concord = {"url": getattr(existing, "AutoMarkFileURL", "") if existing is not None else ""}
-
-    def pick_auto(*_):
-        fc = Gtk.FileChooserDialog(title="Open Index AutoMark File", transient_for=d,
-                                   action=Gtk.FileChooserAction.OPEN)
-        fc.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Open", Gtk.ResponseType.OK)
-        if fc.run() == Gtk.ResponseType.OK:
-            concord["url"] = fc.get_uri()
-        fc.destroy()
-    auto.connect("clicked", pick_auto)
-    mod.connect("clicked", lambda *_: _modify_styles(
-        win, ["Index %d" % i for i in range(1, 4)] + ["Index Heading"]))
-    d.show_all()
-    if d.ask() == Gtk.ResponseType.OK:
-        um = m.getUndoManager()
-        um.enterUndoContext("Index")
-        try:
-            idx = existing
-            if idx is None:
-                idx = m.createInstance("com.sun.star.text.DocumentIndex")
-                idx.Title = ""
-                vc = docapi.view_cursor(m)
-                vc.getText().insertTextContent(vc, idx, False)
-            idx.UseAlphabeticalSeparators = fmt.get_active_text() in (
-                "Classic", "Fancy", "Modern", "Formal")
-            try:
-                idx.IsCommaSeparated = runin.get_active()
-            except Exception:
-                pass
-            idx.TextColumns = docapi._text_columns(m, int(cols.get_value()), 500)
-            name, l, c = docapi.LANGUAGES[max(0, lang.get_active())]
-            try:
-                idx.Locale = bridge.struct("com.sun.star.lang.Locale", Language=l, Country=c)
-            except Exception:
-                pass
-            if concord["url"]:
-                try:
-                    idx.AutoMarkFileURL = concord["url"]
-                    idx.UseKeyAsEntry = False
-                except Exception:
-                    pass
-            _style_format(m, "Index", fmt.get_active_text(), 3)
-            set_level_format(idx, 1, level_tokens(True, ralign.get_active(),
-                                                  LEADERS[max(0, lead.get_active())][1],
-                                                  False, False, ", "))
-            idx.update()
-        finally:
-            um.leaveUndoContext()
-    d.destroy()
-    win.focus_document()
+    return

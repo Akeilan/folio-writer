@@ -4,6 +4,8 @@ so the result is an ordinary shape or text box in the file."""
 from gi.repository import Gdk, GLib
 
 from . import bridge, docapi
+from .native import values
+from . import modelapi
 
 SHAPES = {
     # name: (service, custom shape type or None)
@@ -220,7 +222,7 @@ class DrawMode:
 
 
 def _anchor_page(obj, page_no, x, y):
-    obj.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AT_PAGE")
+    obj.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType", "AT_PAGE")
     obj.AnchorPageNo = page_no
     obj.HoriOrient = 0
     obj.VertOrient = 0
@@ -266,16 +268,16 @@ def _insert_shape(m, kind, page_no, x, y, w, h):
     try:
         if kind == "textbox":
             frame = m.createInstance(service)
-            vc = docapi.view_cursor(m)
+            vc = modelapi.view_cursor(m)
             text = vc.getText()
-            frame.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AT_PAGE")
+            frame.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType", "AT_PAGE")
             text.insertTextContent(vc, frame, False)
             _anchor_page(frame, page_no, x, y)
-            size = bridge.struct("com.sun.star.awt.Size", Width=w, Height=h)
+            size = values.struct("com.sun.star.awt.Size", Width=w, Height=h)
             frame.Size = size
             frame.SizeType = 1     # fixed
             frame.WidthType = 1
-            line = bridge.struct("com.sun.star.table.BorderLine2", Color=0, LineWidth=26,
+            line = values.struct("com.sun.star.table.BorderLine2", Color=0, LineWidth=26,
                                  OuterLineWidth=26)
             for side in ("LeftBorder", "RightBorder", "TopBorder", "BottomBorder"):
                 setattr(frame, side, line)
@@ -284,38 +286,38 @@ def _insert_shape(m, kind, page_no, x, y, w, h):
                 setattr(frame, side, 127)
             frame.BackColor = 0xFFFFFF
             try:
-                frame.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", "PARALLEL")
+                frame.TextWrap = values.enum("com.sun.star.text.WrapTextMode", "PARALLEL")
             except Exception:
                 pass
             vc.gotoRange(frame.getText().getStart(), False)
             return frame
         shape = m.createInstance(service)
         if service.endswith("ConnectorShape"):
-            shape.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AT_PAGE")
+            shape.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType", "AT_PAGE")
             m.getDrawPage().add(shape)
             _anchor_page(shape, page_no, min(x, x + w), min(y, y + h))
-            shape.StartPosition = bridge.struct("com.sun.star.awt.Point", X=x, Y=y)
-            shape.EndPosition = bridge.struct("com.sun.star.awt.Point", X=x + w, Y=y + h)
-            shape.EdgeKind = bridge.enum("com.sun.star.drawing.ConnectorType", geo)
+            shape.StartPosition = values.struct("com.sun.star.awt.Point", X=x, Y=y)
+            shape.EndPosition = values.struct("com.sun.star.awt.Point", X=x + w, Y=y + h)
+            shape.EdgeKind = values.enum("com.sun.star.drawing.ConnectorType", geo)
             shape.LineColor = 0x4472C4
             shape.LineWidth = 26
-            docapi.controller(m).select(shape)
+            modelapi.controller(m).select(shape)
             return shape
         if kind in ("line", "arrow-line"):
-            pos = bridge.struct("com.sun.star.awt.Point", X=x if w >= 0 else x + w,
+            pos = values.struct("com.sun.star.awt.Point", X=x if w >= 0 else x + w,
                                 Y=y if h >= 0 else y + h)
             shape.Position = pos
-            shape.Size = bridge.struct("com.sun.star.awt.Size", Width=abs(w) or 1, Height=abs(h) or 1)
+            shape.Size = values.struct("com.sun.star.awt.Size", Width=abs(w) or 1, Height=abs(h) or 1)
         else:
-            shape.Size = bridge.struct("com.sun.star.awt.Size", Width=w, Height=h)
-        shape.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AT_PAGE")
+            shape.Size = values.struct("com.sun.star.awt.Size", Width=w, Height=h)
+        shape.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType", "AT_PAGE")
         m.getDrawPage().add(shape)
         _anchor_page(shape, page_no, x if kind not in ("line", "arrow-line") else
                      (x if w >= 0 else x + w), y if kind not in ("line", "arrow-line") else
                      (y if h >= 0 else y + h))
         if kind in ("line", "arrow-line"):
-            pts = [bridge.struct("com.sun.star.awt.Point", X=x, Y=y),
-                   bridge.struct("com.sun.star.awt.Point", X=x + w, Y=y + h)]
+            pts = [values.struct("com.sun.star.awt.Point", X=x, Y=y),
+                   values.struct("com.sun.star.awt.Point", X=x + w, Y=y + h)]
             import uno
             try:
                 uno.invoke(shape, "setPropertyValue", ("PolyPolygon", uno.Any(
@@ -333,7 +335,7 @@ def _insert_shape(m, kind, page_no, x, y, w, h):
                 except Exception:
                     pass
         else:
-            geom = [bridge.prop("Type", geo)]
+            geom = [values.prop("Type", geo)]
             import uno
             uno.invoke(shape, "setPropertyValue", ("CustomShapeGeometry", uno.Any(
                 "[]com.sun.star.beans.PropertyValue", tuple(geom))))
@@ -341,10 +343,10 @@ def _insert_shape(m, kind, page_no, x, y, w, h):
             shape.LineColor = LINE
             shape.LineWidth = 35
             try:
-                shape.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", "PARALLEL")
+                shape.TextWrap = values.enum("com.sun.star.text.WrapTextMode", "PARALLEL")
             except Exception:
                 pass
-        docapi.controller(m).select(shape)
+        modelapi.controller(m).select(shape)
         return shape
     finally:
         um.leaveUndoContext()
@@ -354,7 +356,7 @@ def _insert_shape(m, kind, page_no, x, y, w, h):
 def selected_shape(m):
     """The selected shape / text box / picture (not equations), or None."""
     try:
-        sel = docapi.controller(m).getSelection()
+        sel = modelapi.controller(m).getSelection()
     except Exception:
         return None
     if sel is None:
@@ -404,9 +406,9 @@ def set_fill(obj, color):
                 pass
     else:
         if color is None:
-            obj.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "NONE")
+            obj.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "NONE")
         else:
-            obj.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "SOLID")
+            obj.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "SOLID")
             obj.FillColor = color
 
 
@@ -420,15 +422,15 @@ def set_outline(obj, color=None, width_pt=None, none=False):
             w = int(round(width_pt * 2540 / 72))
         if color is not None:
             c = color
-        line = bridge.struct("com.sun.star.table.BorderLine2", Color=c, LineWidth=0 if none else w,
+        line = values.struct("com.sun.star.table.BorderLine2", Color=c, LineWidth=0 if none else w,
                              OuterLineWidth=0 if none else w)
         for side in ("LeftBorder", "RightBorder", "TopBorder", "BottomBorder"):
             setattr(obj, side, line)
         return
     if none:
-        obj.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "NONE")
+        obj.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "NONE")
         return
-    obj.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "SOLID")
+    obj.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "SOLID")
     if color is not None:
         obj.LineColor = color
     if width_pt is not None:
@@ -441,14 +443,14 @@ WRAPS = {"inline": None, "square": "PARALLEL", "tight": "DYNAMIC", "through": "T
 
 def set_wrap(obj, how):
     if how == "inline":
-        obj.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AS_CHARACTER")
+        obj.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType", "AS_CHARACTER")
         return
     try:
         if getattr(obj.AnchorType, "value", "") == "AS_CHARACTER":
-            obj.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AT_PARAGRAPH")
+            obj.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType", "AT_PARAGRAPH")
     except Exception:
         pass
-    obj.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", WRAPS[how])
+    obj.TextWrap = values.enum("com.sun.star.text.WrapTextMode", WRAPS[how])
     try:
         obj.Opaque = how != "behind"
     except Exception:
@@ -503,7 +505,7 @@ COLOR_MODES = {"color": "STANDARD", "grayscale": "GREYS", "bw": "MONO", "washout
 
 
 def set_color_mode(obj, mode):
-    obj.GraphicColorMode = bridge.enum("com.sun.star.drawing.ColorMode", COLOR_MODES[mode])
+    obj.GraphicColorMode = values.enum("com.sun.star.drawing.ColorMode", COLOR_MODES[mode])
 
 
 def set_transparency(obj, pct):
@@ -528,7 +530,7 @@ def rotate(obj, how):
             step = -900 if how == "right" else 900
             obj.GraphicRotation = (cur + step) % 3600
             s = obj.Size
-            obj.Size = bridge.struct("com.sun.star.awt.Size", Width=s.Height, Height=s.Width)
+            obj.Size = values.struct("com.sun.star.awt.Size", Width=s.Height, Height=s.Width)
         elif how == "flipv":
             obj.VertMirrored = not obj.VertMirrored
         elif how == "fliph":
@@ -552,7 +554,7 @@ def rotate(obj, how):
                     p.Value = not p.Value
                     found = True
             if not found:
-                geo.append(bridge.prop(key, True))
+                geo.append(values.prop(key, True))
             import uno
             uno.invoke(obj, "setPropertyValue", ("CustomShapeGeometry", uno.Any(
                 "[]com.sun.star.beans.PropertyValue", tuple(geo))))
@@ -565,9 +567,9 @@ def align(obj, where, page=False):
     middle/bottom."""
     try:
         if getattr(obj.AnchorType, "value", "") == "AS_CHARACTER":
-            obj.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType",
+            obj.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType",
                                          "AT_PARAGRAPH")
-            obj.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", "PARALLEL")
+            obj.TextWrap = values.enum("com.sun.star.text.WrapTextMode", "PARALLEL")
     except Exception:
         pass
     if where in ("left", "center", "right"):
@@ -599,7 +601,7 @@ def crop(obj, left=0, top=0, right=0, bottom=0):
     c.Top += int(top * fy)
     c.Bottom += int(bottom * fy)
     obj.GraphicCrop = c
-    obj.Size = bridge.struct("com.sun.star.awt.Size", Width=new_w, Height=new_h)
+    obj.Size = values.struct("com.sun.star.awt.Size", Width=new_w, Height=new_h)
 
 
 def crop_to_ratio(obj, rw, rh):
@@ -615,7 +617,7 @@ def crop_to_ratio(obj, rw, rh):
 
 
 def reset_picture(obj, size=True):
-    obj.GraphicCrop = bridge.struct("com.sun.star.text.GraphicCrop", Top=0, Bottom=0,
+    obj.GraphicCrop = values.struct("com.sun.star.text.GraphicCrop", Top=0, Bottom=0,
                                     Left=0, Right=0)
     for prop, v in (("AdjustLuminance", 0), ("AdjustContrast", 0), ("Transparency", 0),
                     ("GraphicRotation", 0), ("VertMirrored", False),
@@ -632,7 +634,7 @@ def reset_picture(obj, size=True):
             if a.Width and a.Height:
                 s = obj.Size
                 # keep the current width, restore the natural proportions
-                obj.Size = bridge.struct("com.sun.star.awt.Size", Width=s.Width,
+                obj.Size = values.struct("com.sun.star.awt.Size", Width=s.Width,
                                          Height=int(s.Width * a.Height / float(a.Width)))
         except Exception:
             pass
@@ -641,13 +643,13 @@ def reset_picture(obj, size=True):
 def change_picture(obj, path):
     from . import docapi as _d
     prov = bridge.create("com.sun.star.graphic.GraphicProvider")
-    g = prov.queryGraphic((bridge.prop("URL", _d.uno_url(path)),))
+    g = prov.queryGraphic((values.prop("URL", _d.uno_url(path)),))
     s = obj.Size
     obj.Graphic = g
     try:
         a = g.Size100thMM
         if a.Width and a.Height:
-            obj.Size = bridge.struct("com.sun.star.awt.Size", Width=s.Width,
+            obj.Size = values.struct("com.sun.star.awt.Size", Width=s.Width,
                                      Height=int(s.Width * a.Height / float(a.Width)))
     except Exception:
         pass
@@ -681,7 +683,7 @@ def set_picture_style(obj, name):
     style = {n: (w, c, sh) for n, w, c, sh in PICTURE_STYLES}.get(name, (0, 0, False))
     w, c, shadow = style
     wid = int(round(w * 2540 / 72))
-    line = bridge.struct("com.sun.star.table.BorderLine2", Color=c, LineWidth=wid,
+    line = values.struct("com.sun.star.table.BorderLine2", Color=c, LineWidth=wid,
                          OuterLineWidth=wid)
     for side in ("LeftBorder", "RightBorder", "TopBorder", "BottomBorder"):
         try:
@@ -700,8 +702,8 @@ def set_shadow(obj, on, color=0x808080):
             obj.ShadowXDistance = obj.ShadowYDistance = 150
             obj.ShadowTransparence = 50
         return
-    sf = bridge.struct("com.sun.star.table.ShadowFormat",
-                       Location=bridge.enum("com.sun.star.table.ShadowLocation",
+    sf = values.struct("com.sun.star.table.ShadowFormat",
+                       Location=values.enum("com.sun.star.table.ShadowLocation",
                                             "BOTTOM_RIGHT" if on else "NONE"),
                        ShadowWidth=150 if on else 0, Color=color, IsTransparent=False)
     try:
@@ -727,7 +729,7 @@ def set_size_locked(obj, width=None, height=None, lock=True):
     else:
         w = int(width or w)
         h = int(height or h)
-    obj.Size = bridge.struct("com.sun.star.awt.Size", Width=max(50, w), Height=max(50, h))
+    obj.Size = values.struct("com.sun.star.awt.Size", Width=max(50, w), Height=max(50, h))
 
 
 def set_anchor_mode(obj, mode):
@@ -735,7 +737,7 @@ def set_anchor_mode(obj, mode):
     try:
         if getattr(obj.AnchorType, "value", "") == "AS_CHARACTER":
             return
-        obj.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType",
+        obj.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType",
                                      "AT_PAGE" if mode == "page" else "AT_PARAGRAPH")
     except Exception as e:
         print("anchor:", e)
@@ -792,7 +794,7 @@ def change_shape(obj, kind):
     if service != "com.sun.star.drawing.CustomShape":
         return
     import uno
-    geom = [bridge.prop("Type", geo)]
+    geom = [values.prop("Type", geo)]
     uno.invoke(obj, "setPropertyValue", ("CustomShapeGeometry", uno.Any(
         "[]com.sun.star.beans.PropertyValue", tuple(geom))))
 
@@ -815,9 +817,9 @@ def set_text_color(obj, color):
 def set_text_outline(obj, color):
     if _is_fontwork(obj):
         if color is None:
-            obj.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "NONE")
+            obj.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "NONE")
         else:
-            obj.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "SOLID")
+            obj.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "SOLID")
             obj.LineColor = color
         return
     try:

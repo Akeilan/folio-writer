@@ -7,10 +7,11 @@ from . import objlayout as OL
 from . import bordermenu as BM
 from gi.repository import Gdk, GLib, Gtk, Pango, PangoCairo
 
-from . import docapi, icons
+from . import icons
 from .actions import HIGHLIGHTS, word_style
 from .ribbon import (CheckControl, ChoiceControl, ComboControl, Group, MenuButton,
                      RibbonButton, SplitButton, Tab, menu_popover)
+from . import modelapi
 
 SIZES = ["8", "9", "10", "10.5", "11", "12", "14", "16", "18", "20", "22", "24", "26",
          "28", "36", "48", "72"]
@@ -208,7 +209,7 @@ class StyleGallery(Gtk.Box):
         from .stylemodify import gallery_names
         defaults = dict(GALLERY)
         try:
-            names = gallery_names(self.win.engine.model)
+            names = gallery_names(self.win.dialogs.model)
         except Exception:
             names = [n for n, _a in GALLERY]
         return [(n, defaults.get(n, "size='11pt'")) for n in names]
@@ -297,16 +298,16 @@ class StyleSetGallery(Gtk.Box):
         self.fill()
 
     def names(self):
-        return list(docapi.STYLE_SETS)
+        return list(modelapi.STYLE_SETS)
 
     def _draw_thumb(self, area, cr, name):
         W, H = area.get_allocated_width(), area.get_allocated_height()
         cr.set_source_rgb(1, 1, 1)
         cr.paint()
-        m = self.win.engine.model
+        m = self.win.dialogs.model
         try:
-            props = docapi.style_set_props(m, name)
-            fonts = docapi.FONT_PAIRS.get("Modern") or ("Calibri Light", "Calibri")
+            props = modelapi.style_set_props(m, name)
+            fonts = modelapi.FONT_PAIRS.get("Modern") or ("Calibri Light", "Calibri")
             ed = getattr(self.win.engine, "ed", None)
             if ed is not None:
                 try:
@@ -314,12 +315,8 @@ class StyleSetGallery(Gtk.Box):
                     fonts = (th[2] or fonts[0], th[3] or fonts[1])
                 except Exception:
                     pass
-            if m is not None:
-                ps = docapi.para_styles(m)
-                fonts = (ps.getByName("Heading 1").CharFontName,
-                         ps.getByName("Standard").CharFontName)
         except Exception:
-            props = docapi.style_set_props(None, name)
+            props = modelapi.style_set_props(None, name)
             fonts = ("Carlito", "Carlito")
 
         def rgb(c, default=(0, 0, 0)):
@@ -380,11 +377,8 @@ class StyleSetGallery(Gtk.Box):
         b.connect("clicked", lambda *_: (self.win.run(("style-set", name)),
                                          self.win.focus_document()))
         b.set_name = name
-        cur = None
-        try:
-            cur = docapi.current_style_set(self.win.engine.model)
-        except Exception:
-            pass
+        from .native import design as _design
+        cur = _design.current_style_set(self.win)
         if name == (cur or "Default"):
             b.get_style_context().add_class("current")
         return b
@@ -407,9 +401,8 @@ class StyleSetGallery(Gtk.Box):
         pop = Gtk.Popover.new(button)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         box.set_border_width(6)
-        for title, names in (("This Document", [docapi.current_style_set(self.win.engine.model)
-                                                if self.win.engine.model is not None
-                                                else "Default"]),
+        from .native import design as _design
+        for title, names in (("This Document", [_design.current_style_set(self.win)]),
                              ("Built-In", self.names())):
             lab = Gtk.Label(xalign=0)
             lab.set_markup("<b>%s</b>" % title)
@@ -535,10 +528,8 @@ class TableStyleGallery(Gtk.Box):
                                          self.win.focus_document()))
         from . import livepreview
 
-        def prev(m, kind=kind, accent=accent):
-            self.ts.apply(m, kind, accent)
-        prev.native = lambda w, kind=kind, accent=accent: w.actions._run(("table-style2", (kind, accent)))
-        livepreview.attach(self.win, b, ("table", kind, accent), prev)
+        livepreview.attach(self.win, b, ("table", kind, accent),
+                           lambda w, kind=kind, accent=accent: w.actions._run(("table-style2", (kind, accent))))
         if (kind, accent) == self.current:
             b.get_style_context().add_class("current")
         return b
@@ -885,13 +876,8 @@ class PictureStyleGallery(Gtk.Box):
                                                     win.focus_document()))
             from . import livepreview
 
-            def prev(m, n=name):
-                from . import drawing as _d
-                obj = _d.selected_shape(m)
-                if obj is not None:
-                    _d.set_picture_style(obj, n)
-            prev.native = lambda w, n=name: w.object_call("set_picture_style", n)
-            livepreview.attach(win, b, ("picstyle", name), prev)
+            livepreview.attach(win, b, ("picstyle", name),
+                               lambda w, n=name: w.object_call("set_picture_style", n))
             self.pack_start(b, False, False, 0)
 
     def _draw(self, area, cr, w, c, shadow):
@@ -1277,7 +1263,7 @@ def build_ribbon(win):
     t.add(Group("Themes", [
         MenuButton(r, "Themes", "cmd/lc_designerdialog", [
             ("#", "Built-In")] + [(name, (lambda n=name: run(("doc-theme", n))))
-                                  for name in docapi.THEMES] + [
+                                  for name in modelapi.THEMES] + [
             None, ("Reset to Theme from Template", lambda: run(("doc-theme", "Default")))],
             keytip="TH")]))
     sets = StyleSetGallery(win)
@@ -1286,11 +1272,11 @@ def build_ribbon(win):
     t.add(Group("Document Formatting", [
         sets,
         MenuButton(r, "Colors", "cmd/lc_fontcolor", [
-            (name, (lambda n=name: run(("doc-colors", n)))) for name in docapi.COLOR_SETS],
+            (name, (lambda n=name: run(("doc-colors", n)))) for name in modelapi.COLOR_SETS],
             keytip="TC"),
         MenuButton(r, "Fonts", "cmd/lc_fontdialog", [
             ("%s  (%s / %s)" % (name, h, b), (lambda n=name: run(("doc-fonts", n))))
-            for name, (h, b) in docapi.FONT_PAIRS.items()], keytip="TF"),
+            for name, (h, b) in modelapi.FONT_PAIRS.items()], keytip="TF"),
         MenuButton(r, "Paragraph Spacing", "cmd/lc_paraspaceincrease", [
             ("#", "Built-In"),
             ("Default", lambda: run("doc-spacing-default")),
@@ -1975,16 +1961,15 @@ def build_ribbon(win):
                                    lambda: win.dialogs.picture_corrections())]
             def artistic_menu():
                 from . import pictools
-                m = win.engine.model
-                obj = drawing_mod.selected_shape(m) if m is not None else None
+                from .native import objects as NO
+                thumbs = NO.effect_thumbnails(win) if pictools._pil() else None
                 pop = Gtk.Popover()
-                if obj is None or not pictools._pil():
-                    pop.add(Gtk.Label(label="Select a picture first." if obj is None else
+                if thumbs is None:
+                    pop.add(Gtk.Label(label="Select a picture first." if pictools._pil() else
                                       "Install python3-pil for artistic effects.",
                                       margin=10))
                     pop.get_child().show()
                     return pop
-                thumbs = pictools.effect_thumbnails(obj)
                 g = Gtk.FlowBox()
                 g.set_max_children_per_line(4)
                 g.set_selection_mode(Gtk.SelectionMode.NONE)
@@ -2177,9 +2162,6 @@ def build_ribbon(win):
     object_tab("Shape Format", "JD", False)
 
     def chart_call(fn, *args):
-        from . import charts
-        m = win.engine.model
-        obj = charts.selected_chart(m) if m is not None else None
         from .native import charts
         obj = charts.selected(win)
         if obj is None:
@@ -2283,8 +2265,6 @@ def build_ribbon(win):
         sg]))
     def chart_filters():
         from . import charts
-        m = win.engine.model
-        obj = charts.selected_chart(m) if m is not None else None
         from .native import charts as NC
         obj = NC.selected(win)
         if obj is not None and not NC.special(obj):
@@ -2474,7 +2454,6 @@ def build_ribbon(win):
         return NS.selected(win)
 
     def sa(fn, *a, **kw):
-        m = win.engine.model
         g = smart_group()
         if g is None:
             return

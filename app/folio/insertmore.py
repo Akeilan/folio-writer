@@ -10,6 +10,7 @@ import tempfile
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
 from . import docapi
+from . import modelapi
 
 
 # ------------------------------------------------------------ screenshot
@@ -229,7 +230,7 @@ def quick_table(m, name):
     import datetime
     if name == "Calendar 1":
         today = datetime.date.today()
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         vc.getText().insertString(vc, today.strftime("%B %Y"), False)
         vc.getText().insertControlCharacter(vc, 0, False)
         weeks = calendar.Calendar(6).monthdayscalendar(today.year, today.month)
@@ -315,7 +316,7 @@ def _key(name):
 
 def smartart_info(m, obj):
     try:
-        return json.loads(docapi._doc_setting(m, _key(obj.Name), "") or "null")
+        return json.loads(modelapi._doc_setting(m, _key(obj.Name), "") or "null")
     except Exception:
         return None
 

@@ -6,7 +6,6 @@ A preview is applied as one undo step and taken back with undo, so it never
 reaches the undo list, and the document's "changed" flag is restored."""
 from gi.repository import GLib
 
-from . import docapi
 
 TITLE = "Live Preview"
 DELAY = 280          # ms of hovering before the preview shows (as the original)
@@ -68,7 +67,7 @@ class LivePreview:
 
     def _start_native(self, key, apply_fn):
         ed = self.win.engine.ed
-        fn = getattr(apply_fn, "native", None)
+        fn = getattr(apply_fn, "native", apply_fn)
         if ed is None or fn is None or self.win.read_only:
             return False
         self._was_modified = ed.modified
@@ -111,7 +110,7 @@ class LivePreview:
 
 # ---------------------------------------------------------------- helpers
 def attach(win, widget, key, apply_fn):
-    """Preview apply_fn(model) while the pointer rests on widget."""
+    """Preview apply_fn(win) while the pointer rests on widget."""
     lp = win.live_preview
     widget.connect("enter-notify-event", lambda *_: (lp.hover(key, apply_fn), False)[1])
     widget.connect("leave-notify-event", lambda *_: (lp.unhover(), False)[1])
@@ -121,23 +120,14 @@ def attach(win, widget, key, apply_fn):
 
 
 def para_style(name):
-    from .actions import engine_style, CHAR_STYLES
-
-    def apply(m):
-        vc = docapi.view_cursor(m)
-        if name in CHAR_STYLES:
-            rng = _word_or_selection(vc)
-            rng.CharStyleName = engine_style(name)
-        else:
-            vc.ParaStyleName = engine_style(name)
+    from .actions import CHAR_STYLES
 
     def native(win):
         if name in CHAR_STYLES:
             _native_word(win, lambda: win.actions.apply_style(name))
         else:
             win.actions.apply_style(name)
-    apply.native = native
-    return apply
+    return native
 
 
 def _native_word(win, fn):
@@ -181,24 +171,9 @@ def _native_run_edits(props):
     return out
 
 
-def _word_or_selection(vc):
-    if not vc.isCollapsed():
-        return vc
-    c = vc.getText().createTextCursorByRange(vc.getStart())
-    c.gotoStartOfWord(False)
-    c.gotoEndOfWord(True)
-    return c
-
-
 def char_prop(**props):
-    def apply(m):
-        rng = _word_or_selection(docapi.view_cursor(m))
-        for k, v in props.items():
-            rng.setPropertyValue(k, v)
-
     def native(win):
         edits = _native_run_edits(props)
         if edits:
             _native_word(win, lambda: win.engine.ed.apply_run(edits, TITLE))
-    apply.native = native
-    return apply
+    return native

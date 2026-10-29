@@ -224,10 +224,5 @@ def install(win):
     def fix(path, fmt):
         if (fmt or "").lower() not in DOCX:
             return
-        m = win.engine.model
-        if m is None:
-            return
-        items = collect(m)
-        if items:
-            patch(path, items)
+        return
     win.engine.written_hooks = tuple(win.engine.written_hooks) + (fix,)

@@ -5,6 +5,7 @@ from gi.repository import GLib, Gtk
 
 from . import docapi
 from .widgets import FDialog, combo, grid, heading
+from . import modelapi
 
 THEMES = ["Colorful", "Dark Gray", "Black", "White"]
 
@@ -193,13 +194,13 @@ class OptionsDialog:
         lstore = Gtk.ListStore(str, str, str)
 
         def lname(l, c):
-            return next((n for n, a, b in docapi.LANGUAGES if (a, b) == (l, c)), "%s-%s" % (l, c))
+            return next((n for n, a, b in modelapi.LANGUAGES if (a, b) == (l, c)), "%s-%s" % (l, c))
 
         def lfill():
             lstore.clear()
             for l, c in langs:
                 tag = "  <preferred>" if (l, c) == cur_lang_v[0] else ""
-                proof = "Proofing installed" if docapi.has_dictionary(l, c) else \
+                proof = "Proofing installed" if modelapi.has_dictionary(l, c) else \
                     "Proofing not installed"
                 lstore.append([lname(l, c) + tag, proof, "%s-%s" % (l, c)])
         cur_lang_v = [cur_lang]
@@ -211,7 +212,7 @@ class OptionsDialog:
         lsw.add(ltv)
         lg.pack_start(lsw, False, False, 0)
         lb = Gtk.Box(spacing=6)
-        add_l = combo([n for n, _a, _b in docapi.LANGUAGES], 0)
+        add_l = combo([n for n, _a, _b in modelapi.LANGUAGES], 0)
         add_b = Gtk.Button(label="_Add a Language", use_underline=True)
         rem_b = Gtk.Button(label="_Remove", use_underline=True)
         pref_b = Gtk.Button(label="Set as _Preferred", use_underline=True)
@@ -224,7 +225,7 @@ class OptionsDialog:
             return tuple(mdl[it][2].split("-")) if it else None
 
         def l_add(*_):
-            _n, a, b = docapi.LANGUAGES[max(0, add_l.get_active())]
+            _n, a, b = modelapi.LANGUAGES[max(0, add_l.get_active())]
             if (a, b) not in langs:
                 langs.append((a, b))
                 lfill()
@@ -406,13 +407,6 @@ class OptionsDialog:
             s["editing_languages"] = [list(x) for x in langs]
             if tuple(cur_lang_v[0]) != cur_lang:
                 s["language"] = list(cur_lang_v[0])
-                m = self.win.engine.model
-                if m is not None:
-                    try:
-                        docapi.set_language(m, cur_lang_v[0][0], cur_lang_v[0][1],
-                                            default=True, whole=False)
-                    except Exception as e:
-                        print("language:", e)
             st_items["a11y"] = keep_a11y.get_active()
             s["status_items"] = st_items
             s["qat"] = list(chosen_q)
@@ -428,14 +422,6 @@ def _ac_lang_path(win):
     from . import autocorrect
     user = os.path.join(win.app.engine_profile, "user")
     lang = "en-US"
-    m = win.engine.model
-    if m is not None:
-        try:
-            l, c = docapi.current_language(m)
-            if l == "en" and c:
-                lang = "en-" + c
-        except Exception:
-            pass
     return lang, autocorrect.user_list_path(user, lang) or autocorrect.user_list_path(user)
 
 
@@ -491,7 +477,7 @@ def autocorrect_options(win, tab=0, with_text=None):
     from .app import apply_engine_config
     s = win.app.settings
     lang, path = _ac_lang_path(win)
-    d = FDialog(win, "AutoCorrect: %s" % docapi.language_name(lang))
+    d = FDialog(win, "AutoCorrect: %s" % modelapi.language_name(lang))
     d.set_default_size(520, 600)
     nb = Gtk.Notebook()
     checks = {}

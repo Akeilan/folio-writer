@@ -10,6 +10,8 @@ import os
 import re
 
 from ._lazy import bridge, docapi
+from .native import values
+from . import modelapi
 
 STYLES = ["APA", "Chicago", "Harvard", "IEEE", "ISO 690", "MLA", "Turabian"]
 STYLE_NAMES = {s: s for s in STYLES}
@@ -410,7 +412,7 @@ _CITE = re.compile(r'^\s*CITATION\s+"?([^"\\]+?)"?(\s+\\.*)?$')
 
 def _stored(m):
     try:
-        return json.loads(docapi._doc_setting(m, "Sources", "") or "[]")
+        return json.loads(modelapi._doc_setting(m, "Sources", "") or "[]")
     except ValueError:
         return []
 
@@ -464,7 +466,7 @@ def doc_sources(m):
 
 
 def save_doc_sources(m, sources):
-    docapi._set_doc_setting(m, "Sources", json.dumps(sources, ensure_ascii=False))
+    modelapi._set_doc_setting(m, "Sources", json.dumps(sources, ensure_ascii=False))
 
 
 def add_source(m, src, master=True):
@@ -495,7 +497,7 @@ def has_citations(m):
 
 # ------------------------------------------------------------------ style
 def current_style(m):
-    v = docapi._doc_setting(m, "CitationStyle", "APA")
+    v = modelapi._doc_setting(m, "CitationStyle", "APA")
     return v if v in STYLES else "APA"
 
 
@@ -523,18 +525,18 @@ def _master_field(m):
 
 
 def _field_values(src, ident, style="APA", opts=None):
-    vals = [bridge.prop("Identifier", ident),
-            bridge.prop("Custom3", json.dumps(opts) if opts else ""),
-            bridge.prop("BibiliographicType", TYPE_CODE.get(src.get("type"), 1)),
-            bridge.prop("Note", src.get("type", "Book")),
-            bridge.prop("Custom1", src["tag"]),
-            bridge.prop("Custom2", src.get("author", "")),
-            bridge.prop("Author", author_list(src, style) if src.get("author") else "")]
+    vals = [values.prop("Identifier", ident),
+            values.prop("Custom3", json.dumps(opts) if opts else ""),
+            values.prop("BibiliographicType", TYPE_CODE.get(src.get("type"), 1)),
+            values.prop("Note", src.get("type", "Book")),
+            values.prop("Custom1", src["tag"]),
+            values.prop("Custom2", src.get("author", "")),
+            values.prop("Author", author_list(src, style) if src.get("author") else "")]
     for key, name in ENGINE_NAMES.items():
         if key in ("identifier", "type", "tag", "note", "author"):
             continue
         if src.get(key):
-            vals.append(bridge.prop(name, src[key]))
+            vals.append(values.prop(name, src[key]))
     return tuple(vals)
 
 
@@ -548,7 +550,7 @@ def refresh(m):
     stored = _stored(m)
     ordered = _fields_in_order(m)
     try:
-        record = json.loads(docapi._doc_setting(m, "Citations", "") or "[]")
+        record = json.loads(modelapi._doc_setting(m, "Citations", "") or "[]")
     except ValueError:
         record = []
     restore = bool(ordered) and all(not _fields_data(f).get("Custom1") for f in ordered) \
@@ -569,7 +571,7 @@ def refresh(m):
         base = labels.get(tag, tag)
         f.Fields = _field_values(src, cite_label(src, style, base, opts), style, opts)
     if new_record != record:
-        docapi._set_doc_setting(m, "Citations", json.dumps(new_record))
+        modelapi._set_doc_setting(m, "Citations", json.dumps(new_record))
     for sec in own_bibliographies(m):
         _write_bibliography(m, sec, style, sources, labels)
     ma = _master_field(m)
@@ -579,10 +581,10 @@ def refresh(m):
         ma.IsNumberEntries = False
         ma.IsSortByPosition = style == "IEEE"
         if style != "IEEE":
-            ma.SortKeys = ((bridge.prop("SortKey", F["author"]),
-                            bridge.prop("IsSortAscending", True)),
-                           (bridge.prop("SortKey", F["year"]),
-                            bridge.prop("IsSortAscending", True)))
+            ma.SortKeys = ((values.prop("SortKey", F["author"]),
+                            values.prop("IsSortAscending", True)),
+                           (values.prop("SortKey", F["year"]),
+                            values.prop("IsSortAscending", True)))
     for idx in bibliographies(m):
         _format_index(m, idx, style)
         try:
@@ -626,7 +628,7 @@ def _numbers_in_order(m):
 
 
 def set_style(m, style):
-    docapi._set_doc_setting(m, "CitationStyle", style)
+    modelapi._set_doc_setting(m, "CitationStyle", style)
     refresh(m)
 
 
@@ -647,7 +649,7 @@ def insert_citation(m, tag):
     um = m.getUndoManager()
     um.enterUndoContext("Insert Citation")
     try:
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         f = m.createInstance("com.sun.star.text.textfield.Bibliography")
         f.Fields = _field_values(src, cite_label(src, style, labels.get(tag, tag), {}), style)
         vc.getText().insertTextContent(vc, f, False)
@@ -668,14 +670,14 @@ def bibliographies(m):
 
 
 def _tok_field(field, italic=False):
-    return (bridge.prop("TokenType", "TokenBibliographyDataField"),
-            bridge.prop("CharacterStyleName", "Emphasis" if italic else ""),
-            bridge.prop("BibliographyDataField", F[field]))
+    return (values.prop("TokenType", "TokenBibliographyDataField"),
+            values.prop("CharacterStyleName", "Emphasis" if italic else ""),
+            values.prop("BibliographyDataField", F[field]))
 
 
 def _tok_text(text):
-    return (bridge.prop("TokenType", "TokenText"), bridge.prop("CharacterStyleName", ""),
-            bridge.prop("Text", text))
+    return (values.prop("TokenType", "TokenText"), values.prop("CharacterStyleName", ""),
+            values.prop("Text", text))
 
 
 def _tokens(style, tname):
@@ -756,7 +758,7 @@ def _format_index(m, idx, style):
 
 def _entry_style(m):
     """Entries use a hanging indent of 0.5", like the original's Bibliography style."""
-    ps = docapi.para_styles(m)
+    ps = modelapi.para_styles(m)
     name = "Bibliography 1"
     if not ps.hasByName(name):
         st = m.createInstance("com.sun.star.style.ParagraphStyle")
@@ -824,7 +826,7 @@ def _sort_key(src):
 def _write_bibliography(m, sec, style, sources, labels):
     """(Re)write the entries of an app-made bibliography: cited sources only,
     sorted as the style requires, empty fields left out."""
-    title = docapi._doc_setting(m, "BibTitle:" + sec.getName(), "")
+    title = modelapi._doc_setting(m, "BibTitle:" + sec.getName(), "")
     cited = _cited_tags_in_order(m)
     srcs = [sources[t] for t in cited if t in sources]
     if style == "IEEE":
@@ -845,7 +847,7 @@ def _write_bibliography(m, sec, style, sources, labels):
             text.insertControlCharacter(cur, 0, False)
         first = False
         cur.ParaStyleName = style_name
-        cur.CharPosture = bridge.enum("com.sun.star.awt.FontSlant", "NONE")
+        cur.CharPosture = values.enum("com.sun.star.awt.FontSlant", "NONE")
 
     if title:
         para("Heading 1")
@@ -858,16 +860,16 @@ def _write_bibliography(m, sec, style, sources, labels):
         if style == "IEEE":
             text.insertString(cur, "[%s]\t" % labels.get(src["tag"], ""), False)
         for t, italic in entry_parts(src, style):
-            cur.CharPosture = bridge.enum("com.sun.star.awt.FontSlant",
+            cur.CharPosture = values.enum("com.sun.star.awt.FontSlant",
                                           "ITALIC" if italic else "NONE")
             text.insertString(cur, t, False)
-        cur.CharPosture = bridge.enum("com.sun.star.awt.FontSlant", "NONE")
+        cur.CharPosture = values.enum("com.sun.star.awt.FontSlant", "NONE")
 
 
 
 def citation_at_cursor(m):
     """The citation field at (or just before) the cursor, or None."""
-    vc = docapi.read_cursor(m)
+    vc = modelapi.read_cursor(m)
     text = vc.getText()
     for f in _bib_fields(m):
         a = f.getAnchor()
@@ -895,8 +897,8 @@ def set_citation_options(m, f, opts):
     for k, v in d.items():
         if k == "Custom3":
             continue
-        vals.append(bridge.prop(k, v))
-    vals.append(bridge.prop("Custom3", json.dumps(opts)))
+        vals.append(values.prop(k, v))
+    vals.append(values.prop("Custom3", json.dumps(opts)))
     f.Fields = tuple(vals)
     refresh(m)
 

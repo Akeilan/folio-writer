@@ -7,6 +7,7 @@ from gi.repository import Gtk
 
 from ._lazy import docapi
 from .widgets import FDialog, combo, grid
+from . import modelapi
 
 PREFIX = "com.sun.star.text.fieldmaster.User."
 OPS = [("Equal to", "eq"), ("Not equal to", "ne"), ("Less than", "lt"),
@@ -37,14 +38,14 @@ def rules(m):
         from .native import mailmerge
         return mailmerge.rules(m)
     try:
-        r = json.loads(docapi._doc_setting(m, "MergeRules", "") or "{}")
+        r = json.loads(modelapi._doc_setting(m, "MergeRules", "") or "{}")
         return r if isinstance(r, dict) else {}
     except ValueError:
         return {}
 
 
 def _save(m, r):
-    docapi._set_doc_setting(m, "MergeRules", json.dumps(r))
+    modelapi._set_doc_setting(m, "MergeRules", json.dumps(r))
 
 
 def matches(m):
@@ -56,7 +57,7 @@ def matches(m):
         except ValueError:
             return {}
     try:
-        v = json.loads(docapi._doc_setting(m, "MergeMatch", "") or "{}")
+        v = json.loads(modelapi._doc_setting(m, "MergeMatch", "") or "{}")
         return v if isinstance(v, dict) else {}
     except ValueError:
         return {}
@@ -148,7 +149,7 @@ def insert_rule(m, rule):
     rule["id"] = rid
     r[rid] = rule
     _save(m, r)
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     f = m.createInstance("com.sun.star.text.textfield.User")
     f.attachTextFieldMaster(_master(m, rid, placeholder(rule)))
     vc.getText().insertTextContent(vc, f, False)
@@ -289,75 +290,8 @@ def rule_dialog(win, kind):
         from .native import mailmerge as M
         m = win
     else:
-        m = win.engine.model
-    if m is None:
-        return
-    cols = M.recipients(m)[0]
-    if kind in ("record", "seq", "next"):
-        _insert(win, m, {"kind": kind})
-        return
-    titles = {"if": "Insert Word Field: IF", "fillin": "Insert Word Field: Fill-in",
-              "ask": "Insert Word Field: Ask", "set": "Insert Word Field: Set",
-              "nextif": "Insert Word Field: Next Record If",
-              "skipif": "Insert Word Field: Skip Record If"}
-    d = FDialog(win, titles[kind])
-    rule = {"kind": kind}
-    if kind in ("if", "nextif", "skipif"):
-        field, op, target = _cond_rows(cols)
-        d.add(grid([["Field name:", field], ["Comparison:", op], ["Compare to:", target]]))
-        if kind == "if":
-            then = Gtk.TextView()
-            other = Gtk.TextView()
-            for tv in (then, other):
-                tv.set_size_request(380, 60)
-                tv.set_wrap_mode(Gtk.WrapMode.WORD)
-            d.add(Gtk.Label(label="Insert this text:", xalign=0))
-            f1 = Gtk.Frame()
-            f1.add(then)
-            d.add(f1)
-            d.add(Gtk.Label(label="Otherwise insert this text:", xalign=0))
-            f2 = Gtk.Frame()
-            f2.add(other)
-            d.add(f2)
-    if kind in ("ask", "set"):
-        name = Gtk.Entry()
-        name.set_placeholder_text("Bookmark")
-        d.add(grid([["Bookmark:", name]]))
-    if kind in ("ask", "fillin"):
-        prompt = Gtk.Entry()
-        prompt.set_width_chars(40)
-        d.add(grid([["Prompt:", prompt]]))
-    if kind in ("ask", "fillin", "set"):
-        default = Gtk.Entry()
-        d.add(grid([["Default " + ("bookmark text:" if kind != "fillin" else "fill-in text:")
-                     if kind != "set" else "Value:", default]]))
-    if kind in ("ask", "fillin"):
-        once = Gtk.CheckButton(label="Ask once")
-        d.add(once)
-    if d.ask() != Gtk.ResponseType.OK:
-        d.done()
-        return
-    if kind in ("if", "nextif", "skipif"):
-        rule.update({"field": field.get_active_text(), "op": OPS[op.get_active()][1],
-                     "value": target.get_text()})
-        if kind == "if":
-            b1, b2 = then.get_buffer(), other.get_buffer()
-            rule["then"] = b1.get_text(*b1.get_bounds(), False)
-            rule["else"] = b2.get_text(*b2.get_bounds(), False)
-    if kind in ("ask", "set"):
-        rule["name"] = name.get_text().strip() or "Bookmark1"
-    if kind in ("ask", "fillin"):
-        rule["prompt"] = prompt.get_text()
-        rule["once"] = once.get_active()
-    if kind in ("ask", "fillin", "set"):
-        rule["default" if kind != "set" else "value"] = default.get_text()
-    d.done()
-    if kind == "fillin":
-        a = win.dialogs.ask_text("Microsoft" if False else "Fill-in", rule["prompt"],
-                                 rule.get("default", ""))
-        if a is not None:
-            rule["default"] = a
-    _insert(win, m, rule)
+        pass
+    return
 
 
 def bookmark_names(m):
@@ -379,96 +313,19 @@ def insert_ref(win, name):
 
 def match_fields_dialog(win):
     from . import mailings as M
-    m = win.engine.model
     if _native(win):
         from .native import mailmerge as M
         m = win
-    if m is None:
-        return
-    cols = M.recipients(m)[0]
-    if not cols:
-        win.dialogs.message("Select a recipient list first.")
-        return
-    d = FDialog(win, "Match Fields")
-    lab = Gtk.Label(xalign=0)
-    lab.set_line_wrap(True)
-    lab.set_max_width_chars(60)
-    lab.set_text("Special features in mail merge make it easy to insert information from "
-                  "your recipient list. Use the drop-down lists to choose the column that "
-                  "matches each address field.")
-    d.add(lab)
-    choices = ["(not matched)"] + cols
-    rows, widgets = [], {}
-    for wf in WORD_FIELDS:
-        c = matched_column(m, wf, cols)
-        w = combo(choices, c if c in cols else "(not matched)")
-        widgets[wf] = w
-        rows.append([wf + ":", w])
-    sw = Gtk.ScrolledWindow()
-    sw.set_size_request(420, 320)
-    sw.add(grid(rows))
-    d.add(sw, expand=True)
-    remember = Gtk.CheckButton(label="Remember this matching for this set of data sources "
-                                     "on this computer")
-    remember.set_active(True)
-    d.add(remember)
-    if d.ask() == Gtk.ResponseType.OK:
-        mm = {wf: (w.get_active_text() if w.get_active() > 0 else "")
-              for wf, w in widgets.items()}
-        if _native(win):
-            from .native import mailmerge
-            mailmerge._set_docvar(win, "FolioMergeMatch", json.dumps(mm))
-        else:
-            docapi._set_doc_setting(m, "MergeMatch", json.dumps(mm))
-    d.done()
+    return
 
 
 def auto_check_dialog(win):
     """Checking and Reporting Errors."""
     from . import mailings as M
     from .dlg_mail import finish
-    m = win.engine.model
     if _native(win):
         m = win
-    if m is None:
-        return
-    d = FDialog(win, "Checking and Reporting Errors")
-    r1 = Gtk.RadioButton.new_with_mnemonic(
-        None, "_Simulate the merge and report errors in a new document.")
-    r2 = Gtk.RadioButton.new_with_mnemonic_from_widget(
-        r1, "Complete the merge, _pausing to report each error as it occurs.")
-    r3 = Gtk.RadioButton.new_with_mnemonic_from_widget(
-        r1, "Complete the merge _without pausing. Report errors in a new document.")
-    for r in (r1, r2, r3):
-        d.add(r)
-    res = d.ask()
-    mode = [r1, r2, r3].index(next(r for r in (r1, r2, r3) if r.get_active()))
-    d.done()
-    if res != Gtk.ResponseType.OK:
-        return
-    errors = find_errors(m)
-    if mode == 1 and errors:
-        for e in errors:
-            if not win.dialogs.confirm(e + "\n\nContinue?", yes="OK", no="Cancel"):
-                return
-        finish(win)
-        return
-    if mode == 0 and not errors:
-        win.dialogs.message("No mail merge errors have been found in %s." %
-                            (win.doc_name()))
-        return
-    if errors:
-        w = win.app.new_window()
-
-        def fill():
-            if w.engine.model is None:
-                return True
-            w.actions.insert_text("Mail Merge Errors\n\n" + "\n".join(errors))
-            return False
-        from gi.repository import GLib
-        GLib.timeout_add(800, fill)
-    if mode == 2:
-        finish(win)
+    return
 
 
 def find_errors(m):

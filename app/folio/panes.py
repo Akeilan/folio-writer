@@ -7,6 +7,7 @@ from gi.repository import Gdk, GLib, Gtk, Pango
 from . import docapi, icons
 from .actions import word_style, engine_style, CHAR_STYLES
 from .ribbon import menu_popover
+from . import modelapi
 
 
 class Pane(Gtk.Box):
@@ -168,14 +169,13 @@ class NavigationPane(Pane):
         return eng.ed
 
     def refresh_headings(self):
-        m = self.model
         ed = self._native()
-        if m is None and ed is None:
+        if ed is None:
             return
         self._muted = True
         self.hstore.clear()
         parents = {0: None}
-        hs = ed.nav_headings() if ed is not None else docapi.headings(m)
+        hs = ed.nav_headings()
         for lvl, text, par in hs:
             parent = None
             for k in range(lvl - 1, -1, -1):
@@ -192,11 +192,10 @@ class NavigationPane(Pane):
         self._muted = False
 
     def refresh_pages(self):
-        m = self.model
         ed = self._native()
-        if m is None and ed is None:
+        if ed is None:
             return
-        n = ed.page_count() if ed is not None else docapi.statistics(m).get("PageCount", 1)
+        n = ed.page_count()
         if len(self.pstore) != n:
             self._muted = True
             self.pstore.clear()
@@ -213,10 +212,6 @@ class NavigationPane(Pane):
             if ed.goto_node(model[it][1]):
                 self.win.engine.view.after_move()
                 self.win.engine.view.scroll_to_caret()
-            return
-        if it and self.model is not None:
-            docapi.goto_start(self.model, model[it][1])
-            self.win.focus_document()
 
     # ------------------------------------------------------------ heading drag
     def _heading_press(self, tv, ev):
@@ -292,18 +287,7 @@ class NavigationPane(Pane):
                 self.win.engine.view.after_edit()
             GLib.timeout_add(200, lambda: (self.refresh_headings(), False)[1])
             return ok
-        if src is dst:
-            return False
-        m = self.model
-
-        def go():
-            try:
-                docapi.move_section(m, src, dst, after)
-            except Exception as e:
-                print("move section:", e)
-            GLib.timeout_add(300, lambda: (self.refresh_headings(), False)[1])
-        self.win.engine.sync(go)
-        return True
+        return False
 
     def _heading_menu(self, tv, ev):
         if ev.button != 3:
@@ -314,64 +298,9 @@ class NavigationPane(Pane):
         path = res[0]
         tv.get_selection().select_path(path)
         par = self.hstore[path][1]
-        m = self.model
-        menu = Gtk.Menu()
-        if self._native() is not None:
-            return self._native_heading_menu(ev, par)
-
-        def item(label, fn):
-            mi = Gtk.MenuItem(label=label)
-            mi.connect("activate", lambda *_: self.win.engine.sync(
-                lambda: (fn(), GLib.timeout_add(300, lambda: (self.refresh_headings(),
-                                                              False)[1]))))
-            menu.append(mi)
-        item("Promote", lambda: docapi.set_heading_level(m, par, -1))
-        item("Demote", lambda: docapi.set_heading_level(m, par, 1))
-        menu.append(Gtk.SeparatorMenuItem())
-
-        def new_heading(before):
-            body = m.getText()
-            if before:
-                cur = body.createTextCursorByRange(par.getStart())
-                body.insertControlCharacter(cur, 0, False)
-                cur.gotoPreviousParagraph(False)
-            else:
-                rng, last = docapi.section_range(m, par)
-                cur = body.createTextCursorByRange(rng.getEnd())
-                body.insertControlCharacter(cur, 0, False)
-                if not last:
-                    cur.gotoPreviousParagraph(False)
-            cur.ParaStyleName = par.ParaStyleName
-            docapi.goto(m, cur)
-        item("New Heading Before", lambda: new_heading(True))
-        item("New Heading After", lambda: new_heading(False))
-        def new_sub():
-            body = m.getText()
-            cur = body.createTextCursorByRange(par.getEnd())
-            body.insertControlCharacter(cur, 0, False)
-            lvl = min(9, (par.OutlineLevel or 1) + 1)
-            cur.ParaStyleName = "Heading %d" % lvl
-            docapi.goto(m, cur)
-        item("New Subheading", new_sub)
-        menu.append(Gtk.SeparatorMenuItem())
-        item("Delete", lambda: docapi.delete_section(m, par))
-        menu.append(Gtk.SeparatorMenuItem())
-
-        def select_section():
-            rng, _l = docapi.section_range(m, par)
-            vc = docapi.view_cursor(m)
-            vc.gotoRange(rng.getStart(), False)
-            vc.gotoRange(rng.getEnd(), True)
-        item("Select Heading and Content", select_section)
-        expand = Gtk.MenuItem(label="Expand All")
-        expand.connect("activate", lambda *_: self.htv.expand_all())
-        collapse = Gtk.MenuItem(label="Collapse All")
-        collapse.connect("activate", lambda *_: self.htv.collapse_all())
-        menu.append(expand)
-        menu.append(collapse)
-        menu.show_all()
-        menu.popup_at_pointer(ev)
-        return True
+        if self._native() is None:
+            return False
+        return self._native_heading_menu(ev, par)
 
     def _native_heading_menu(self, ev, node):
         ed = self._native()
@@ -476,11 +405,6 @@ class NavigationPane(Pane):
             if ed.goto_page(model[it][1] - 1):
                 self.win.engine.view.after_move()
                 self.win.engine.view.scroll_to_caret()
-            return
-        if it and self.model is not None:
-            vc = docapi.view_cursor(self.model)
-            vc.jumpToPage(model[it][1])
-            vc.jumpToStartOfPage()
 
     def _schedule(self):
         if self._timer:
@@ -493,52 +417,10 @@ class NavigationPane(Pane):
         return False
 
     def search(self, quiet=False):
-        m = self.model
         text = self.entry.get_text()
         if self._native() is not None:
             from .native import find
             find.nav_search(self, text, quiet)
-            return
-        self.rstore.clear()
-        self._ranges = []
-        if not text or m is None:
-            self.rcount.set_text("")
-            self.win.engine.view.highlight_all("") if hasattr(self.win.engine.view, "highlight_all") else None
-            return
-        self.stack.set_visible_child_name("results")
-        sd = m.createSearchDescriptor()
-        sd.SearchString = text
-        found = m.findAll(sd)
-        n = found.getCount() if found else 0
-        for i in range(min(n, 500)):
-            r = found.getByIndex(i)
-            self._ranges.append(r)
-            try:
-                c = r.getText().createTextCursorByRange(r.getStart())
-                c.gotoStartOfParagraph(True)
-                before = c.getString()[-40:]
-                c = r.getText().createTextCursorByRange(r.getEnd())
-                c.gotoEndOfParagraph(True)
-                after = c.getString()[:60]
-            except Exception:
-                before = after = ""
-            self.rstore.append(["%s<b>%s</b>%s" % (html.escape(before), html.escape(r.getString()),
-                                                   html.escape(after)), r])
-        self.rcount.set_text("%d result%s" % (n, "" if n == 1 else "s") if n else
-                             "No results")
-        try:
-            if not quiet:       # (it moves the cursor to the first match)
-                self.win.engine.view.highlight_all(text)
-        except Exception:
-            pass
-        if quiet:
-            self._pos = -1
-            if n:
-                self.rcount.set_text("%d result%s" % (n, "" if n == 1 else "s"))
-            return
-        self._pos = -1
-        if n:
-            self.step(1)
 
     def step(self, d):
         if not self._ranges:
@@ -553,10 +435,6 @@ class NavigationPane(Pane):
             from .native import find
             self._pos = model.get_path(it)[0]
             find.nav_select(self, model[it][1])
-            return
-        if it and self.model is not None:
-            self._pos = model.get_path(it)[0]
-            docapi.select(self.model, model[it][1])
 
 
 # ======================================================================
@@ -624,13 +502,13 @@ class StylesPane(Pane):
         self.store.clear()
         info = []
         for fam, mark in (("ParagraphStyles", "¶"), ("CharacterStyles", "a")):
-            for n, disp in docapi.style_names(m, fam, self.used_only.get_active()):
+            for n, disp in modelapi.style_names(m, fam, self.used_only.get_active()):
                 wn = word_style(disp)
                 if fam == "CharacterStyles" and wn not in CHAR_STYLES and \
-                        not docapi.char_styles(m).getByName(n).isUserDefined():
+                        not modelapi.char_styles(m).getByName(n).isUserDefined():
                     continue
                 if fam == "ParagraphStyles" and not self.used_only.get_active():
-                    st = docapi.para_styles(m).getByName(n)
+                    st = modelapi.para_styles(m).getByName(n)
                     if not (st.isInUse() or st.isUserDefined() or wn in PREFERRED):
                         continue
                 info.append((wn, fam, mark, n))
@@ -643,7 +521,7 @@ class StylesPane(Pane):
             seen.add(wn)
             markup = html.escape(wn)
             if self.preview.get_active():
-                si = docapi.style_info(m, n, fam) or {}
+                si = modelapi.style_info(m, n, fam) or {}
                 size = min(16, max(9, si.get("CharHeight") or 11))
                 color = si.get("CharColor", -1)
                 attrs = 'size="%dpt"' % size
@@ -680,8 +558,9 @@ class StylesPane(Pane):
 
     def update_selected(self):
         name = self._current()
-        if name and self.model is not None:
-            docapi.update_style_to_match(self.model, engine_style(name))
+        if name:
+            from .stylemodify import update_to_match
+            update_to_match(self.win, name)
             self.win.design_changed()
 
     def modify_selected(self):
@@ -1005,58 +884,6 @@ class ClipboardPane(Pane):
 
 
 # ======================================================================
-class CommentsPane(Pane):
-    TITLE = "Comments"
-
-    def __init__(self, win):
-        Pane.__init__(self, win)
-        self.list = Gtk.ListBox()
-        self.list.connect("row-activated", self._go)
-        sw = Gtk.ScrolledWindow()
-        sw.add(self.list)
-        self.pack_start(sw, True, True, 0)
-        b = Gtk.Button(label="New Comment")
-        b.connect("clicked", lambda *_: (win.dialogs.comment(), self.refresh()))
-        self.pack_start(b, False, False, 0)
-
-    def on_shown(self):
-        self.refresh()
-
-    def refresh(self):
-        for c in self.list.get_children():
-            self.list.remove(c)
-        m = self.model
-        if m is None:
-            return
-        cs = docapi.comments(m)
-        if not cs:
-            lab = Gtk.Label(label="There are no comments in this document.")
-            lab.get_style_context().add_class("dim-label")
-            self.list.add(lab)
-        for c in cs:
-            row = Gtk.ListBoxRow()
-            row.field = c["field"]
-            row.comment_id = c.get("id")
-            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            box.set_border_width(6)
-            a = Gtk.Label(xalign=0)
-            a.set_markup("<b>%s</b>" % html.escape(c["author"] or "Author"))
-            t = Gtk.Label(label=c["text"], xalign=0)
-            t.set_line_wrap(True)
-            t.set_max_width_chars(34)
-            box.pack_start(a, False, False, 0)
-            box.pack_start(t, False, False, 0)
-            row.add(box)
-            row.get_style_context().add_class("folio-comment-card")
-            self.list.add(row)
-        self.list.show_all()
-
-    def _go(self, lb, row):
-        f = getattr(row, "field", None)
-        if f is not None:
-            docapi.goto(self.model, f.getAnchor().getStart())
-
-
 class ReviewingPane(Pane):
     """Reviewing Pane: every tracked change and comment, newest edits first
     in document order, with Accept / Reject."""
@@ -1194,29 +1021,24 @@ class AltTextPane(Pane):
         self.view.get_buffer().connect("changed", lambda *_: self._save())
         self.decorative.connect("toggled", lambda *_: self._save())
         self._loading = False
-        self.obj = None
+        self.obj = False
 
     def on_shown(self):
-        from . import drawing
-        m = self.model
-        self.obj = drawing.selected_shape(m) if m is not None else None
+        ed = getattr(self.win.engine, "ed", None)
+        got = ed.object_alt_text() if ed is not None else None
+        self.obj = got is not None
         self._loading = True
-        self.view.get_buffer().set_text(drawing.alt_text(self.obj) if self.obj else "")
-        try:
-            self.decorative.set_active(bool(getattr(self.obj, "Decorative", False)))
-        except Exception:
-            self.decorative.set_active(False)
-        self.view.set_sensitive(self.obj is not None and not self.decorative.get_active())
+        self.view.get_buffer().set_text(got[0] if got else "")
+        self.decorative.set_active(bool(got and got[1]))
+        self.view.set_sensitive(self.obj and not self.decorative.get_active())
         self._loading = False
 
     def _save(self):
-        if self._loading or self.obj is None:
+        if self._loading or not self.obj:
             return
-        from . import drawing
         b = self.view.get_buffer()
         text = b.get_text(b.get_start_iter(), b.get_end_iter(), False)
-        try:
-            drawing.set_alt_text(self.obj, text, self.decorative.get_active())
-        except Exception as e:
-            print("alt text:", e)
+        ed = self.win.engine.ed
+        if ed.set_object_alt_text(text, self.decorative.get_active()):
+            self.win.engine.view.after_edit()
         self.view.set_sensitive(not self.decorative.get_active())

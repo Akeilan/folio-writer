@@ -3,6 +3,8 @@ change its type, title and legend."""
 from gi.repository import Gdk, GLib, Gtk
 
 from . import bridge, docapi
+from .native import values
+from . import modelapi
 
 CHART_CLSID = "12DCAE26-281F-416F-A234-C3086127382E"
 
@@ -98,7 +100,7 @@ def special(obj):
     if m is None or not key:
         return None
     try:
-        return json.loads(docapi._doc_setting(m, key, "") or "null")
+        return json.loads(modelapi._doc_setting(m, key, "") or "null")
     except ValueError:
         return None
 
@@ -108,7 +110,7 @@ def _set_special(obj, info):
     m = _MODEL[0]
     key = _kind_key(obj)
     if m is not None and key:
-        docapi._set_doc_setting(m, key, json.dumps(info) if info else "")
+        modelapi._set_doc_setting(m, key, json.dumps(info) if info else "")
 
 
 def histogram_data(d, bins=None):
@@ -204,8 +206,8 @@ def _apply_special(obj, kind, d):
     if kind == "funnel":
         try:
             p = dg.getDataRowProperties(0)
-            p.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "NONE")
-            p.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "NONE")
+            p.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "NONE")
+            p.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "NONE")
             p.DataCaption = 0
             q = dg.getDataRowProperties(1)
             q.FillColor = 0x4472C4
@@ -221,14 +223,14 @@ def _apply_special(obj, kind, d):
         for i in range(4):
             try:
                 p = dg.getDataRowProperties(i)
-                p.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "SOLID")
+                p.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "SOLID")
                 p.LineColor = 0x404040
                 p.LineWidth = 26
             except Exception:
                 pass
         try:
             ml = dg.getMinMaxLine()
-            ml.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "SOLID")
+            ml.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "SOLID")
             ml.LineColor = 0x404040
             ml.LineWidth = 26
         except Exception as e:
@@ -243,8 +245,8 @@ def _apply_special(obj, kind, d):
     if kind == "waterfall":
         try:
             p = dg.getDataRowProperties(0)
-            p.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "NONE")
-            p.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "NONE")
+            p.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "NONE")
+            p.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "NONE")
             p.DataCaption = 0
             dg.getDataRowProperties(1).FillColor = 0x5B9BD5
             dg.getDataRowProperties(2).FillColor = 0xED7D31
@@ -255,7 +257,7 @@ def _apply_special(obj, kind, d):
         try:
             p = dg.getDataRowProperties(0)
             p.LineColor = 0xFFFFFF
-            p.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "SOLID")
+            p.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "SOLID")
         except Exception:
             pass
 
@@ -279,7 +281,7 @@ def _replace_object(old, make):
     """Swap a chart object for another kind of chart at the same place."""
     m = _MODEL[0]
     anchor = old.getAnchor()
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     vc.gotoRange(anchor.getStart(), False)
     data = get_data(old)
     text = anchor.getText()
@@ -429,29 +431,29 @@ def _colors(cd):
             except Exception:
                 pass
         try:
-            p.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "SOLID")
+            p.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "SOLID")
             if d.getDiagramType() in ("com.sun.star.chart.BarDiagram",
                                       "com.sun.star.chart.PieDiagram",
                                       "com.sun.star.chart.DonutDiagram",
                                       "com.sun.star.chart.AreaDiagram"):
                 if not (d.getDiagramType().endswith("BarDiagram") and
                         i >= n - getattr(d, "NumberOfLines", 0)):
-                    p.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "NONE")
+                    p.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "NONE")
             else:
-                p.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "SOLID")
+                p.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "SOLID")
         except Exception:
             pass
     for setter in (lambda: setattr(d.getWall(), "FillStyle",
-                                   bridge.enum("com.sun.star.drawing.FillStyle", "NONE")),
+                                   values.enum("com.sun.star.drawing.FillStyle", "NONE")),
                    lambda: setattr(d.getWall(), "LineStyle",
-                                   bridge.enum("com.sun.star.drawing.LineStyle", "NONE")),
+                                   values.enum("com.sun.star.drawing.LineStyle", "NONE")),
                    lambda: setattr(d.getYMainGrid(), "LineColor", 0xD9D9D9),
                    lambda: setattr(cd.getArea(), "LineStyle",
-                                   bridge.enum("com.sun.star.drawing.LineStyle", "NONE")),
+                                   values.enum("com.sun.star.drawing.LineStyle", "NONE")),
                    lambda: setattr(cd.getLegend(), "LineStyle",
-                                   bridge.enum("com.sun.star.drawing.LineStyle", "NONE")),
+                                   values.enum("com.sun.star.drawing.LineStyle", "NONE")),
                    lambda: setattr(cd.getLegend(), "FillStyle",
-                                   bridge.enum("com.sun.star.drawing.FillStyle", "NONE"))):
+                                   values.enum("com.sun.star.drawing.FillStyle", "NONE"))):
         try:
             setter()
         except Exception:
@@ -467,7 +469,7 @@ def filters(obj):
     import json
     m = _MODEL[0]
     try:
-        f = json.loads(docapi._doc_setting(m, "ChartFilter:" + obj.Name, "") or "{}")
+        f = json.loads(modelapi._doc_setting(m, "ChartFilter:" + obj.Name, "") or "{}")
     except ValueError:
         f = {}
     return {"series": f.get("series", []), "cats": f.get("cats", [])}
@@ -476,7 +478,7 @@ def filters(obj):
 def _full(obj):
     import json
     try:
-        return json.loads(docapi._doc_setting(_MODEL[0], _full_key(obj), "") or "null")
+        return json.loads(modelapi._doc_setting(_MODEL[0], _full_key(obj), "") or "null")
     except ValueError:
         return None
 
@@ -508,7 +510,7 @@ def get_data(obj):
 def set_data(obj, d):
     if not is_image(obj) and not special(obj) and _full(obj):
         import json
-        docapi._set_doc_setting(_MODEL[0], _full_key(obj), json.dumps(d))
+        modelapi._set_doc_setting(_MODEL[0], _full_key(obj), json.dumps(d))
         _write(obj, _filtered(d, filters(obj)))
         return
     if is_image(obj):
@@ -557,7 +559,7 @@ def set_legend(obj, where):
         cd.HasLegend = False
         return
     cd.HasLegend = True
-    cd.getLegend().Alignment = bridge.enum("com.sun.star.chart.ChartLegendPosition",
+    cd.getLegend().Alignment = values.enum("com.sun.star.chart.ChartLegendPosition",
                                            {"bottom": "BOTTOM", "right": "RIGHT", "top": "TOP",
                                             "left": "LEFT"}[where])
 
@@ -741,8 +743,8 @@ def set_chart_style(obj, index):
     """Chart Styles gallery: background, outlines, labels and gridlines."""
     cd = chart_doc(obj)
     d = cd.getDiagram()
-    fs = lambda v: bridge.enum("com.sun.star.drawing.FillStyle", v)   # noqa: E731
-    ls = lambda v: bridge.enum("com.sun.star.drawing.LineStyle", v)   # noqa: E731
+    fs = lambda v: values.enum("com.sun.star.drawing.FillStyle", v)   # noqa: E731
+    ls = lambda v: values.enum("com.sun.star.drawing.LineStyle", v)   # noqa: E731
     dark = index in (5, 7)
     try:
         area = cd.getArea()
@@ -803,10 +805,10 @@ def insert_chart(m, type_index=0):
     try:
         obj = m.createInstance("com.sun.star.text.TextEmbeddedObject")
         obj.CLSID = CHART_CLSID
-        obj.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AS_CHARACTER")
-        vc = docapi.view_cursor(m)
+        obj.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType", "AS_CHARACTER")
+        vc = modelapi.view_cursor(m)
         vc.getText().insertTextContent(vc, obj, False)
-        obj.Size = bridge.struct("com.sun.star.awt.Size", Width=15240, Height=8890)  # 6" x 3.5"
+        obj.Size = values.struct("com.sun.star.awt.Size", Width=15240, Height=8890)  # 6" x 3.5"
         cd = chart_doc(obj)
         if not cd.hasInternalDataProvider():
             cd.createInternalDataProvider(False)
@@ -1396,8 +1398,7 @@ class ChartFormatPane(Gtk.Box):
                 self._busy = False
 
             def chart(self):
-                m = self.win.engine.model
-                return selected_chart(m) if m is not None else getattr(self, "obj", None)
+                return (getattr(self, "obj", None))
 
             def on_shown(self):
                 obj = self.chart()
@@ -1452,13 +1453,13 @@ class ChartFormatPane(Gtk.Box):
                     return
                 try:
                     if key == "FillColor":
-                        el.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle",
+                        el.FillStyle = values.enum("com.sun.star.drawing.FillStyle",
                                                    "NONE" if value is None or value < 0
                                                    else "SOLID")
                         if value is not None and value >= 0:
                             el.FillColor = value
                     elif key == "LineColor":
-                        el.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle",
+                        el.LineStyle = values.enum("com.sun.star.drawing.LineStyle",
                                                    "NONE" if value is None or value < 0
                                                    else "SOLID")
                         if value is not None and value >= 0:

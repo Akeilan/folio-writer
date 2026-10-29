@@ -10,6 +10,7 @@ from gi.repository import GLib, Gtk, Pango
 
 from . import icons
 from ._lazy import docapi
+from . import modelapi
 
 WORD_RE = re.compile(r"[\w’'\-]+[.,;:!?]?", re.U)
 
@@ -162,7 +163,7 @@ class DocSource:
         m = win.engine.model
         self.paras = []
         body = m.getText()
-        here = docapi.read_cursor(m).getStart()
+        here = modelapi.read_cursor(m).getStart()
         en = body.createEnumeration()
         started = False
         while en.hasMoreElements():
@@ -204,7 +205,7 @@ class DocSource:
             c = p.getText().createTextCursorByRange(p.getStart())
             c.goRight(start, False)
             c.goRight(length, True)
-            docapi.controller(m).select(c)
+            modelapi.controller(m).select(c)
         except Exception:
             pass
 

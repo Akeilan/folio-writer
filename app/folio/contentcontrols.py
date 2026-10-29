@@ -7,6 +7,8 @@ from gi.repository import Gdk, GLib, Gtk
 
 from . import bridge, docapi
 from .widgets import FDialog, grid
+from .native import values
+from . import modelapi
 
 PLACEHOLDER = {"rich": "Click or tap here to enter text.",
                "plain": "Click or tap here to enter text.",
@@ -22,59 +24,7 @@ def _native(win):
 def insert(win, kind):
     if _native(win):
         return _native(win).insert(win, kind)
-    m = win.engine.model
-    if m is None:
-        return
-
-    def go():
-        vc = docapi.view_cursor(m)
-        text = vc.getText()
-        um = m.getUndoManager()
-        um.enterUndoContext("Insert Content Control")
-        try:
-            cc = m.createInstance("com.sun.star.text.ContentControl")
-            sel = vc.getString()
-            if not sel:
-                if kind == "checkbox":
-                    text.insertString(vc, "☐", True)
-                elif kind != "picture":
-                    text.insertString(vc, PLACEHOLDER[kind], True)
-            rng = text.createTextCursorByRange(vc)
-            if kind == "checkbox":
-                cc.Checkbox = True
-                cc.Checked = False
-                cc.CheckedState = "☒"
-                cc.UncheckedState = "☐"
-            elif kind == "plain":
-                cc.PlainText = True
-            elif kind in ("combo", "dropdown"):
-                items = ((bridge.prop("DisplayText", "Choose an item."),
-                          bridge.prop("Value", "")),)
-                import uno
-                uno.invoke(cc, "setPropertyValue", ("ListItems", uno.Any(
-                    "[][]com.sun.star.beans.PropertyValue", items)))
-                if kind == "combo":
-                    cc.ComboBox = True
-                else:
-                    cc.DropDown = True
-            elif kind == "date":
-                cc.Date = True
-                cc.DateFormat = "M/d/yyyy"
-                cc.DateLanguage = "en-US"
-            elif kind == "picture":
-                cc.Picture = True
-            if kind not in ("checkbox", "picture") and not sel:
-                cc.ShowingPlaceHolder = True
-            text.insertTextContent(rng, cc, True)
-            if kind == "picture":
-                _insert_placeholder_picture(m, cc)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            win.dialogs.message("The control couldn't be inserted: %s" % e)
-        finally:
-            um.leaveUndoContext()
-    win.engine.sync(go)
+    return
 
 
 def _insert_placeholder_picture(m, cc):
@@ -92,7 +42,7 @@ def _insert_placeholder_picture(m, cc):
         img.save(path)
         rng = cc.getText().createTextCursorByRange(cc.getStart()) if hasattr(
             cc, "getText") else None
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         if rng is not None:
             vc.gotoRange(rng, False)
         docapi.insert_picture(m, path)
@@ -103,7 +53,7 @@ def _insert_placeholder_picture(m, cc):
 
 def control_at_cursor(m):
     """The content control the cursor is in, or None."""
-    vc = docapi.read_cursor(m)
+    vc = modelapi.read_cursor(m)
     try:
         cc = vc.ContentControl
         if cc is not None:
@@ -162,7 +112,7 @@ def _items(cc):
 
 def _set_items(cc, items):
     import uno
-    seq = tuple((bridge.prop("DisplayText", t), bridge.prop("Value", v)) for t, v in items)
+    seq = tuple((values.prop("DisplayText", t), values.prop("Value", v)) for t, v in items)
     uno.invoke(cc, "setPropertyValue", ("ListItems", uno.Any(
         "[][]com.sun.star.beans.PropertyValue", seq)))
 
@@ -172,87 +122,4 @@ def _set_items(cc, items):
 def properties(win):
     if _native(win):
         return _native(win).properties(win)
-    m = win.engine.model
-    if m is None:
-        return
-    cc = control_at_cursor(m)
-    if cc is None:
-        win.dialogs.message("Put the cursor in a content control first.")
-        return
-    k = kind_of(cc)
-    d = FDialog(win, "Content Control Properties")
-    title = Gtk.Entry(text=getattr(cc, "Alias", "") or "")
-    tag = Gtk.Entry(text=getattr(cc, "Tag", "") or "")
-    d.add(grid([["_Title:", title], ["T_ag:", tag]]))
-    lock = Gtk.CheckButton(label="Content control cannot be deleted")
-    try:
-        lock.set_active(bool(cc.Lock in ("sdtLocked", "sdtContentLocked")))
-    except Exception:
-        pass
-    d.add(lock)
-    store = None
-    if k in ("combo", "dropdown"):
-        store = Gtk.ListStore(str, str)
-        for t, v in _items(cc):
-            store.append([t, v])
-        tv = Gtk.TreeView(model=store)
-        for i, h in enumerate(("Display Name", "Value")):
-            cell = Gtk.CellRendererText(editable=True)
-            cell.connect("edited", lambda c, p, t, i=i: store.__getitem__(p).__setitem__(i, t))
-            tv.append_column(Gtk.TreeViewColumn(h, cell, text=i))
-        sw = Gtk.ScrolledWindow()
-        sw.set_size_request(360, 150)
-        sw.add(tv)
-        d.add(Gtk.Label(label="Drop-Down List Properties", xalign=0))
-        hb = Gtk.Box(spacing=6)
-        hb.pack_start(sw, True, True, 0)
-        bb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        add = Gtk.Button(label="Add...")
-        rem = Gtk.Button(label="Remove")
-        up = Gtk.Button(label="Move Up")
-        down = Gtk.Button(label="Move Down")
-        for b in (add, rem, up, down):
-            bb.pack_start(b, False, False, 0)
-        hb.pack_start(bb, False, False, 0)
-        d.add(hb)
-
-        def do_add(*_):
-            t = win.dialogs.ask_text("Add Choice", "Display Name:")
-            if t:
-                store.append([t, t])
-
-        def sel():
-            mdl, it = tv.get_selection().get_selected()
-            return it
-
-        def do_rem(*_):
-            it = sel()
-            if it:
-                store.remove(it)
-
-        def move(delta):
-            it = sel()
-            if it is None:
-                return
-            other = store.iter_previous(it) if delta < 0 else store.iter_next(it)
-            if other is not None:
-                store.swap(it, other)
-        add.connect("clicked", do_add)
-        rem.connect("clicked", do_rem)
-        up.connect("clicked", lambda *_: move(-1))
-        down.connect("clicked", lambda *_: move(1))
-    if d.ask() == Gtk.ResponseType.OK:
-        def go():
-            try:
-                cc.Alias = title.get_text()
-                cc.Tag = tag.get_text()
-            except Exception:
-                pass
-            try:
-                cc.Lock = "sdtLocked" if lock.get_active() else ""
-            except Exception:
-                pass
-            if store is not None:
-                _set_items(cc, [(r[0], r[1]) for r in store])
-        win.engine.sync(go)
-    d.done()
+    return

@@ -6,6 +6,7 @@ from gi.repository import GLib, Gtk, Pango
 
 from ._lazy import docapi
 from .panes import Pane
+from . import modelapi
 
 WHY = {
     "Missing alternative text": (
@@ -310,9 +311,9 @@ class AccessibilityPane(Pane):
             return
         m = self.model
         try:
-            docapi.controller(m).select(target)
+            modelapi.controller(m).select(target)
         except Exception:
             try:
-                docapi.view_cursor(m).gotoRange(target.getStart(), False)
+                modelapi.view_cursor(m).gotoRange(target.getStart(), False)
             except Exception:
                 pass

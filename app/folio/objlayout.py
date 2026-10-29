@@ -11,6 +11,8 @@ from gi.repository import Gdk, GdkPixbuf, Gtk
 from ._lazy import Lazy, bridge, docapi, uno
 drawing = Lazy("folio.drawing")
 from .widgets import FDialog, LengthSpin, combo, grid, heading
+from .native import values
+from . import modelapi
 
 # RelOrientation
 FRAME, PRINT_AREA, CHAR, PAGE_LEFT, PAGE_RIGHT, PAGE_FRAME, PAGE_PRINT_AREA, TEXT_LINE = \
@@ -77,7 +79,7 @@ def layout_dialog(win, tab=0):
         from .native import arrange
         return arrange.layout_dialog(win, tab)
     m = win.engine.model
-    obj = drawing.selected_shape(m) if m is not None else None
+    obj = None
     if obj is None:
         return
     d = FDialog(win, "Layout")
@@ -289,9 +291,9 @@ def layout_dialog(win, tab=0):
             drawing.set_wrap(obj, key)
             if key in ("square", "tight", "through"):
                 side = next(k for rb, k in sides if rb.get_active())
-                _set(obj, "TextWrap", bridge.enum("com.sun.star.text.WrapTextMode", side))
+                _set(obj, "TextWrap", values.enum("com.sun.star.text.WrapTextMode", side))
             if key == "front" or key == "behind":
-                _set(obj, "TextWrap", bridge.enum("com.sun.star.text.WrapTextMode", "THROUGH"))
+                _set(obj, "TextWrap", values.enum("com.sun.star.text.WrapTextMode", "THROUGH"))
                 _set(obj, "Opaque", key == "front")
             for prop, w in (("TopMargin", dt), ("BottomMargin", db), ("LeftMargin", dl),
                             ("RightMargin", dr)):
@@ -319,7 +321,7 @@ def layout_dialog(win, tab=0):
                     _set(obj, "AllowOverlap", overlap.get_active())
                 if has(obj, "IsFollowingTextFlow"):
                     _set(obj, "IsFollowingTextFlow", cell.get_active())
-            obj.Size = bridge.struct("com.sun.star.awt.Size", Width=int(wid.mm100),
+            obj.Size = values.struct("com.sun.star.awt.Size", Width=int(wid.mm100),
                                      Height=int(hgt.mm100))
             angle = int(round((-rot.get_value()) % 360 * 100))
             if drawing.kind_of(obj) == "picture":
@@ -339,8 +341,8 @@ def _graphic_png(obj):
     fd, path = tempfile.mkstemp(suffix=".png")
     os.close(fd)
     from .engine import file_url
-    gp.storeGraphic(obj.Graphic, (bridge.prop("URL", file_url(path)),
-                                  bridge.prop("MimeType", "image/png")))
+    gp.storeGraphic(obj.Graphic, (values.prop("URL", file_url(path)),
+                                  values.prop("MimeType", "image/png")))
     return path
 
 
@@ -351,7 +353,7 @@ def edit_wrap_points(win):
         from .native import arrange
         return arrange.edit_wrap_points(win)
     m = win.engine.model
-    obj = drawing.selected_shape(m) if m is not None else None
+    obj = None
     if obj is None:
         return
     if wrap_of(obj) not in ("tight", "through"):
@@ -509,7 +511,7 @@ def set_contour(obj, pts, W, H):
     if not pixel:
         s = obj.Size
         pts = [[p[0] * s.Width / float(W), p[1] * s.Height / float(H)] for p in pts]
-    seq = tuple(bridge.struct("com.sun.star.awt.Point", X=int(round(x)), Y=int(round(y)))
+    seq = tuple(values.struct("com.sun.star.awt.Point", X=int(round(x)), Y=int(round(y)))
                 for x, y in pts)
     uno.invoke(obj, "setPropertyValue", ("ContourPolyPolygon", uno.Any(
         "[][]com.sun.star.awt.Point", (seq,))))
@@ -524,7 +526,7 @@ def aspect_fill(obj):
     if not (a.Width and a.Height and s.Width and s.Height):
         return
     target = s.Width / float(s.Height)
-    crop = bridge.struct("com.sun.star.text.GraphicCrop", Top=0, Bottom=0, Left=0, Right=0)
+    crop = values.struct("com.sun.star.text.GraphicCrop", Top=0, Bottom=0, Left=0, Right=0)
     if a.Width / float(a.Height) > target:
         keep_w = a.Height * target
         cut = int((a.Width - keep_w) / 2)
@@ -543,10 +545,10 @@ def aspect_fit(obj):
     a = obj.ActualSize
     if not (a.Width and a.Height and s.Width and s.Height):
         return
-    obj.GraphicCrop = bridge.struct("com.sun.star.text.GraphicCrop", Top=0, Bottom=0,
+    obj.GraphicCrop = values.struct("com.sun.star.text.GraphicCrop", Top=0, Bottom=0,
                                     Left=0, Right=0)
     r = min(s.Width / float(a.Width), s.Height / float(a.Height))
-    obj.Size = bridge.struct("com.sun.star.awt.Size", Width=int(a.Width * r),
+    obj.Size = values.struct("com.sun.star.awt.Size", Width=int(a.Width * r),
                              Height=int(a.Height * r))
 
 
@@ -566,7 +568,7 @@ def crop_to_shape(win, kind):
         from .native import arrange
         return arrange.crop_to_shape(win, kind)
     m = win.engine.model
-    obj = drawing.selected_shape(m) if m is not None else None
+    obj = None
     if obj is None or drawing.kind_of(obj) != "picture":
         return
     um = m.getUndoManager()
@@ -593,21 +595,21 @@ def crop_to_shape(win, kind):
             if v is not None:
                 _set(shape, prop, v)
         uno.invoke(shape, "setPropertyValue", ("CustomShapeGeometry", uno.Any(
-            "[]com.sun.star.beans.PropertyValue", (bridge.prop("Type", kind),))))
-        shape.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "BITMAP")
+            "[]com.sun.star.beans.PropertyValue", (values.prop("Type", kind),))))
+        shape.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "BITMAP")
         try:
             shape.FillBitmap = obj.Graphic.queryInterface(
                 uno.getTypeByName("com.sun.star.awt.XBitmap")) or obj.Graphic
         except Exception:
             shape.FillBitmap = obj.Graphic
-        shape.FillBitmapMode = bridge.enum("com.sun.star.drawing.BitmapMode", "STRETCH")
-        shape.LineStyle = bridge.enum("com.sun.star.drawing.LineStyle", "NONE")
+        shape.FillBitmapMode = values.enum("com.sun.star.drawing.BitmapMode", "STRETCH")
+        shape.LineStyle = values.enum("com.sun.star.drawing.LineStyle", "NONE")
         shape.Size = size
         try:
             text.removeTextContent(obj)
         except Exception:
             obj.dispose()
-        docapi.controller(m).select(shape)
+        modelapi.controller(m).select(shape)
     except Exception as e:
         print("crop to shape:", e)
     finally:

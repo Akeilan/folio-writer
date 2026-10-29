@@ -4,6 +4,7 @@ written to Folio's own engine."""
 from gi.repository import GLib
 
 from .. import bridge
+from . import values
 
 MM = 2540.0 / 1440.0      # 1/100 mm per twip
 
@@ -76,7 +77,7 @@ class CursorProps:
         if k == "CharWeight":
             return 150.0 if r()["bold"] else 100.0
         if k == "CharPosture":
-            return bridge.enum("com.sun.star.awt.FontSlant", "ITALIC" if r()["italic"] else "NONE")
+            return values.enum("com.sun.star.awt.FontSlant", "ITALIC" if r()["italic"] else "NONE")
         if k == "CharUnderline":
             return UL_TO_NUM.get(r()["underline"], 1)
         if k == "CharWordMode":
@@ -120,7 +121,7 @@ class CursorProps:
         if k == "CharStyleName":
             return r()["style"]
         if k == "CharLocale":
-            return bridge.struct("com.sun.star.lang.Locale", Language="en", Country="US")
+            return values.struct("com.sun.star.lang.Locale", Language="en", Country="US")
         # paragraph
         if k == "ParaAdjust":
             return JC_TO_ADJ.get(p()["align"], 0)
@@ -136,7 +137,7 @@ class CursorProps:
             return int(round(p()["after"] * MM))
         if k == "ParaLineSpacing":
             v = p()
-            ls = bridge.struct("com.sun.star.style.LineSpacing")
+            ls = values.struct("com.sun.star.style.LineSpacing")
             if v["line_rule"] == "exact":
                 ls.Mode, ls.Height = 3, int(round(abs(v["line"]) * MM))
             elif v["line_rule"] == "atLeast":
@@ -156,7 +157,7 @@ class CursorProps:
         if k == "ParaSplit":
             return not p()["keep_lines"]
         if k == "BreakType":
-            return bridge.enum("com.sun.star.style.BreakType",
+            return values.enum("com.sun.star.style.BreakType",
                                "PAGE_BEFORE" if p()["page_break_before"] else "NONE")
         if k == "ParaLineNumberCount":
             return not p()["suppress_line_numbers"]
@@ -167,9 +168,9 @@ class CursorProps:
         if k == "ParaTabStops":
             out = []
             for pos, kind, leader in p()["tabs"]:
-                ts = bridge.struct("com.sun.star.style.TabStop")
+                ts = values.struct("com.sun.star.style.TabStop")
                 ts.Position = int(round(pos * MM))
-                ts.Alignment = bridge.enum("com.sun.star.style.TabAlign",
+                ts.Alignment = values.enum("com.sun.star.style.TabAlign",
                                            TAB_KIND.get(kind, "LEFT"))
                 ts.FillChar = LEADER.get(leader, " ")
                 ts.DecimalChar = "."
