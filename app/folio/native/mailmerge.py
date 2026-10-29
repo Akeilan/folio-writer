@@ -522,7 +522,7 @@ def merged_document(win, which="all", first=1, last=None, answers=None):
     E = core().Editor.open(src)
     out = core().Editor.open(src)
     out.select_all()
-    out.type_text("")
+    out.delete(True, False)
     frags = []
     seq = 0
     k = 0
@@ -772,3 +772,171 @@ def highlight(win, on):
     else:
         v.merge_shading = []
     v.queue_draw()
+
+
+# ================================================================ e-mail (through Folio Post)
+def email_columns(win):
+    """Recipient-list columns that look like e-mail addresses, best first."""
+    cols, rows, _inc = recipients(win)
+    scored = []
+    for i, c in enumerate(cols):
+        name = c.lower().replace("-", "").replace("_", " ")
+        score = 0
+        if "email" in name or "e mail" in name or "mail" in name:
+            score += 10
+        filled = [r.get(c, "") for r in rows[:50] if r.get(c, "")]
+        if filled and all("@" in v for v in filled):
+            score += 5
+        if score:
+            scored.append((-score, i, c))
+    return [c for _s, _i, c in sorted(scored)] + [c for c in cols if c not in [x[2] for x in scored]]
+
+
+def _docx_text(path):
+    """A merged message as plain text: paragraphs on their own lines, table cells
+    separated by tabs."""
+    from . import docxread
+    doc = docxread.read(path)
+    out = []
+
+    def runs_text(runs):
+        s = []
+        for r in runs:
+            t = r.get("t")
+            if t == "text":
+                s.append(r.get("text", ""))
+            elif t == "tab":
+                s.append("\t")
+            elif t in ("br", "page", "col"):
+                s.append("\n")
+            elif t == "link":
+                s.append(runs_text(r.get("runs", [])))
+            elif t == "field":
+                res = r.get("result", "")
+                s.append(runs_text(res) if isinstance(res, list) else str(res or ""))
+        return "".join(s)
+
+    def blocks(bl):
+        for b in bl:
+            if b.get("table"):
+                for row in b["rows"]:
+                    cells = []
+                    for c in row["cells"]:
+                        sub = []
+                        for p in c.get("blocks", []):
+                            if not p.get("table"):
+                                sub.append(runs_text(p.get("runs", [])))
+                        cells.append(" ".join(sub))
+                    out.append("\t".join(cells))
+            else:
+                out.append(runs_text(b.get("runs", [])))
+    for sec in doc.sections:
+        blocks(sec["blocks"])
+    return "\n".join(out).strip("\n") + "\n"
+
+
+def email_messages(win, to_column, subject, fmt="html", which="all", first=1, last=None,
+                   answers=None, attachment_name="Document.docx"):
+    """One message per included record, as Folio Post's --send-merge takes them:
+    the merged document as HTML, plain text or an attached .docx. Returns (job, tmp dir)."""
+    from . import core
+    from . import htmlexport
+    cols, rows, inc = recipients(win)
+    if to_column not in cols:
+        raise ValueError("Choose the column that holds the e-mail addresses.")
+    picks = [i for i, ok in enumerate(inc) if ok]
+    if isinstance(which, int):
+        picks = [which]
+    elif which == "current":
+        picks = [getattr(win, "merge_preview", None) or 0]
+    elif which == "range":
+        picks = [i for i in picks if first - 1 <= i <= (last or len(rows)) - 1]
+    if not rows or not picks:
+        raise ValueError("There are no recipients to merge.")
+    tmpd = tempfile.mkdtemp(prefix="folio-email-merge-")
+    src = _snapshot(win)
+    E = core().Editor.open(src)
+    messages = []
+    seq = 0
+    k = 0
+    try:
+        while k < len(picks):
+            idx = picks[k]
+            seq += 1
+            nxt, skip = evaluate(win, E, rows, idx, {"seq": seq, "answers": answers or {}})
+            k += max(1, nxt - idx)
+            if skip:
+                continue
+            to = (rows[idx].get(to_column) or "").strip()
+            if not to:
+                continue
+            E.select_all()
+            frag = E.copy_fragment()
+            one = core().Editor.open(src)
+            one.select_all()
+            one.delete(True, False)
+            if frag:
+                one.move_caret("doc_end", False)
+                one.paste_fragment(frag, True)
+            one.unlink_fields()
+            one.set_settings_xml("w:mailMerge", None)
+            d = os.path.join(tmpd, "%04d" % len(messages))
+            os.makedirs(d)
+            path = os.path.join(d, attachment_name)
+            one.save(path)
+            msg = {"to": to, "subject": subject}
+            if fmt == "attachment":
+                msg["text"] = ""
+                msg["attachments"] = [path]
+            elif fmt == "text":
+                msg["text"] = _docx_text(path)
+            else:
+                msg["html"] = htmlexport.docx_to_html(path, subject)
+                msg["text"] = _docx_text(path)
+            messages.append(msg)
+    finally:
+        try:
+            os.unlink(src)
+        except OSError:
+            pass
+    if not messages:
+        raise ValueError("None of the chosen records has an e-mail address in “%s”." % to_column)
+    job = {"subject": subject, "format": fmt, "messages": messages}
+    path = os.path.join(tmpd, "merge.json")
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(job, fh)
+    return path, tmpd, len(messages)
+
+
+def post_program():
+    import shutil
+    return shutil.which("folio-post")
+
+
+def post_contacts():
+    """Folio Post's contacts and contact groups ([{name, email, company, phone, groups}]),
+    or None when Post isn't installed."""
+    import subprocess
+    prog = post_program()
+    if not prog:
+        return None
+    r = subprocess.run([prog, "--list-contacts", "--json"], capture_output=True, timeout=60)
+    if r.returncode != 0:
+        raise RuntimeError((r.stderr or b"").decode("utf-8", "replace").strip()[-300:] or
+                           "Folio Post couldn't list its contacts.")
+    data = json.loads(r.stdout.decode("utf-8", "replace") or "[]")
+    return [c for c in data if isinstance(c, dict)]
+
+
+CONTACT_COLUMNS = ["First Name", "Last Name", "Company Name", "E-mail Address", "Work Phone"]
+
+
+def contact_rows(contacts):
+    """Contacts as recipient-list rows (CONTACT_COLUMNS)."""
+    rows = []
+    for c in contacts:
+        name = (c.get("name") or "").strip()
+        first, last = name.rsplit(" ", 1) if " " in name else (name, "")
+        rows.append(dict(zip(CONTACT_COLUMNS, [first, last, c.get("company") or "", c.get("email") or "",
+                                              c.get("phone") or ""])))
+    return rows

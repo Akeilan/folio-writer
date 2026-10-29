@@ -1542,7 +1542,7 @@ def build_ribbon(win):
             ("Letters", lambda: DM.start_mail_merge(win, "letters")),
             ("Envelopes...", lambda: DM.start_mail_merge(win, "envelopes")),
             ("Labels...", lambda: DM.start_mail_merge(win, "labels")),
-            ("E-mail Messages", lambda: DM.not_available(win, "Merging to e-mail")),
+            ("E-mail Messages", lambda: DM.start_email(win)),
             ("Directory", lambda: DM.start_mail_merge(win, "directory")),
             ("Normal Word Document", lambda: DM.start_mail_merge(win, "normal")),
             None,
@@ -1550,7 +1550,7 @@ def build_ribbon(win):
         MenuButton(r, "Select\nRecipients", "cmd/lc_addressbooksource", [
             ("Type a New List...", lambda: DM.type_new_list(win)),
             ("Use an Existing List...", lambda: DM.use_existing_list(win)),
-            ("Choose from Outlook Contacts...", lambda: DM.not_available(win, "Outlook Contacts"))],
+            ("Choose from Outlook Contacts...", lambda: DM.choose_post_contacts(win))],
             keytip="R"),
         needs(btn("Edit\nRecipient List", "cmd/lc_mailmergeemaildocuments" if False else
                   "cmd/lc_dbviewtables", lambda: DM.edit_recipients(win), size="large",
@@ -1613,7 +1613,7 @@ def build_ribbon(win):
         needs(MenuButton(r, "Finish &\nMerge", "cmd/lc_mailmergecreatedocuments", [
             ("Edit Individual Documents...", lambda: DM.finish(win)),
             ("Print Documents...", lambda: DM.finish(win, print_after=True)),
-            ("Send Email Messages...", lambda: DM.not_available(win, "Sending e-mail"))],
+            ("Send Email Messages...", lambda: DM.send_email(win))],
             keytip="F"))]))
     r.add_tab(t)
 

@@ -82,6 +82,7 @@ def a():
     otext = "\n".join(p for p in [r[1] for r in out.outline_paras()])
     check("the letters carry each record", "Ann Smith" in otext and "Cy Lee" in otext and "Bob" not in otext, otext[:300])
     check("no fields left", not out.fields_all(), out.fields_all()[:3])
+    check("nothing of the main document's own fields left", "«" not in otext, otext[:200])
     check("a page each", out.page_count() == 2, out.page_count())
     MM.set_included(win, [True, True, True])
 
