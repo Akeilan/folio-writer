@@ -1,6 +1,6 @@
-exec(open("/home/claude/folio2/tests/common.py").read())
-exec(open("/home/claude/folio2/tests/word/wc.py").read())
-exec(open("/home/claude/folio2/tests/word/w2.py").read().split("def clicks():")[0].split('exec(open("/home/claude/folio2/tests/word/wc.py").read())')[1])
+import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); exec(open(TESTS + "/common.py").read())
+exec(open(TESTS + "/word/wc.py").read())
+exec(open(TESTS + "/word/w2.py").read().split("def clicks():")[0].split('exec(open(TESTS + "/word/wc.py").read())')[1])
 def nums():
     return [is_listed(i) for i, t in enumerate(para_texts())]
 def r1():

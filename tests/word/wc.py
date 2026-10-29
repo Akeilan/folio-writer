@@ -1,8 +1,8 @@
-# Word-parity scenario harness: exec'd by a test script after common.py.
+import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); # Word-parity scenario harness: exec'd by a test script after common.py.
 # Scenarios are generators; `yield secs` waits while the app runs.
 import subprocess, time, traceback, os
 E = win.engine
-exec(open("/home/claude/folio2/tests/word/wn.py").read())
+exec(open(TESTS + "/word/wn.py").read())
 RESULTS = []
 CUR = {"name": "?"}
 

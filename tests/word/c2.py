@@ -1,6 +1,6 @@
-exec(open("/home/claude/folio2/tests/common.py").read())
-exec(open("/home/claude/folio2/tests/word/wc.py").read())
-HELPER = "/home/claude/folio2/tests/word/helpers/ext_src.py"
+import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); exec(open(TESTS + "/common.py").read())
+exec(open(TESTS + "/word/wc.py").read())
+HELPER = TESTS + "/word/helpers/ext_src.py"
 EV = []
 for w, nm in ((E.view, "view"), (win, "win")):
     w.connect("drag-motion", lambda *a, nm=nm: EV.append(nm + ":motion") and False)

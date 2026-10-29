@@ -1,4 +1,4 @@
-exec(open("/home/claude/folio2/tests/common.py").read())
+import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); exec(open(TESTS + "/common.py").read())
 def s0(): win.actions.insert_text("Mispeled wrod here. ")
 def s1(): log("spell on", win.engine.is_on(".uno:SpellOnline")); app.settings["auto_spell"] = False; app.settings["screentips"] = False; app.settings["units"] = "Millimeters"; app.apply_settings()
 def s2():

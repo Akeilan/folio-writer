@@ -1,4 +1,4 @@
-exec(open("/home/claude/folio2/tests/t8.py").read().split("items = []")[0])
+import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); exec(open(TESTS + "/t8.py").read().split("items = []")[0])
 from folio.keys import BINDINGS
 items = []
 SKIP = {"close", "new", "read-mode", "focus-mode", "backstage-open", "backstage-print", "save", "save-as", "open-dialog", "toggle-ribbon"}
