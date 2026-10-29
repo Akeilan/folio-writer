@@ -1,5 +1,5 @@
-exec(open("/home/claude/folio2/tests/common.py").read())
-exec(open("/home/claude/folio2/tests/word/wc.py").read())
+import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); exec(open(TESTS + "/common.py").read())
+exec(open(TESTS + "/word/wc.py").read())
 from folio.native import refs as NR
 def idx_text(kind):
     """(field code, result text) of the first table of contents / figures / index."""

@@ -5,10 +5,10 @@ import sys
 import zlib
 import struct
 
-sys.path.insert(0, "/tmp/fw/app")
+sys.path.insert(0, os.environ.get("FOLIO_APP_DIR", "/tmp/fw/app"))
 import folio_core as core  # noqa: E402
 
-BLANK = "/tmp/fw/share/templates/Normal-Letter.docx"
+BLANK = os.path.join(os.environ.get("FOLIO_TEMPLATES", "/tmp/fw/share/templates"), "Normal-Letter.docx")
 for d in ("/tmp/wfid", "/tmp/wfid2", "/tmp/dc"):
     os.makedirs(d, exist_ok=True)
 

@@ -1,6 +1,6 @@
-exec(open("/home/claude/folio2/tests/common.py").read())
-exec(open("/home/claude/folio2/tests/word/wc.py").read())
-exec(open("/home/claude/folio2/tests/word/w14.py").read().split("def smartcut")[0].split("exec(open")[-1].split("\n",1)[1] if False else "")
+import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); exec(open(TESTS + "/common.py").read())
+exec(open(TESTS + "/word/wc.py").read())
+exec(open(TESTS + "/word/w14.py").read().split("def smartcut")[0].split("exec(open")[-1].split("\n",1)[1] if False else "")
 def a():
     fresh(); yield 0.3
     T("one two three"); yield 0.4

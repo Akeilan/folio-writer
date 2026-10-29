@@ -1,5 +1,5 @@
-exec(open("/home/claude/folio2/tests/common.py").read())
-exec(open("/home/claude/folio2/tests/word/wc.py").read())
+import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); exec(open(TESTS + "/common.py").read())
+exec(open(TESTS + "/word/wc.py").read())
 # 2.29 (review, developer, insert): Lock Tracking and Restrict Editing as Word keeps them,
 # Mark as Final, properties, Show Markup > Formatting, content controls, accessibility,
 # charts, SmartArt, Horizontal Line, Signature Line
@@ -186,8 +186,8 @@ def a():
     W2, H2, stride, data = re3.render_page(re3.page_count() - 1, 1.0, False, False)
     check("the chart draws after reopening", len(data) > 1000)
     # a chart made elsewhere reads into the model
-    cm = NC.read(open("/home/claude/folio2/tests/data/61745.docx", "rb") and
-                 zipfile.ZipFile("/home/claude/folio2/tests/data/61745.docx").read("word/charts/chart1.xml").decode())
+    cm = NC.read(open(TESTS + "/data/61745.docx", "rb") and
+                 zipfile.ZipFile(TESTS + "/data/61745.docx").read("word/charts/chart1.xml").decode())
     check("a Word chart reads in", cm["data"]["cols"] == ["Series 1", "Series 2", "Series 3"] and cm["type"] in (0, 2), (cm["type"], cm["data"]["cols"]))
 
     # ---- smartart

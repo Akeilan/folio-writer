@@ -14,5 +14,7 @@ echo "folio-writer $(python3 -c 'import sys; sys.path.insert(0, "/usr/lib/folio-
 for f in ${TESTS:-tests/native/n*.py}; do run $f; done
 if [ -z "$TESTS" ]; then
   python3 -c 'import sys; sys.path.insert(0, "/usr/lib/folio-writer"); import folio_core' && echo "engine loads"
+  echo "-- word parity (installed)"
+  APP=installed DISPLAY=$D bash /tmp/fw/tools/run_word_tests.sh
   APP=installed DISPLAY=$D bash /tmp/fw/tools/run_theme_audit.sh
 fi

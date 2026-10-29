@@ -1,5 +1,5 @@
-exec(open("/home/claude/folio2/tests/common.py").read())
-exec(open("/home/claude/folio2/tests/word/wc.py").read())
+import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); exec(open(TESTS + "/common.py").read())
+exec(open(TESTS + "/word/wc.py").read())
 def open_fr(tab=0):
     GLib.idle_add(lambda: (win.dialogs.find_replace(tab), False)[1])
 def st():
