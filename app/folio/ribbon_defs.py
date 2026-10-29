@@ -2448,24 +2448,18 @@ def build_ribbon(win):
         win.master_buttons[key] = b
         return b
     t.add(Group("Master Document", [
-        mbtn("show", "Show\nDocument", "cmd/lc_insertmultiindex" if icons.exists("cmd/lc_insertmultiindex")
-             else "cmd/lc_navigator", MU.show_document, "Q", "Show Document: the commands for "
+        mbtn("show", "Show\nDocument", "cmd/lc_showmasterdocument", MU.show_document, "Q", "Show Document: the commands for "
              "working with subdocuments", size="large"),
-        mbtn("collapse", "Collapse\nSubdocuments", "cmd/lc_hidedetail" if icons.exists("cmd/lc_hidedetail")
-             else "cmd/lc_navigator", MU.collapse_expand, "B", "Collapse or expand the subdocuments",
+        mbtn("collapse", "Collapse\nSubdocuments", "cmd/lc_collapsesubdocuments", MU.collapse_expand, "B", "Collapse or expand the subdocuments",
              size="large"),
-        [mbtn("create", "Create", "cmd/sc_insertsection" if icons.exists("cmd/sc_insertsection") else
-              "cmd/sc_newdoc", MU.create, "CR", "Create a subdocument from the selected heading"),
-         mbtn("insert", "Insert", "cmd/sc_insertdoc" if icons.exists("cmd/sc_insertdoc") else "cmd/sc_open",
+        [mbtn("create", "Create", "cmd/sc_createsubdocument", MU.create, "CR", "Create a subdocument from the selected heading"),
+         mbtn("insert", "Insert", "cmd/sc_insertsubdocument",
               MU.insert, "I", "Insert a document as a subdocument"),
-         mbtn("unlink", "Unlink", "cmd/sc_removehyperlink" if icons.exists("cmd/sc_removehyperlink") else
-              "cmd/sc_delete", MU.unlink, "UL", "Make the subdocument part of the master document")],
-        [mbtn("merge", "Merge", "cmd/sc_mergedocuments" if icons.exists("cmd/sc_mergedocuments") else
-              "cmd/sc_mergecells", MU.merge, "M", "Merge the selected subdocuments into one"),
-         mbtn("split", "Split", "cmd/sc_splitcell" if icons.exists("cmd/sc_splitcell") else "cmd/sc_cut",
+         mbtn("unlink", "Unlink", "cmd/sc_unlinksubdocument", MU.unlink, "UL", "Make the subdocument part of the master document")],
+        [mbtn("merge", "Merge", "cmd/sc_mergesubdocuments", MU.merge, "M", "Merge the selected subdocuments into one"),
+         mbtn("split", "Split", "cmd/sc_splitsubdocument",
               MU.split, "SP", "Split the subdocument at the cursor"),
-         mbtn("lock", "Lock Document", "cmd/sc_protect" if icons.exists("cmd/sc_protect") else
-              "cmd/sc_lock", MU.lock, "L", "Lock the master document so it can't be changed")]]))
+         mbtn("lock", "Lock Document", "cmd/sc_lockdocument", MU.lock, "L", "Lock the master document so it can't be changed")]]))
     t.add(Group("Close", [
         btn("Close\nOutline View", "cmd/lc_closedoc", "close-outline", size="large",
             keytip="C")]))
