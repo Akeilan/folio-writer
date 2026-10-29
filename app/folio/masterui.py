@@ -54,7 +54,9 @@ def create(win):
     ed = _ed(win)
     v = win.outline()
     start = None
-    if v is not None:
+    a, _ao, b, _bo = ed.selection_range()
+    if v is not None and a == b:
+        # in Outline view: the heading picked there
         p = v._selected_para()
         start = p.node if p is not None else None
     if not M.create(ed, start):

@@ -96,6 +96,34 @@ def ranges(ed):
     return out
 
 
+def _paste_marked(ed, xml, name):
+    """Paste a document's body at the caret (an empty paragraph) and mark what came in
+    with the bookmark `name`. Paragraph positions, not nodes, track it: pasting may
+    replace the paragraph the caret was in."""
+    nodes = [p[0] for p in _paras(ed)]
+    node = ed.caret_pos()[0]
+    if node not in nodes:
+        return False
+    i0 = nodes.index(node)
+    ed.paste_fragment(xml, False)
+    paras = _paras(ed)
+    nodes = [p[0] for p in paras]
+    cn, coff = ed.caret_pos()
+    if cn not in nodes:
+        return False
+    j = nodes.index(cn)
+    if coff == 0 and not paras[j][1] and j > i0:
+        # the empty paragraph left after the pasted ones is not part of it
+        ed.select_nodes(paras[j - 1][0], len(paras[j - 1][1]), cn, 0)
+        ed.delete(True, False)
+        paras = _paras(ed)
+        j -= 1
+    _select_paras(ed, paras, i0, j)
+    ok = ed.add_bookmark(name)
+    ed.select_nodes(paras[i0][0], 0, paras[i0][0], 0)
+    return ok
+
+
 def _select_paras(ed, paras, i, j):
     return ed.select_nodes(paras[i][0], 0, paras[j][0], len(paras[j][1]))
 
@@ -162,23 +190,13 @@ def insert(ed, path, master_path=None):
     if ed.para_text_of(node):
         ed.select_nodes(node, len(ed.para_text_of(node)), node, len(ed.para_text_of(node)))
         ed.type_text("\n")
-    start = ed.caret_pos()
     xml = insertfile._docx_body(path)
     if not xml:
         return None
-    ed.paste_fragment(xml, False)
-    end = ed.caret_pos()
-    # the paragraph the paste ends in (an empty one left after it is not part of it)
-    paras = _paras(ed)
-    nodes = [p[0] for p in paras]
-    if end[0] in nodes and end[1] == 0 and nodes.index(end[0]) > nodes.index(start[0]):
-        prev = paras[nodes.index(end[0]) - 1]
-        end = (prev[0], len(prev[1]))
     n = _next(ed)
-    ed.select_nodes(start[0], 0, end[0], end[1])
-    ed.add_bookmark("_SubDoc%d" % n)
+    if not _paste_marked(ed, xml, "_SubDoc%d" % n):
+        return None
     _set_docvar(ed, "FolioSubDoc%d" % n, _stored_path(path, master_path))
-    ed.select_nodes(start[0], 0, start[0], 0)
     return n
 
 
@@ -279,16 +297,7 @@ def expand(ed, master_path):
         node = ed.caret_pos()[0]
         ed.select_nodes(node, 0, node, len(ed.para_text_of(node)))
         ed.delete(True, False)
-        start = ed.caret_pos()
-        ed.paste_fragment(xml, False)
-        end = ed.caret_pos()
-        paras = _paras(ed)
-        nodes = [p[0] for p in paras]
-        if end[0] in nodes and start[0] in nodes and end[1] == 0 and nodes.index(end[0]) > nodes.index(start[0]):
-            prev = paras[nodes.index(end[0]) - 1]
-            end = (prev[0], len(prev[1]))
-        ed.select_nodes(start[0], 0, end[0], end[1])
-        ed.add_bookmark("_SubDoc%d" % n)
+        _paste_marked(ed, xml, "_SubDoc%d" % n)
         done += 1
     return done
 

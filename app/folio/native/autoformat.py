@@ -94,7 +94,7 @@ def run(ed, opts=None):
     ed.begin_group("AutoFormat")
     try:
         paras = _texts(ed)
-        nodes = [p[0] for p in paras]
+        prev_listed = False
         for i, (node, text, level, _size, _bold) in enumerate(paras):
             if node in in_table or not text.strip():
                 continue
@@ -114,7 +114,9 @@ def run(ed, opts=None):
                 in_list = True
             m = NUMBER.match(text)
             nh = NUMBERED_HEADING.match(text)
-            if m and plain and not in_list and o["af_list_styles"] and not (nh and _heading_like(text)):
+            prv = paras[i - 1][1] if i else ""
+            in_run = bool(NUMBER.match(nxt) or NUMBER.match(prv) or prev_listed)
+            if m and plain and not in_list and o["af_list_styles"] and (in_run or not (nh and _heading_like(text))):
                 opn, mark, close = m.groups()
                 if mark.isdigit():
                     fmt, start = "decimal", int(mark)
@@ -131,6 +133,9 @@ def run(ed, opts=None):
                 count("numbered lists")
                 text = text[m.end():]
                 in_list = True
+                prev_listed = True
+            elif not m:
+                prev_listed = False
             # ---- headings: a short line on its own followed by text
             if o["af_headings"] and plain and not in_list and _heading_like(text) and nxt.strip() \
                     and not _heading_like(nxt) and len(nxt.split()) > len(text.split()):
