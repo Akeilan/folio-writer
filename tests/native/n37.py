@@ -108,7 +108,12 @@ def a():
     # ---- without Folio Post: says it needs it
     os.environ["PATH"] = os.environ["PATH"].replace(BIN + ":", "")
     msgs.clear()
-    dlg_mail.send_email(win)
+    real_find = MM.post_program
+    MM.post_program = lambda *a, **k: None   # as if Post weren't installed (the test machines have it)
+    try:
+        dlg_mail.send_email(win)
+    finally:
+        MM.post_program = real_find
     check("without Post: needs Folio Post", any("Folio Post" in str(x) for x in msgs), msgs)
     ed.mark_saved()
 
