@@ -1299,23 +1299,12 @@ class DocWindow(Gtk.ApplicationWindow):
         self.change_bars.refresh()
 
     def accept_reject_shown(self, accept):
-        """Accept / Reject All Changes Shown: only the reviewers shown."""
+        """Accept / Reject All Changes Shown: only the reviewers shown, and
+        formatting changes only when Show Markup shows them."""
         bars = self.change_bars
-        if bars.hidden_authors:
-            shown = [a for a in bars.authors() if a not in bars.hidden_authors]
-            self.engine.ed.accept_reject_all(accept, shown)
-            self.engine.view.document_changed()
-            bars.schedule()
-            return
-        if not bars.hidden_authors and bars.show_formatting:
-            self.actions.cmd(".uno:AcceptAllTrackedChanges" if accept
-                             else ".uno:RejectAllTrackedChanges")
-            return
-        cmd = ".uno:AcceptTrackedChange" if accept else ".uno:RejectTrackedChange"
-        ids = [r.get("index") for r in bars.shown() if r.get("index") is not None]
-        for i in sorted(ids, key=lambda x: int(x), reverse=True):
-            self.engine.command(cmd, {cmd[5:]: ("unsigned short", int(i))})
-        bars.schedule()
+        shown = [a for a in bars.authors() if a not in bars.hidden_authors] if bars.hidden_authors else None
+        self.engine.ed.accept_reject_some(accept, shown, bars.show_formatting)
+        self.engine.view.document_changed()
 
     def set_balloons(self, on):
         """Deleted text in the margin (balloons) or inline."""

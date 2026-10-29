@@ -930,8 +930,15 @@ impl Editor {
 
     /// Accept or reject every change (or only those of `authors`).
     pub fn accept_reject_all(&mut self, accept: bool, authors: Option<&[String]>) -> usize {
+        self.accept_reject_some(accept, authors, true)
+    }
+
+    /// Accept / Reject All Changes Shown: the reviewers shown, and formatting
+    /// changes only when they are shown.
+    pub fn accept_reject_some(&mut self, accept: bool, authors: Option<&[String]>, formatting: bool) -> usize {
         let changes: Vec<Change> = self.all_changes().into_iter()
             .filter(|c| authors.map_or(true, |a| a.iter().any(|x| *x == c.author)))
+            .filter(|c| formatting || !matches!(c.kind, ChangeKind::Format | ChangeKind::ParaFormat | ChangeKind::PropFormat))
             .collect();
         if changes.is_empty() {
             return 0;
@@ -940,7 +947,7 @@ impl Editor {
         for c in changes.iter().rev() {
             self.resolve(c, accept);
         }
-        if authors.is_none() {
+        if authors.is_none() && formatting {
             // the ends of moves mean nothing now
             let mut roots = vec![self.doc.body];
             roots.extend(self.doc.parts.iter().map(|p| p.root));

@@ -1989,6 +1989,13 @@ impl PyEditor {
         self.ed.change_authors()
     }
 
+    #[pyo3(signature = (accept, authors=None, formatting=true))]
+    fn accept_reject_some(&mut self, accept: bool, authors: Option<Vec<String>>, formatting: bool) -> usize {
+        let n = self.ed.accept_reject_some(accept, authors.as_deref(), formatting);
+        self.touched();
+        n
+    }
+
     #[pyo3(signature = (accept, authors=None))]
     fn accept_reject_all(&mut self, accept: bool, authors: Option<Vec<String>>) -> usize {
         let n = self.ed.accept_reject_all(accept, authors.as_deref());
