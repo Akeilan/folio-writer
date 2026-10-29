@@ -305,11 +305,16 @@ class NativeEngine(GObject.GObject):
                 with open(path, "w", encoding="utf-8") as fh:
                     fh.write("\n".join(self.plain_lines()) + "\n")
                 return True
-            if ext in ("html", "htm", "rtf"):
+            if ext in ("html", "htm"):
                 return self._save_own(path, ext)
-            if ext not in ("docx", "docm", "dotx"):
-                return self._save_converted(path, ext)
-            self.ed.save(path)
+            if ext == "rtf":
+                if not self._save_own(path, ext):
+                    return False
+            elif ext not in ("docx", "docm", "dotx"):
+                if not self._save_converted(path, ext):
+                    return False
+            else:
+                self.ed.save(path)
         except Exception as e:
             print("save:", e)
             return False

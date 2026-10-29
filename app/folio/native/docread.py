@@ -227,14 +227,26 @@ def shd(b, o, new):
 
 
 # ------------------------------------------------------------------ properties
+LID_TAG = {0x0409: "en-US", 0x0809: "en-GB", 0x0C09: "en-AU", 0x1009: "en-CA", 0x0407: "de-DE",
+           0x0807: "de-CH", 0x0C07: "de-AT", 0x040C: "fr-FR", 0x080C: "fr-BE", 0x0C0C: "fr-CA",
+           0x100C: "fr-CH", 0x0410: "it-IT", 0x040A: "es-ES", 0x0C0A: "es-ES", 0x080A: "es-MX",
+           0x0413: "nl-NL", 0x0813: "nl-BE", 0x0416: "pt-BR", 0x0816: "pt-PT", 0x0406: "da-DK",
+           0x041D: "sv-SE", 0x0414: "nb-NO", 0x040B: "fi-FI", 0x0405: "cs-CZ", 0x041B: "sk-SK",
+           0x0415: "pl-PL", 0x040E: "hu-HU", 0x0418: "ro-RO", 0x041A: "hr-HR", 0x0424: "sl-SI",
+           0x0419: "ru-RU", 0x0422: "uk-UA", 0x0423: "be-BY", 0x0402: "bg-BG", 0x0C1A: "sr-Cyrl-CS",
+           0x0408: "el-GR", 0x041F: "tr-TR", 0x040D: "he-IL", 0x0401: "ar-SA", 0x0425: "et-EE",
+           0x0426: "lv-LV", 0x0427: "lt-LT", 0x041E: "th-TH", 0x0411: "ja-JP", 0x0412: "ko-KR",
+           0x0804: "zh-CN", 0x0404: "zh-TW", 0x042A: "vi-VN"}
+
+
 def apply_chp(r, grpprl, base=None, fonts=None, chpx_extra=None):
     """Character sprms into run properties r (base: the style's for toggles)."""
     base = base or {}
     for op, a in sprms(grpprl):
         if op in (0x0835, 0x0836, 0x0837, 0x0838, 0x0839, 0x083A, 0x083B, 0x083C, 0x0854, 0x0858, 0x2A53):
             key = {0x0835: "b", 0x0836: "i", 0x0837: "strike", 0x0838: "outline", 0x0839: "shadow",
-                   0x083A: "smallcaps", 0x083B: "caps", 0x083C: "hidden", 0x0854: "emboss",
-                   0x0858: "imprint", 0x2A53: "dstrike"}[op]
+                   0x083A: "smallcaps", 0x083B: "caps", 0x083C: "hidden", 0x0854: "imprint",
+                   0x0858: "emboss", 0x2A53: "dstrike"}[op]
             v = u8(a, 0)
             if v in (0, 1):
                 r[key] = bool(v)
@@ -285,6 +297,10 @@ def apply_chp(r, grpprl, base=None, fonts=None, chpx_extra=None):
             c = shd(a, 0, False)
             if c:
                 r["shd"] = c
+        elif op in (0x486D, 0x4A41):
+            tag = LID_TAG.get(u16(a, 0))
+            if tag:
+                r["lang"] = tag
         elif op == 0x4A30:
             r["_istd"] = u16(a, 0)
         elif op == 0x6A03:
@@ -410,7 +426,7 @@ class Reader:
         if not wd:
             raise Unsupported("not a Word document")
         self.wd = wd
-        if u16(wd, 0) in (0xA5DC, 0xA5DB):
+        if u16(wd, 0) in (0xA5DC, 0xA5DB) or (0x65 <= u16(wd, 2) <= 0x69 and len(wd) > 0x192):
             raise Unsupported("Word 95")
         if u16(wd, 0) != 0xA5EC:
             raise Unsupported("not a Word document")
@@ -1233,8 +1249,7 @@ class Reader:
                                                          "right": 1800, "header": 720, "footer": 720, "gutter": 0},
                      "break": "nextPage"}
             if fc != 0xFFFFFFFF and fc < len(self.wd):
-                cb = u16(self.wd, fc)
-                for op, a in sprms(self.wd[fc + 2:fc + 2 + cb]):
+                for op, a in sprms(self.sepx_grpprl(fc)):
                     if op == 0xB01F:
                         props["w"] = u16(a, 0)
                     elif op == 0xB020:
@@ -1274,6 +1289,10 @@ class Reader:
             out.append((cp, props))
         self.section_ends = [cp for cp, _ in out]
         return out
+
+    def sepx_grpprl(self, fc):
+        cb = u16(self.wd, fc)
+        return self.wd[fc + 2:fc + 2 + cb]
 
     def read_headers(self):
         cps, _ = self.plc(11, 0)
@@ -1842,8 +1861,21 @@ def _join_pairs(v):
     return v
 
 
+def reader(path):
+    """The reader for a Word 97-2003 file, or for Word 6.0/95 (W3-05)."""
+    try:
+        return Reader(path)
+    except Unsupported as e:
+        if str(e) != "Word 95":
+            raise
+        from . import doc6
+        with open(path, "rb") as fh:
+            cfb = CFB(fh.read())
+        return doc6.Reader95(path, cfb, cfb.stream("WordDocument"))
+
+
 def read(path):
-    doc = Reader(path).read()
+    doc = reader(path).read()
     for s in doc.sections:
         s["blocks"] = _join_pairs(s["blocks"])
         for key in ("headers", "footers"):
