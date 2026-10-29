@@ -580,6 +580,195 @@ def not_available(win, what):
     win.status.flash("%s isn't available in Folio Writer: it has no e-mail or Outlook connection." % what)
 
 
+def _need_post(win, what):
+    if _M(win).post_program():
+        return True
+    win.dialogs.message("%s needs Folio Post, the suite's mail program: install it (it comes with the "
+                        "Folio Suite) and set up your mail account there." % what)
+    return False
+
+
+def start_email(win):
+    """Start Mail Merge > E-mail Messages: an e-mail merge, shown in Web Layout as Word does."""
+    m = _m(win)
+    if m is None:
+        return
+    win.engine.sync(lambda: (_M(win).start(m, "email"), win.refresh_mailings()))
+    try:
+        win.act_web_layout()
+    except Exception:
+        pass
+
+
+def send_email(win):
+    """Finish & Merge > Send Email Messages: one message per recipient, sent by Folio Post."""
+    m = _m(win)
+    if m is None:
+        return
+    cols, rows, inc = _M(win).recipients(m)
+    if not rows:
+        win.dialogs.message("Select a recipient list first (Select Recipients).")
+        return
+    if not _need_post(win, "Sending e-mail"):
+        return
+    d = FDialog(win, "Merge to E-mail")
+    order = _M(win).email_columns(m)
+    to = combo(order, 0)
+    subj = Gtk.Entry()
+    subj.set_width_chars(36)
+    title = ""
+    try:
+        title = win.title_text()
+    except Exception:
+        pass
+    subj.set_text(os.path.splitext(title or "")[0])
+    fmt = combo(["HTML", "Plain text", "Attachment"], {"html": 0, "text": 1, "attachment": 2}.get(
+        win.app.settings.get("merge_email_format", "html"), 0))
+    d.add(heading("Message options"))
+    d.add(grid([["T_o:", to], ["_Subject line:", subj], ["Mail _format:", fmt]]))
+    allr = Gtk.RadioButton.new_with_mnemonic(None, "_All")
+    cur = Gtk.RadioButton.new_with_mnemonic_from_widget(allr, "Current _record")
+    rng = Gtk.RadioButton.new_with_mnemonic_from_widget(allr, "_From:")
+    f = Gtk.SpinButton.new_with_range(1, len(rows), 1)
+    t = Gtk.SpinButton.new_with_range(1, len(rows), 1)
+    t.set_value(len(rows))
+    d.add(heading("Send records"))
+    d.add(allr)
+    d.add(cur)
+    rb = Gtk.Box(spacing=6)
+    rb.pack_start(rng, False, False, 0)
+    rb.pack_start(f, False, False, 0)
+    rb.pack_start(Gtk.Label(label="To:"), False, False, 0)
+    rb.pack_start(t, False, False, 0)
+    d.add(rb)
+    if d.ask() != Gtk.ResponseType.OK:
+        d.done()
+        return
+    column = order[max(0, to.get_active())] if order else ""
+    kind = ("html", "text", "attachment")[max(0, fmt.get_active())]
+    win.app.settings["merge_email_format"] = kind
+    subject = subj.get_text().strip()
+    if allr.get_active():
+        which, a, b = "all", 1, None
+    elif cur.get_active():
+        which, a, b = (win.merge_preview or 0), 1, None
+    else:
+        which, a, b = "range", int(f.get_value()), int(t.get_value())
+    d.done()
+    from . import mailrules
+    answers = mailrules.ask_answers(win, m)
+    name = os.path.splitext(title or "Document")[0] + ".docx"
+
+    def go():
+        try:
+            job, tmpd, n = _M(win).email_messages(m, column, subject, kind, which, a, b, answers,
+                                                  attachment_name=name)
+        except Exception as e:
+            win.dialogs.message(str(e), kind="error")
+            return
+        _launch_post(win, job, tmpd, n)
+    win.engine.sync(go)
+
+
+def _launch_post(win, job, tmpd, n):
+    """folio-post --send-merge: Post asks which account, sends and files them in Sent."""
+    import json
+    import shutil
+    import subprocess
+    prog = _M(win).post_program()
+    try:
+        p = subprocess.Popen([prog, "--send-merge", job, "--json"], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    except OSError as e:
+        win.dialogs.message("Folio Post couldn't be started. (%s)" % e, kind="error")
+        shutil.rmtree(tmpd, ignore_errors=True)
+        return
+    win.status.flash("Folio Post is sending %d message%s..." % (n, "" if n == 1 else "s"))
+    win.merge_mail_job = p
+
+    def done(pid, status):
+        out = p.stdout.read().decode("utf-8", "replace") if p.stdout else ""
+        try:
+            res = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
+        except ValueError:
+            res = {}
+        sent = res.get("sent", n if status == 0 else 0)
+        failed = res.get("failed") or []
+        if failed:
+            lines = "\n".join("%s: %s" % (x.get("to", "?"), x.get("error", "")) for x in failed[:10])
+            win.dialogs.message("%d message%s sent; %d couldn't be sent:\n\n%s" % (
+                sent, "" if sent == 1 else "s", len(failed), lines), kind="error")
+        elif status == 0:
+            win.status.flash("%d message%s sent." % (sent, "" if sent == 1 else "s"))
+        elif not out.strip():
+            win.status.flash("Sending was cancelled.")
+        shutil.rmtree(tmpd, ignore_errors=True)
+        win.merge_mail_result = {"status": status, "sent": sent, "failed": failed}
+        return False
+    GLib.child_watch_add(GLib.PRIORITY_DEFAULT, p.pid, done)
+
+
+def choose_post_contacts(win):
+    """Select Recipients > Choose from Outlook Contacts: Folio Post's contacts, by group."""
+    m = _m(win)
+    if m is None:
+        return
+    if not _need_post(win, "Choosing from your contacts"):
+        return
+    try:
+        contacts = _M(win).post_contacts() or []
+    except Exception as e:
+        win.dialogs.message("Folio Post's contacts couldn't be read. (%s)" % e, kind="error")
+        return
+    if not contacts:
+        win.dialogs.message("There are no contacts in Folio Post yet.")
+        return
+    groups = sorted({g for c in contacts for g in (c.get("groups") or [])})
+    d = FDialog(win, "Select Contacts")
+    d.add(heading("Contacts from Folio Post"))
+    grp = combo(["All contacts"] + groups, 0)
+    d.add(grid([["_Folder:", grp]]))
+    store = Gtk.ListStore(bool, str, str, str, int)
+    tv = Gtk.TreeView(model=store)
+    tog = Gtk.CellRendererToggle()
+
+    def flip(_r, path):
+        store[path][0] = not store[path][0]
+    tog.connect("toggled", flip)
+    tv.append_column(Gtk.TreeViewColumn("", tog, active=0))
+    for i, h in enumerate(("Name", "E-mail", "Company"), 1):
+        col = Gtk.TreeViewColumn(h, Gtk.CellRendererText(), text=i)
+        col.set_resizable(True)
+        tv.append_column(col)
+    sw = Gtk.ScrolledWindow()
+    sw.set_size_request(520, 260)
+    sw.set_shadow_type(Gtk.ShadowType.IN)
+    sw.add(tv)
+    d.add(sw, expand=True)
+
+    def fill(*_):
+        store.clear()
+        g = grp.get_active()
+        name = groups[g - 1] if g > 0 else None
+        for i, c in enumerate(contacts):
+            if name and name not in (c.get("groups") or []):
+                continue
+            store.append([True, c.get("name") or "", c.get("email") or "", c.get("company") or "", i])
+    grp.connect("changed", fill)
+    fill()
+    win.post_contacts_dialog = (d, store, grp)
+    if d.ask() != Gtk.ResponseType.OK:
+        d.done()
+        return
+    picked = [contacts[r[4]] for r in store if r[0]]
+    d.done()
+    if not picked:
+        return
+    rows = _M(win).contact_rows(picked)
+    _M(win).set_recipients(m, list(_M(win).CONTACT_COLUMNS), rows, "")
+    _started(win)
+
+
 WIZARD_STEPS = ["Select document type", "Select starting document", "Select recipients",
                 "Write your letter", "Preview your letters", "Complete the merge"]
 
