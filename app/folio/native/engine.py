@@ -360,9 +360,22 @@ class NativeEngine(GObject.GObject):
             shutil.rmtree(tmpd, ignore_errors=True)
 
     def _save_converted(self, path, ext):
-        """OpenDocument text is written by Folio itself; other formats (.doc...) go
+        """OpenDocument text and Word 97-2003 are written by Folio itself; other formats go
         through LibreOffice's converter when it's installed, from the .docx."""
         import subprocess
+        if ext in ("doc", "dot"):
+            # Word 97-2003 Document and Template, in Word's binary format (W3-06)
+            from . import docwrite
+            tmpd = tempfile.mkdtemp(prefix="folio-")
+            try:
+                src = os.path.join(tmpd, "doc.docx")
+                self.ed.save(src)
+                tmp = path + ".folio-tmp"
+                docwrite.docx_to_doc_file(src, tmp, template=(ext == "dot"))
+                os.replace(tmp, path)
+                return True
+            finally:
+                shutil.rmtree(tmpd, ignore_errors=True)
         if ext in ("odt", "ott", "fodt"):
             from . import odfwrite
             tmpd = tempfile.mkdtemp(prefix="folio-")
@@ -382,7 +395,7 @@ class NativeEngine(GObject.GObject):
         try:
             src = os.path.join(tmpd, "doc.docx")
             self.ed.save(src)
-            filt = {"doc": "doc:MS Word 97", "odt": "odt", "rtf": "rtf", "txt": "txt:Text",
+            filt = {"odt": "odt", "rtf": "rtf", "txt": "txt:Text",
                     "html": "html:HTML (StarWriter)", "epub": "epub"}.get(ext, ext)
             r = subprocess.run(["soffice", "--headless", "--convert-to", filt, "--outdir", tmpd,
                                 src], capture_output=True, timeout=120)
