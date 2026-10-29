@@ -157,7 +157,7 @@ class NativeEngine(GObject.GObject):
     # --------------------------------------------------------------- files
     def _import(self, path):
         """An Editor for a file that isn't Word's own format: plain text read
-        here; .doc, .odt, .rtf and the rest through LibreOffice's converter,
+        here; .doc, .odt and .rtf by Folio's own readers; the rest through LibreOffice's converter,
         when it's installed."""
         ext = os.path.splitext(path)[1].lower()
         if ext in (".txt", ".text", ".md", ".csv", ".log"):
@@ -342,9 +342,11 @@ class NativeEngine(GObject.GObject):
             src = os.path.join(tmpd, "doc.docx")
             self.ed.save(src)
             if ext == "rtf":
-                data = htmlexport.docx_to_rtf(src)
-                with open(path, "w", encoding="ascii", errors="replace") as fh:
-                    fh.write(data)
+                # the whole document, as Word writes RTF (W3-01)
+                from . import rtfwrite
+                tmp = path + ".folio-tmp"
+                rtfwrite.docx_to_rtf_file(src, tmp)
+                os.replace(tmp, path)
             else:
                 try:
                     labels = dict(enumerate(self.ed.body_labels()))
