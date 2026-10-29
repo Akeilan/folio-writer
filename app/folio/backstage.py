@@ -968,7 +968,11 @@ class Backstage(Gtk.Box):
         coll.append("false", "Uncollated   1,1,1  2,2,2  3,3,3")
         coll.set_active_id("true")
         left.pack_start(coll, False, False, 0)
-        ps = None
+        from .native import pagesetup
+        try:
+            ps = pagesetup.read(self.win)
+        except Exception:
+            ps = None
         orient = Gtk.ComboBoxText()
         orient.append("p", "Portrait Orientation")
         orient.append("l", "Landscape Orientation")
@@ -1036,7 +1040,12 @@ class Backstage(Gtk.Box):
                                                                if e.get_text().isdigit() else 0))
 
         def apply_layout(*_):
-            return
+            name = paper.get_active_id()
+            for n, w, h in PAPER:
+                if n == name:
+                    pagesetup.paper(self.win, w, h)
+            pagesetup.orientation(self.win, orient.get_active_id() == "l")
+            self._render_preview()
         orient.connect("changed", apply_layout)
         paper.connect("changed", apply_layout)
 

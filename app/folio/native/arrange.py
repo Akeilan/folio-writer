@@ -562,7 +562,10 @@ def install(win):
     win.crop_mode = CropTool(win)
     win.edit_points = EditPointsTool(win)
     win.select_objects = SelectObjectsTool(win)
-    v.tools[:] = [win.crop_mode, win.edit_points, win.select_objects, BackgroundTool(win)]
+    from .tables import TableDrawTool
+    win.table_draw = TableDrawTool(win)
+    v.tools[:] = [win.crop_mode, win.edit_points, win.select_objects, BackgroundTool(win), win.table_draw] + \
+        [t for t in v.tools if not isinstance(t, (CropTool, EditPointsTool, SelectObjectsTool, BackgroundTool))]
 
 
 def crop_dialog(win):

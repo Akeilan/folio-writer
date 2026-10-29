@@ -9,7 +9,164 @@ use crate::xml::NodeId;
 /// body text), size (points), bold, italic, colour (-1 automatic), font.
 pub type OutlinePara = (NodeId, String, i32, f64, bool, bool, i64, String);
 
+/// A heading as the view shows it: node, level (1-9), page, x, y, height
+/// of its first line (points), collapsed.
+pub type HeadingMark = (NodeId, i32, usize, f64, f64, f64, bool);
+
+const W15_NS: &str = "http://schemas.microsoft.com/office/word/2012/wordml";
+const MC_NS: &str = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+
 impl Editor {
+    // ------------------------------------------------------------ collapsed headings
+    /// Collapse or expand a heading (view only, like Word's triangles).
+    pub fn toggle_fold(&mut self, p: NodeId) -> bool {
+        let Some(b) = self.doc.blocks.iter().find(|b| b.node == p) else { return false };
+        if crate::paginate::heading_level(&self.doc, b).is_none() {
+            return false;
+        }
+        if !self.doc.folded.remove(&p) {
+            self.doc.folded.insert(p);
+        }
+        self.relayout();
+        true
+    }
+
+    /// Collapse All / Expand All Headings.
+    pub fn fold_all(&mut self, on: bool) {
+        self.doc.folded.clear();
+        if on {
+            let heads: Vec<NodeId> = self.doc.blocks.iter()
+                .filter(|b| crate::paginate::heading_level(&self.doc, b).is_some()).map(|b| b.node).collect();
+            self.doc.folded.extend(heads);
+        }
+        self.relayout();
+    }
+
+    /// On opening: collapse the headings set to be collapsed by default.
+    pub fn fold_defaults(&mut self) -> usize {
+        let heads: Vec<NodeId> = self.doc.blocks.iter()
+            .filter(|b| crate::paginate::heading_level(&self.doc, b).is_some() && self.collapsed_default(b.node))
+            .map(|b| b.node).collect();
+        let n = heads.len();
+        if n > 0 {
+            self.doc.folded.extend(heads);
+            self.relayout();
+        }
+        n
+    }
+
+    /// Paragraph > Collapsed by default (w15:collapsed).
+    pub fn collapsed_default(&self, p: NodeId) -> bool {
+        let dom = &self.doc.dom;
+        dom.child(p, "w:pPr").and_then(|pp| dom.child(pp, "w15:collapsed"))
+            .map_or(false, |c| !matches!(dom.attr(c, "w15:val").or(dom.attr(c, "w:val")), Some("0" | "false" | "off")))
+    }
+
+    pub fn set_collapsed_default(&mut self, p: NodeId, on: bool) -> bool {
+        if self.collapsed_default(p) == on {
+            return false;
+        }
+        self.begin();
+        let dom = &mut self.doc.dom;
+        let pp = match dom.child(p, "w:pPr") {
+            Some(n) => n,
+            None => {
+                let n = dom.new_element("w:pPr", &[]);
+                dom.insert(p, 0, n);
+                n
+            }
+        };
+        if let Some(c) = dom.child(pp, "w15:collapsed") {
+            dom.detach(c);
+        }
+        if on {
+            let root = dom.root;
+            if dom.attr(root, "xmlns:w15").is_none() {
+                dom.set_attr(root, "xmlns:w15", W15_NS);
+            }
+            if dom.attr(root, "xmlns:mc").is_none() {
+                dom.set_attr(root, "xmlns:mc", MC_NS);
+            }
+            let ign = dom.attr(root, "mc:Ignorable").unwrap_or("").to_string();
+            if !ign.split_whitespace().any(|x| x == "w15") {
+                let v = if ign.is_empty() { "w15".to_string() } else { format!("{ign} w15") };
+                dom.set_attr(root, "mc:Ignorable", &v);
+            }
+            // after the paragraph properties proper, before rPr / sectPr / pPrChange
+            let kids: Vec<NodeId> = dom.elements(pp).collect();
+            let idx = kids.iter().position(|&k| matches!(dom.name(k), "w:rPr" | "w:sectPr" | "w:pPrChange"))
+                .and_then(|i| dom.index_in_parent(kids[i])).unwrap_or(dom.children(pp).len());
+            let c = dom.new_element("w15:collapsed", &[]);
+            dom.insert(pp, idx, c);
+        }
+        self.commit("Collapsed by Default", false);
+        true
+    }
+
+    /// Where the headings are on the pages, for the collapse triangles.
+    pub fn heading_marks(&self) -> Vec<HeadingMark> {
+        let mut levels = std::collections::HashMap::new();
+        for b in &self.doc.blocks {
+            if let Some(l) = crate::paginate::heading_level(&self.doc, b) {
+                levels.insert(b.node, l as i32 + 1);
+            }
+        }
+        let mut out = Vec::new();
+        if levels.is_empty() {
+            return out;
+        }
+        let lay = &self.layout;
+        for (pg, page) in lay.pages.iter().enumerate() {
+            for pl in &page.lines {
+                if pl.line != 0 || pl.para >= lay.body_count {
+                    continue;
+                }
+                let para = &lay.paras[pl.para];
+                if let Some(&lvl) = levels.get(&para.node) {
+                    let h = para.lines.first().map(|l| l.adv).unwrap_or(12.0);
+                    out.push((para.node, lvl, pg, pl.x, pl.y, h, self.doc.folded.contains(&para.node)));
+                }
+            }
+        }
+        out
+    }
+
+    /// A caret in collapsed text opens the headings over it.
+    pub(crate) fn unfold_caret(&mut self) -> bool {
+        if self.doc.folded.is_empty() {
+            return false;
+        }
+        let hidden = crate::paginate::fold_hidden(&self.doc);
+        let dom = &self.doc.dom;
+        let mut n = self.caret.para;
+        let bi = loop {
+            if let Some(i) = self.doc.blocks.iter().position(|b| b.node == n) {
+                break Some(i);
+            }
+            match dom.parent(n) {
+                Some(p) => n = p,
+                None => break None,
+            }
+        };
+        let Some(bi) = bi else { return false };
+        if !hidden[bi] {
+            return false;
+        }
+        // open each collapsed heading above it until it shows
+        let mut changed = false;
+        let mut k = bi;
+        while k > 0 {
+            k -= 1;
+            let node = self.doc.blocks[k].node;
+            if self.doc.folded.remove(&node) {
+                changed = true;
+                if !crate::paginate::fold_hidden(&self.doc)[bi] {
+                    break;
+                }
+            }
+        }
+        changed
+    }
     pub fn set_view_mode(&mut self, mode: u8, width: f64) {
         if mode == self.view_mode && (mode != 2 || (width - self.web_width).abs() < 0.5) {
             return;

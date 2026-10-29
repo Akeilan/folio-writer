@@ -77,7 +77,8 @@ def next_grammar(win, after=True, ignored=()):
         lang = (langs[0][2] if langs and langs[0][2] else "en-US").replace("_", "-")
         l, _s, c = lang.partition("-")
         clean = text.replace("￼", " ")
-        for s, n, msg, sugg in grammar.check(clean, l or "en", c or "US"):
+        gaps = [i for i, ch in enumerate(text) if ch == "￼"]
+        for s, n, msg, sugg in grammar.check(clean, l or "en", c or "US", gaps):
             if s < start or (after and s == start and ed.has_selection()):
                 continue
             key = (text, s)
@@ -206,11 +207,4 @@ def synonyms(word, lang=None):
 def readability(win):
     """The Editor pane's statistics from the document's text."""
     from .. import grammar
-
-    class _M:
-        def getText(self):
-            return self
-
-        def getString(self):
-            return document_text(win)
-    return grammar.readability(_M())
+    return grammar.readability(document_text(win))

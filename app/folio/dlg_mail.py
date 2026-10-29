@@ -4,10 +4,7 @@ import os
 
 from gi.repository import GLib, Gtk
 
-
-
-def _native(win):
-    return getattr(win.engine, "native", False)
+from .widgets import FDialog, Preview, combo, grid, heading
 
 
 def _M(win):
@@ -16,13 +13,9 @@ def _M(win):
 
 
 def _m(win):
-    """What the mailings functions work on: the window (new engine, once its
-    document is open) or the old engine's document."""
-    if _native(win):
-        return win if win.engine.ed is not None else None
-    return win.engine.model
-from .widgets import FDialog, Preview, combo, grid, heading
-from . import modelapi
+    """What the mailings functions work on: the window, once its document is open."""
+    return win if win.engine.ed is not None else None
+
 
 NEW_LIST_COLUMNS = ["Title", "First Name", "Last Name", "Company Name", "Address Line 1",
                     "Address Line 2", "City", "State", "ZIP Code", "Country or Region",
@@ -46,16 +39,7 @@ def _get(tv):
 
 
 def _selected_text(win):
-    if _native(win):
-        return win.engine.ed.selected_text() if win.engine.ed is not None else ""
-    m = _m(win)
-    if m is None:
-        return ""
-    try:
-        from . import docapi
-        return modelapi.read_cursor(m).getString()
-    except Exception:
-        return ""
+    return win.engine.ed.selected_text() if win.engine.ed is not None else ""
 
 
 # ------------------------------------------------------------------ envelopes

@@ -115,7 +115,6 @@ class DocWindow(Gtk.ApplicationWindow):
             vp.set_focus_vadjustment(Gtk.Adjustment())
             vp.set_focus_hadjustment(Gtk.Adjustment())
         self._follow_rect = None
-        self._follow_id = 0
         self.engine.view.connect("cursor-changed", self._native_cursor_moved)
         # LOKDocView passes every key to the engine but reports it unhandled,
         # so GTK also ran its own arrow-key navigation and moved the focus up
@@ -135,8 +134,6 @@ class DocWindow(Gtk.ApplicationWindow):
         self.drag_move = DragMove(self)
         from . import dropcap
         dropcap.install(self)
-        from .findopts import ReadingHighlight
-        self.reading_hl = ReadingHighlight(self)
         from .painter import Painter
         self.painter = Painter(self)
         from .livepreview import LivePreview
@@ -204,19 +201,12 @@ class DocWindow(Gtk.ApplicationWindow):
         self.restricted = False
         from .ink import InkMode
         self.ink = InkMode(self)
-        from .objecttools import CropMode, LayoutOptions
-        self.layout_options = LayoutOptions(self, self.canvas_overlay)
         from .native.objects import scroll_hook
         self.engine.win = self
         self.engine.view.objs.attach_button(self.canvas_overlay)
         scroll_hook(self.engine.view, self.engine.view.objs)
-        self.crop_mode = CropMode(self)
-        from .objecttools import EditPoints
-        self.edit_points = EditPoints(self)
         from .native import arrange as _arrange
         _arrange.install(self)
-        from .tabledraw import TableDrawMode
-        self.table_draw = TableDrawMode(self)
 
         self.connect("key-press-event", self.on_key)
         self.connect("key-release-event", self.on_key_release)
@@ -420,6 +410,10 @@ class DocWindow(Gtk.ApplicationWindow):
                     docprotect.apply_final(self)
             except Exception as e:
                 print("protection:", e)
+        if ok and not getattr(self.engine, "is_new", False):
+            from . import editfeatures
+            GLib.timeout_add(900, self.folds.apply_defaults)
+            GLib.timeout_add(1200, lambda: (editfeatures.offer_resume(self), False)[1])
         self.status.show_zoom(self.engine.view.get_zoom())
         self.focus_document()
         self.update_title()
@@ -659,6 +653,8 @@ class DocWindow(Gtk.ApplicationWindow):
                     tab = [t for t in self.ribbon.tabs if t.name == "Header & Footer"]
                     if tab:
                         self.ribbon.select(tab[0])
+            if inside:
+                self.refresh_hf()
         elif key == ".uno:StateNativeObject":
             kind = value.split(":")[0] if value else ""
             self.ribbon.show_contextual("Picture Format", kind == "picture")
@@ -1155,16 +1151,6 @@ class DocWindow(Gtk.ApplicationWindow):
         _arrange.bg_start(self)
         return
 
-    def bg_apply(self):
-        from . import pictools
-        st = self.bg_state
-        if st is None:
-            return
-        try:
-            pictools.remove_background(st["obj"], st["keep"], st["remove"])
-        except Exception as e:
-            self.dialogs.message("The background couldn't be removed: %s" % e)
-
     def bg_mark(self, mode):
         if self.bg_state is None:
             return
@@ -1172,29 +1158,14 @@ class DocWindow(Gtk.ApplicationWindow):
         self.status.flash("Click the parts of the picture to %s." % (
             "keep" if mode == "keep" else "remove"))
 
-    def bg_click(self, x, y):
-        """A click while marking areas: returns True if used."""
-        st = self.bg_state
-        if st is None or not st.get("mode"):
-            return False
-        r = self.layout_options.rect
-        if r is None:
-            return False
-        rx, ry, rw, rh = r
-        if not (rx <= x <= rx + rw and ry <= y <= ry + rh):
-            return False
-        st[st["mode"]].append(((x - rx) / rw, (y - ry) / rh))
-        self.bg_apply()
-        return True
-
     def bg_finish(self, keep):
         from .native import arrange as _arrange
         _arrange.bg_finish(self, keep)
         return
 
     def act_mark_citation(self):
-        from . import authorities
-        authorities.mark_dialog(self)
+        from .native import refs
+        refs.mark_citation(self)
 
     def lock_tracking(self):
         from . import review
@@ -1368,52 +1339,6 @@ class DocWindow(Gtk.ApplicationWindow):
             pg, x, y, h = r
             top = self.engine.page_top_tw(pg)
             self._follow_rect = (int(x * 20), int(top + y * 20), 20, int(h * 20))
-
-    def on_cursor_moved(self, view, x, y, w, h):
-        """Keep the text cursor on screen (LOKDocView leaves that to the host)."""
-        self._follow_rect = (x, y, w, h)
-        # the cursor may have gone into or out of a header/footer
-        if not getattr(self, "_hf_timer", 0):
-            def hf():
-                self._hf_timer = 0
-                try:
-                    self.refresh_hf()
-                except Exception as e:
-                    print("hf refresh:", e)
-                return False
-            self._hf_timer = GLib.timeout_add(150, hf)
-        eqb = getattr(self, "eqbar", None)
-        if eqb is not None and eqb.ed.active:
-            eqb.ed.cursor_moved()
-        if not self._follow_id:
-            self._follow_id = GLib.timeout_add(30, self._follow_cursor)
-
-    def _follow_cursor(self):
-        self._follow_id = 0
-        r = self._follow_rect
-        if r is None:
-            return False
-        x, y, w, h = r
-        if w <= 0 and h <= 0 and x <= 0 and y <= 0:
-            return False
-        px, py = self.engine.twips_to_px(x, y)
-        _pw, ph = self.engine.twips_to_px(w, h)
-        margin = 24
-        va = self.canvas.get_vadjustment()
-        top, page = va.get_value(), va.get_page_size()
-        if py < top + margin:
-            v = py - margin
-            va.set_value(va.get_lower() if v < 150 else v)
-        elif py + ph > top + page - margin:
-            va.set_value(min(va.get_upper() - page, py + ph + margin - page))
-        ha = self.canvas.get_hadjustment()
-        left, pw = ha.get_value(), ha.get_page_size()
-        if ha.get_upper() > pw + 1:
-            if px < left + margin:
-                ha.set_value(max(ha.get_lower(), px - margin))
-            elif px > left + pw - margin:
-                ha.set_value(min(ha.get_upper() - pw, px + margin - pw))
-        return False
 
     def on_doc_scroll(self, widget, event):
         """Ctrl+wheel zooms in steps of 10%, as in the original."""
@@ -1890,6 +1815,8 @@ class DocWindow(Gtk.ApplicationWindow):
             return self.draw._press(view, event)
         if self.eqbar.ed.active and self.eqbar.ed.press(event):
             return True
+        if self.folds.press(event):
+            return True
         ed = self.engine.ed
         if event.button == 3 and event.type == Gdk.EventType.BUTTON_PRESS and ed is not None:
             # the shortcut menu (and the Mini Toolbar), as in the original; a
@@ -1959,54 +1886,29 @@ class DocWindow(Gtk.ApplicationWindow):
         return
 
     def in_header_footer(self):
-        return False
+        ed = self.engine.ed
+        return ed is not None and ed.story() == "hf"
 
     def refresh_hf(self):
-        """Show the Header & Footer tab while the cursor is in a header or
-        footer, with its options filled in."""
-        inside = self.in_header_footer()
-        was = getattr(self, "_in_hf", False)
-        self._in_hf = inside
-        if getattr(self, "hf_overlay", None) is None:
-            from .hfview import HFOverlay
-            self.hf_overlay = HFOverlay(self)
-        self.hf_overlay.update(inside)
+        """The Header & Footer tab's options for the header / footer being
+        edited."""
+        if not self.in_header_footer():
+            return
         from . import hfedit
-        if inside:
-            try:
-                self._hf_where = (modelapi.read_cursor(self.engine.model).PageStyleName,
-                                  hfedit.which_part(self)[0])
-            except Exception:
-                pass
-            self.ribbon.update("folio:hf-link", "true" if hfedit.is_linked(self) else "false")
-        elif was and getattr(self, "_hf_where", None):
-            # leaving a header/footer: sections linked to it follow the edit
-            style, part = self._hf_where
-            self._hf_where = None
-            try:
-                hfedit.propagate(self, style, part)
-            except Exception as e:
-                print("link to previous:", e)
-        if inside != was:
-            self.ribbon.show_contextual("Header & Footer", inside)
-            if inside:
-                tab = [t for t in self.ribbon.tabs if t.name == "Header & Footer"]
-                if tab:
-                    self.ribbon.select(tab[0])
-        if not inside:
-            return
-        try:
-            o = docapi.hf_options(self.engine.model)
-        except Exception:
-            return
-        o["show_text"] = self.hf_overlay.show_body
+        ed = self.engine.ed
+        sec = ed.current_section()
+        info = ed.section_info(sec) or {}
+        o = {"first": bool(info.get("title_pg")), "odd_even": bool(info.get("even_odd")),
+             "show_text": not getattr(self.engine.view, "hide_body", False)}
         for k, cb in getattr(self, "hf_checks", {}).items():
             cb.set_checked(o.get(k, False))
+        dist = {"header_top": info.get("header", 720), "footer_bottom": info.get("footer", 720)}
         for k, sb in getattr(self, "hf_spins", {}).items():
             if not sb.has_focus():
                 sb._updating = True
-                sb.set_value(o.get(k, 1270))
+                sb.set_value(int(round((dist.get(k) or 0) * 2540.0 / 1440.0)))
                 sb._updating = False
+        self.ribbon.update("folio:hf-link", "true" if hfedit.is_linked(self) else "false")
 
     def on_doc_release(self, view, event):
         if event.button == 1 and not (event.state & Gdk.ModifierType.SHIFT_MASK):
@@ -2210,21 +2112,7 @@ class DocWindow(Gtk.ApplicationWindow):
             return True
         return False
 
-    def _schedule_gaps(self):
-        from . import grammar
-        if not grammar.CONTEXT and not grammar.GAPS:
-            return
-        if getattr(self, "_gaps_timer", 0):
-            GLib.source_remove(self._gaps_timer)
-
-        def go():
-            self._gaps_timer = 0
-            grammar.refresh_gaps(self.engine.model)
-            return False
-        self._gaps_timer = GLib.timeout_add(250, go)
-
     def on_key_release(self, widget, event):
-        self._schedule_gaps()
         if event.keyval == Gdk.KEY_Caps_Lock:
             try:
                 km = Gdk.Keymap.get_for_display(self.get_display())

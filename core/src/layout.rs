@@ -205,7 +205,11 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
             _ => ["", ""],
         };
         let rpr = dom.child(p, "w:pPr").and_then(|pp| dom.child(pp, "w:rPr"));
-        if rpr.map_or(false, |r| gone.iter().any(|g| !g.is_empty() && dom.child(r, g).is_some())) {
+        if rpr.map_or(false, |r| gone.iter().any(|g| !g.is_empty() && dom.child(r, g).map_or(false, |c| !doc.hidden_author(c)))) {
+            mark_style.hidden = true;
+        }
+        // a hidden reviewer's deleted paragraph mark is gone too
+        if rpr.map_or(false, |r| ["w:del", "w:moveFrom"].iter().any(|g| dom.child(r, g).map_or(false, |c| doc.hidden_author(c)))) {
             mark_style.hidden = true;
         }
     }

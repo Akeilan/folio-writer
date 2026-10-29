@@ -4,10 +4,10 @@ import math
 
 from gi.repository import Gdk, GLib
 
-from . import bridge
-from .native import values
-
-TWIP = 2540.0 / 1440.0      # mm100 per twip
+W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+A = "http://schemas.openxmlformats.org/drawingml/2006/main"
+WPS = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
 
 PENS = {
     "pen": {"color": 0x000000, "width": 50, "alpha": 0},
@@ -21,13 +21,9 @@ class InkMode:
         self.win = win
         self.tool = None             # 'pen', 'pen2', 'highlighter', 'eraser'
         self.points = []
-        self.shapes = {}             # name -> (page_no, bbox mm100 page coords)
-        view = win.engine.view
-        view.connect("button-press-event", self._press)
-        view.connect("motion-notify-event", self._motion)
-        view.connect("button-release-event", self._release)
-        view.connect_after("draw", self._draw)
         self._n = 0
+        # a tool of the view: it gets the mouse before the text does
+        win.engine.view.tools.append(self)
 
     @property
     def active(self):
@@ -69,8 +65,8 @@ class InkMode:
         self.begin(tool)
 
     # ------------------------------------------------------------ events
-    def _press(self, view, ev):
-        if not self.active or ev.button != 1:
+    def press(self, ev):
+        if ev.button != 1:
             return False
         if self.tool == "eraser":
             self._erase_at(ev.x, ev.y)
@@ -78,9 +74,8 @@ class InkMode:
             self.points = [(ev.x, ev.y)]
         return True
 
-    def _motion(self, view, ev):
-        if not self.active:
-            return False
+    def motion(self, ev):
+        view = self.win.engine.view
         if not (ev.state & Gdk.ModifierType.BUTTON1_MASK):
             return False
         if self.tool == "eraser":
@@ -92,8 +87,8 @@ class InkMode:
                 view.queue_draw()
         return True
 
-    def _release(self, view, ev):
-        if not self.active or ev.button != 1:
+    def release(self, ev):
+        if ev.button != 1:
             return False
         if self.tool != "eraser" and len(self.points) >= 2:
             pts = list(self.points)
@@ -102,9 +97,9 @@ class InkMode:
         self.points = []
         return True
 
-    def _draw(self, view, cr):
-        if not self.active or len(self.points) < 2 or self.tool == "eraser":
-            return False
+    def draw(self, cr):
+        if len(self.points) < 2 or self.tool == "eraser":
+            return
         p = PENS[self.tool]
         c = p["color"]
         z = self.win.engine.view.get_zoom() or 1.0
@@ -120,19 +115,59 @@ class InkMode:
         return False
 
     # ------------------------------------------------------------ shapes
-    def _page_coords(self, x, y):
-        eng = self.win.engine
-        tx, ty = eng.px_to_twips(x, y)
-        for i, (rx, ry, rw, rh) in enumerate(eng.page_rects(), start=1):
-            if ry <= ty < ry + rh:
-                return i, int((tx - rx) * TWIP), int((ty - ry) * TWIP)
-        return None, 0, 0
-
     def _create(self, tool, pts):
-        return
+        """The stroke as a freeform shape on its page (points -> EMU)."""
+        v = self.win.engine.view
+        ed = self.win.engine.ed
+        hit = [v.page_at(x, y) for x, y in pts]
+        hit = [h for h in hit if h is not None and h[0] == hit[0][0]] if hit and hit[0] else []
+        if len(hit) < 2:
+            return
+        pg = hit[0][0]
+        xs, ys = [h[1] for h in hit], [h[2] for h in hit]
+        x0, y0 = min(xs), min(ys)
+        w, h = max(1.0, max(xs) - x0), max(1.0, max(ys) - y0)
+        p = PENS[tool]
+        emu = 12700
+        path = "".join('<a:%s><a:pt x="%d" y="%d"/></a:%s>' % (
+            "moveTo" if i == 0 else "lnTo", int((x - x0) * emu), int((y - y0) * emu),
+            "moveTo" if i == 0 else "lnTo") for i, (x, y) in enumerate(zip(xs, ys)))
+        alpha = ('<a:alpha val="%d"/>' % ((100 - p["alpha"]) * 1000)) if p["alpha"] else ""
+        width_emu = int(p["width"] * 360)            # mm100 -> EMU
+        self._n += 1
+        xml = ('<w:r xmlns:w="%s" xmlns:wp="%s" xmlns:a="%s" xmlns:wps="%s"><w:rPr><w:noProof/></w:rPr>'
+               '<w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" '
+               'relativeHeight="{Z}" behindDoc="%d" locked="0" layoutInCell="1" allowOverlap="1">'
+               '<wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:posOffset>{X}</wp:posOffset></wp:positionH>'
+               '<wp:positionV relativeFrom="page"><wp:posOffset>{Y}</wp:posOffset></wp:positionV>'
+               '<wp:extent cx="%d" cy="%d"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>'
+               '<wp:docPr id="{ID}" name="Ink {ID}"/><wp:cNvGraphicFramePr/>'
+               '<a:graphic><a:graphicData uri="%s"><wps:wsp><wps:cNvSpPr/><wps:spPr>'
+               '<a:xfrm><a:off x="0" y="0"/><a:ext cx="%d" cy="%d"/></a:xfrm>'
+               '<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/>'
+               '<a:pathLst><a:path w="%d" h="%d" fill="none">%s</a:path></a:pathLst></a:custGeom>'
+               '<a:noFill/><a:ln w="%d" cap="rnd"><a:solidFill><a:srgbClr val="%06X">%s</a:srgbClr></a:solidFill>'
+               '<a:round/></a:ln></wps:spPr><wps:bodyPr/></wps:wsp></a:graphicData></a:graphic></wp:anchor>'
+               '</w:drawing></w:r>'
+               % (W, WP, A, WPS, 1 if tool == "highlighter" else 0, int(w * emu), int(h * emu), WPS,
+                  int(w * emu), int(h * emu), int(w * emu), int(h * emu), path, width_emu,
+                  p["color"] & 0xFFFFFF, alpha))
+        if ed.insert_anchor_xml(xml, pg, x0, y0):
+            ed.deselect_object()
+            v.document_changed()
 
     def _erase_at(self, x, y):
-        return
+        """Delete the ink stroke under the pointer."""
+        v = self.win.engine.view
+        ed = self.win.engine.ed
+        hit = v.page_at(x, y)
+        if hit is None or not ed.select_object_at(*hit):
+            return
+        if 'name="Ink ' in (ed.selected_drawing_xml() or ""):
+            ed.object_delete()
+            v.document_changed()
+        else:
+            ed.click(hit[0], hit[1], hit[2], False)
 
     def key(self, event):
         if self.active and event.keyval == Gdk.KEY_Escape:

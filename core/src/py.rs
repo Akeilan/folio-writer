@@ -676,6 +676,9 @@ impl PyEditor {
         d.set_item("header", s.header)?;
         d.set_item("footer", s.footer)?;
         d.set_item("even_odd", self.ed.doc.settings.even_odd_headers)?;
+        d.set_item("pg_start", s.pg_start)?;
+        d.set_item("pg_fmt", s.pg_fmt.clone())?;
+        d.set_item("pg_chap", s.pg_chap.clone())?;
         Ok(Some(d))
     }
 
@@ -974,6 +977,45 @@ impl PyEditor {
 
     fn view_mode(&self) -> u8 {
         self.ed.view_mode
+    }
+
+    fn toggle_fold(&mut self, p: u32) -> bool {
+        self.ed.toggle_fold(p)
+    }
+
+    fn fold_all(&mut self, on: bool) {
+        self.ed.fold_all(on)
+    }
+
+    fn fold_defaults(&mut self) -> usize {
+        self.ed.fold_defaults()
+    }
+
+    fn is_folded(&self, p: u32) -> bool {
+        self.ed.doc.folded.contains(&p)
+    }
+
+    fn collapsed_default(&self, p: u32) -> bool {
+        self.ed.collapsed_default(p)
+    }
+
+    fn set_collapsed_default(&mut self, p: u32, on: bool) -> bool {
+        let r = self.ed.set_collapsed_default(p, on);
+        self.touched();
+        r
+    }
+
+    fn heading_marks(&self) -> Vec<(u32, i32, usize, f64, f64, f64, bool)> {
+        self.ed.heading_marks().into_iter().map(|(n, l, pg, x, y, h, f)| (n as u32, l, pg, x, y, h, f)).collect()
+    }
+
+    /// The caret went into collapsed text (Find, Go To...): open it up.
+    fn reveal_caret(&mut self) -> bool {
+        let r = self.ed.unfold_caret();
+        if r {
+            self.ed.relayout();
+        }
+        r
     }
 
     fn outline_paras(&self) -> Vec<(u32, String, i32, f64, bool, bool, i64, String)> {
@@ -1597,6 +1639,17 @@ impl PyEditor {
         n
     }
 
+    /// What File > Info > Check for Issues finds: {kind: count}.
+    fn inspect_counts(&self) -> std::collections::BTreeMap<String, usize> {
+        self.ed.inspect_counts()
+    }
+
+    fn inspect_remove(&mut self, key: &str) -> usize {
+        let n = self.ed.inspect_remove(key);
+        self.touched();
+        n
+    }
+
     fn package_part(&mut self, name: &str) -> Option<String> {
         self.ed.package_part(name)
     }
@@ -1901,6 +1954,14 @@ impl PyEditor {
         let n = self.ed.accept_reject(accept);
         self.touched();
         n
+    }
+
+    fn set_hidden_authors(&mut self, names: Vec<String>) {
+        self.ed.set_hidden_authors(&names)
+    }
+
+    fn change_authors(&self) -> Vec<String> {
+        self.ed.change_authors()
     }
 
     #[pyo3(signature = (accept, authors=None))]

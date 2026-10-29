@@ -12,114 +12,34 @@ from .widgets import FDialog, grid, heading
 from . import modelapi
 
 
-def _rects(s):
-    out = []
-    for part in (s or "").split(";"):
-        nums = [v.strip() for v in part.split(",")]
-        if len(nums) == 4:
-            try:
-                out.append(tuple(int(float(n)) for n in nums))
-            except ValueError:
-                pass
-    return out
-
-
 class ChangeBars:
+    """What Show Markup shows of tracked changes: the reviewers hidden
+    (Specific People) and formatting changes; the engine draws the changes
+    and their bars."""
+
     def __init__(self, win):
         self.win = win
         self.mode = "All Markup"
-        self.redlines = []
         self.hidden_authors = set()     # Show Markup > Specific People
         self.show_formatting = True     # Show Markup > Formatting
-        self._timer = None
-        view = win.engine.view
-        view.connect_after("draw", self._draw)
-        view.connect("key-release-event", lambda *_: (self.schedule(), False)[1])
-        win.engine.connect("state-changed", self._state)
-        win.engine.connect("loaded", lambda *_: self.schedule(800))
-
-    def _state(self, eng, key, value):
-        if key in (".uno:TrackChanges", ".uno:ShowTrackedChanges", ".uno:Undo",
-                   ".uno:AcceptTrackedChange", ".uno:ModifiedStatus"):
-            self.schedule()
-
-    def schedule(self, delay=400):
-        if self._timer:
-            GLib.source_remove(self._timer)
-        self._timer = GLib.timeout_add(delay, self.refresh)
-
-    def refresh(self):
-        self._timer = None
-        try:
-            raw = self.win.engine.view.get_command_values(".uno:AcceptTrackedChanges")
-            self.redlines = json.loads(raw or "{}").get("redlines", [])
-        except Exception:
-            self.redlines = []
-        self.win.engine.view.queue_draw()
-        return False
 
     def set_mode(self, mode):
         self.mode = mode
+
+    def schedule(self, delay=0):
         self.refresh()
 
-    def _bar_x(self, y):
-        eng = self.win.engine
-        ps = getattr(self.win, "ruler_state", {}).get("page")
-        left = (ps["left"] if ps else 2540) * 1440 // 2540
-        for rx, ry, rw, rh in eng.page_rects():
-            if ry <= y < ry + rh:
-                return rx + left - 220
-        return None
-
-    def shown(self):
-        """The changes that are being shown (reviewer and formatting
-        filters)."""
-        out = []
-        for r in self.redlines:
-            if r.get("author") in self.hidden_authors:
-                continue
-            if not self.show_formatting and r.get("type") not in ("Insert", "Delete"):
-                continue
-            out.append(r)
-        return out
+    def refresh(self):
+        ed = self.win.engine.ed
+        if ed is None:
+            return False
+        ed.set_hidden_authors(sorted(self.hidden_authors))
+        self.win.engine.view.document_changed()
+        return False
 
     def authors(self):
-        out = []
-        for r in self.redlines:
-            a = r.get("author")
-            if a and a not in out:
-                out.append(a)
-        return out
-
-    def bars(self):
-        """[(x_px, y0_px, y1_px)] for the changed lines."""
-        out = []
-        eng = self.win.engine
-        for r in self.shown():
-            for x, y, w, h in _rects(r.get("textRange")):
-                bx = self._bar_x(y)
-                if bx is None:
-                    continue
-                px, py0 = eng.twips_to_px(bx, y)
-                _px, py1 = eng.twips_to_px(bx, y + h)
-                out.append((px, py0, py1))
-        return out
-
-    def _draw(self, view, cr):
-        if self.mode == "No Markup" or not self.redlines:
-            return False
-        red = self.mode == "Simple Markup"
-        cr.set_source_rgb(0.85, 0.12, 0.12) if red else cr.set_source_rgb(0.55, 0.55, 0.55)
-        for px, y0, y1 in self.bars():
-            cr.rectangle(px, y0, 2 if not red else 2.5, max(2, y1 - y0))
-        cr.fill()
-        return False
-
-    def hit(self, x, y):
-        for px, y0, y1 in self.bars():
-            if px - 5 <= x <= px + 7 and y0 - 2 <= y <= y1 + 2:
-                return True
-        return False
+        ed = self.win.engine.ed
+        return list(ed.change_authors()) if ed is not None else []
 
 
 # ------------------------------------------------------------ compare / combine
@@ -154,15 +74,26 @@ def compare_dialog(win, combine=False):
     if os.path.abspath(a) == os.path.abspath(b):
         win.dialogs.message("The original and revised documents are the same file.")
         return
-    # the result opens as a new document: the revised text with the
-    # differences from the original shown as tracked changes
-    w = win.app.new_window(template=b)
+    # the result opens as a new document: the original with the differences
+    # from the revised one made as tracked changes by the label's name
+    w = win.app.new_window(template=a)
     w.compare_sources = {"original": a, "revised": b}
     w.source_windows = {}
+    author = label.get_text().strip() or "Author"
 
     def go():
-        return True
-    GLib.timeout_add(900, go)
+        if w.engine.ed is None:
+            return True
+        from .native import compare
+        n = compare.compare(w, b, author, combine)
+        if n is None:
+            w.dialogs.message("The revised document couldn't be read.")
+        elif n == 0:
+            w.dialogs.message("The documents are the same: no differences were found.")
+        else:
+            GLib.timeout_add(300, lambda: (w.run("manage-changes"), False)[1])
+        return False
+    GLib.timeout_add(600, go)
 
 
 def show_sources(win, which):
@@ -192,7 +123,15 @@ def show_sources(win, which):
         w.connect("destroy", lambda _w, k=k: open_.pop(k, None))
 
         def ready(w=w, k=k):
-            return True
+            if w.engine.ed is None:
+                return True
+            w.read_only = True
+            w.engine.view.set_edit(False)
+            w.ribbon.hide()
+            w.update_title()
+            w.msgbar.show_bar("source", "%s DOCUMENT" % k.upper(),
+                              "This is the %s document of a comparison." % k, [])
+            return False
         GLib.timeout_add(300, ready)
     GLib.timeout_add(400, lambda: (_tile_sources(win), False)[1])
 

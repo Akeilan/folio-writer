@@ -146,7 +146,6 @@ class EquationBar(Gtk.Revealer):
         self.set_no_show_all(True)
         self.input_format = win.app.settings.get("eq_input", "unicode")
         self.normal_text = False
-        from .mathedit import InlineEditor
         from . import eqoptions
         eqoptions.apply(win.app)
         from .native.equations import NativeInlineEditor
@@ -326,11 +325,8 @@ class EquationBar(Gtk.Revealer):
         if self.ed.active and self.ed.mode == "professional":
             lin = M.to_linear(self.ed.root)
         if not lin:
-            obj = None
-            if obj is None:
-                self.win.dialogs.message("Select an equation first.")
-                return
-            lin = starmath.to_linear_text(docapi.formula_of(obj) or "")
+            self.win.dialogs.message("Select an equation first.")
+            return
         name = self.win.dialogs.ask_text("Create New Building Block", "Name:", lin[:30])
         if name:
             self.win.app.settings.setdefault("user_equations", []).append((name, lin))

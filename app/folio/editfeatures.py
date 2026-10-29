@@ -2,11 +2,9 @@
 
 * Collapse / expand headings: a small triangle beside a heading (shown when
   the mouse is over it, and always for collapsed headings) folds away
-  everything up to the next heading of the same or a higher level.
-  Collapsed text is opened up while the document is being saved, so it is
-  never written out hidden.
-* Click and Type: double-click in the empty space below the text to start
-  typing there, left, centred or right according to where you clicked.
+  everything up to the next heading of the same or a higher level. It is a
+  view setting: nothing is hidden in the file. Headings marked "Collapsed by
+  default" (Paragraph dialog) open collapsed.
 * The Spike: Ctrl+F3 cuts the selection onto the Spike, Ctrl+Shift+F3
   pastes everything on it and empties it.
 * Resume reading: "Welcome back! Pick up where you left off" on reopening.
@@ -15,221 +13,106 @@ import time
 
 from gi.repository import Gdk, GLib, Gtk
 
-from . import docapi
-from . import modelapi
-
-MM = 1440.0 / 2540.0
 TRI = 11            # triangle size (px)
-
-
-# ============================================================ helpers
-def in_body(m):
-    """Is the cursor in the main text (not a header, footer, frame or cell)?"""
-    try:
-        vc = modelapi.view_cursor(m)
-        return "HeadFoot" not in vc.getText().getImplementationName() and \
-            vc.getText() == m.getText()
-    except Exception:
-        return False
-
-
-def _keep_cursor(m):
-    vc = modelapi.view_cursor(m)
-    t = vc.getText()
-    return vc, t.createTextCursorByRange(vc.getStart()), t.createTextCursorByRange(vc.getEnd())
-
-
-def _restore(vc, a, b):
-    try:
-        vc.gotoRange(a, False)
-        vc.gotoRange(b, True)
-    except Exception:
-        pass
-
-
-def _to_twips(win, pos):
-    """View cursor position (mm100, from the first page's text origin) ->
-    document twips."""
-    m = win.engine.model
-    rects = win.engine.page_rects()
-    if not rects:
-        return None
-    ps = docapi.page_setup(m)
-    return (rects[0][0] + (ps["left"] + pos.X) * MM, rects[0][1] + (ps["top"] + pos.Y) * MM)
-
-
-def _unhide(rng):
-    """Back to no hidden setting at all (not an explicit "not hidden")."""
-    try:
-        rng.setPropertyToDefault("CharHidden")
-    except Exception:
-        try:
-            rng.CharHidden = False
-        except Exception:
-            pass
 
 
 # ============================================================ headings
 class HeadingFolds:
     def __init__(self, win):
         self.win = win
-        self.collapsed = {}         # key -> (heading start cursor, hidden range cursor)
-        self.marks = []             # [(key, level, x_twips, y_twips, h_twips)]
-        self.stale = True
         self.hover = None
         view = win.engine.view
         view.connect_after("draw", self._draw)
         view.connect("motion-notify-event", self._motion)
-        win.engine.save_hooks = tuple(win.engine.save_hooks) + ((self._open_all,
-                                                                  self._close_all),)
-        win.engine.connect("state-changed", self._state)
 
-    # -- keys: a heading is known by its paragraph's position in the text
-    @staticmethod
-    def _key(par):
-        return par.getStart()
+    @property
+    def ed(self):
+        return self.win.engine.ed
 
-    def _state(self, eng, key, value):
-        if key in (".uno:ModifiedStatus", ".uno:StatePageNumber", ".uno:StyleApply"):
-            self.stale = True
+    def _enabled(self):
+        return self.win.app.settings.get("collapse_headings", True) and self.ed is not None \
+            and self.ed.view_mode() == 0 and self.ed.story() == "body"
 
-    def _headings(self):
-        return []
+    def marks(self):
+        try:
+            return self.ed.heading_marks()
+        except Exception:
+            return []
 
-    def refresh(self):
-        """Where each heading is on the page (measured with the view cursor,
-        which is put back where it was)."""
-        return
-
-    def _is_collapsed(self, par):
-        t = par.getText()
-        for k, (start, _rng) in self.collapsed.items():
-            try:
-                if t.compareRegionStarts(start, par.getStart()) == 0:
-                    return k
-            except Exception:
-                continue
-        return None
-
-    def _range_after(self, par, level):
-        """From the end of the heading to the next heading of level <= level."""
-        m = self.win.engine.model
-        text = m.getText()
-        en = text.createEnumeration()
-        found = False
-        end = None
-        while en.hasMoreElements():
-            p = en.nextElement()
-            if not found:
-                try:
-                    if text.compareRegionStarts(p.getStart(), par.getStart()) == 0:
-                        found = True
-                except Exception:
-                    pass
-                continue
-            try:
-                lvl = p.OutlineLevel if p.supportsService("com.sun.star.text.Paragraph") else 0
-            except Exception:
-                lvl = 0
-            if lvl and lvl <= level:
-                end = p.getStart()
-                break
-        cur = text.createTextCursorByRange(par.getEnd())
-        if end is None:
-            cur.gotoEnd(True)
-        else:
-            cur.gotoRange(end, True)
-            cur.goLeft(1, True)         # keep the next heading's own paragraph
-        return cur
-
-    def toggle(self, par, level):
-        return
-
-    def expand_all(self):
-        for k in list(self.collapsed):
-            _s, rng = self.collapsed.pop(k)
-            _unhide(rng)
-        self.stale = True
-        self.win.engine.view.queue_draw()
-
-    def collapse_all(self):
-        for lvl, _t, par in self._headings():
-            if lvl == 1 and self._is_collapsed(par) is None:
-                self.toggle(par, lvl)
-
-    def _open_all(self):
-        for _s, rng in self.collapsed.values():
-            _unhide(rng)
-
-    def _close_all(self):
-        was = True
-        for _s, rng in self.collapsed.values():
-            try:
-                rng.CharHidden = True
-            except Exception:
-                pass
-
-    # -- mouse
-    def _tri_rect(self, mark):
-        par, lvl, tx, ty, h = mark
-        x, y = self.win.engine.twips_to_px(tx, ty)
-        _x2, y2 = self.win.engine.twips_to_px(tx, ty + h)
-        return x - TRI - 8, (y + y2) / 2 - TRI / 2, TRI + 6, TRI
+    def _tri_rect(self, mk):
+        _node, _lvl, pg, x, y, h, _f = mk
+        v = self.win.engine.view
+        wx, wy = v.to_widget(pg, x, y)
+        hh = h * v.ppp
+        return wx - TRI - 8, wy + hh / 2 - TRI / 2, TRI + 6, TRI
 
     def _mark_at(self, x, y, band=False):
-        for mk in self.marks:
+        v = self.win.engine.view
+        for mk in self.marks():
             rx, ry, rw, rh = self._tri_rect(mk)
             if band:
-                _x, y0 = self.win.engine.twips_to_px(mk[2], mk[3])
-                _x, y1 = self.win.engine.twips_to_px(mk[2], mk[3] + mk[4])
-                if y0 - 2 <= y <= y1 + 2:
+                _wx, wy = v.to_widget(mk[2], mk[3], mk[4])
+                if wy - 2 <= y <= wy + mk[5] * v.ppp + 2:
                     return mk
             elif rx - 3 <= x <= rx + rw + 3 and ry - 4 <= y <= ry + rh + 4:
                 return mk
         return None
 
     def _motion(self, view, event):
-        if not self.win.app.settings.get("collapse_headings", True):
+        if not self._enabled():
             return False
-        if self.stale and not (event.state & (Gdk.ModifierType.BUTTON1_MASK |
-                                              Gdk.ModifierType.BUTTON3_MASK)) and \
-                self._text_selected():
-            self.refresh()
         mk = self._mark_at(event.x, event.y, band=True)
-        if mk is not self.hover:
-            self.hover = mk
+        key = mk[0] if mk else None
+        if key != self.hover:
+            self.hover = key
             view.queue_draw()
         return False
 
-    def _text_selected(self):
-        """Measuring moves the view cursor, which would drop a selected picture,
-        shape or equation (and break a resize in progress): only with text."""
-        return False
-
     def press(self, event):
-        if event.button != 1 or not self.marks:
+        """A click on a triangle (from the window's press hook)."""
+        if event.button != 1 or event.type != Gdk.EventType.BUTTON_PRESS or not self._enabled():
             return False
         mk = self._mark_at(event.x, event.y)
         if mk is None:
             return False
-        self.toggle(mk[0], mk[1])
+        self.toggle(mk[0])
         return True
 
+    def toggle(self, node):
+        if self.ed.toggle_fold(node):
+            self.win.engine.view.document_changed()
+
+    def is_collapsed(self, node):
+        return self.ed.is_folded(node)
+
+    def expand_all(self):
+        self.ed.fold_all(False)
+        self.win.engine.view.document_changed()
+
+    def collapse_all(self):
+        self.ed.fold_all(True)
+        self.win.engine.view.document_changed()
+
+    def apply_defaults(self):
+        if self.ed is not None and self.ed.fold_defaults():
+            self.win.engine.view.document_changed()
+        return False
+
     def _draw(self, view, cr):
-        if not self.marks:
+        if not self._enabled():
             return False
-        for mk in self.marks:
-            col = self._is_collapsed(mk[0]) is not None
-            if not col and mk is not self.hover:
+        for mk in self.marks():
+            col = mk[6]
+            if not col and mk[0] != self.hover:
                 continue
             x, y, w, h = self._tri_rect(mk)
             cr.save()
             cr.set_source_rgb(0.35, 0.35, 0.35)
-            if col:         # ▸
+            if col:         # pointing right: collapsed
                 cr.move_to(x + 3, y)
                 cr.line_to(x + 3 + h * 0.8, y + h / 2)
                 cr.line_to(x + 3, y + h)
-            else:           # ◢
+            else:           # pointing down-right: expanded
                 cr.move_to(x + 3 + h, y)
                 cr.line_to(x + 3 + h, y + h)
                 cr.line_to(x + 3, y + h)
@@ -239,64 +122,63 @@ class HeadingFolds:
         return False
 
 
-# ============================================================ click and type
+def caret_heading(win):
+    """(node, level) of the heading the caret is in, or (None, 0)."""
+    ed = win.engine.ed
+    if ed is None or ed.story() != "body":
+        return None, 0
+    node = ed.caret_pos()[0]
+    for n, _t, lvl, *_r in ed.outline_paras():
+        if n == node:
+            return (n, lvl) if lvl <= 9 else (None, 0)
+    return None, 0
+
+
+def is_collapsed_by_default(win):
+    node, _lvl = caret_heading(win)
+    return node is not None and win.engine.ed.collapsed_default(node)
+
+
+def set_collapsed_by_default(win, on):
+    node, _lvl = caret_heading(win)
+    if node is None:
+        return
+    ed = win.engine.ed
+    ed.set_collapsed_default(node, bool(on))
+    if bool(on) != ed.is_folded(node):
+        ed.toggle_fold(node)
+    win.engine.view.document_changed()
 
 
 # ============================================================ spike
 def spike_cut(win):
-    return
+    win.run("spike")
 
 
 def spike_paste(win):
-    items = getattr(win.app, "spike", [])
-    if not items:
-        win.status.flash("The Spike is empty.")
-        return
-    import re
-    bodies = []
-    for html, text in items:
-        if html:
-            mt = re.search(r"<body[^>]*>(.*)</body>", html, re.S | re.I)
-            bodies.append(mt.group(1) if mt else html)
-        else:
-            from html import escape
-            bodies.append("<p>%s</p>" % escape(text))
-    doc = "<html><head><meta charset='utf-8'></head><body>%s</body></html>" % "".join(bodies)
-    win.engine.paste_data("text/html", doc)
-    win.app.spike = []
+    win.run("spike-paste")
 
 
 # ============================================================ resume reading
-def _para_index(m):
-    vc = modelapi.read_cursor(m)
-    text = m.getText()
-    try:
-        here = vc.getStart()
-        if here.getText() != text:
-            return None, ""
-    except Exception:
-        return None, ""
-    en = text.createEnumeration()
-    i = 0
-    while en.hasMoreElements():
-        p = en.nextElement()
-        try:
-            if text.compareRegionStarts(p.getEnd(), here) > 0:   # ends before the cursor
-                i += 1
-                continue
-        except Exception:
-            pass
-        try:
-            snippet = p.getString().strip()
-        except Exception:
-            snippet = ""
-        return i, snippet
-    return i, ""
-
-
 def remember_position(win):
+    """Where the caret is, for "Pick up where you left off" next time."""
+    ed = win.engine.ed
     path = win.engine.path
-    return
+    if ed is None or not path or ed.story() != "body":
+        return
+    node = ed.caret_pos()[0]
+    blocks = ed.body_blocks()
+    i = next((k for k, b in enumerate(blocks) if b[1] == node), None)
+    store = win.app.settings.setdefault("resume", {})
+    if i is None or i < 3:
+        store.pop(path, None)
+    else:
+        snippet = (ed.para_text_of(node) or "").replace("\ufffc", "").strip()
+        store[path] = {"para": i, "snippet": snippet[:60], "time": time.time()}
+        if len(store) > 50:
+            for k in sorted(store, key=lambda k: store[k].get("time", 0))[:len(store) - 50]:
+                store.pop(k, None)
+    win.app.save_settings()
 
 
 def _ago(t):
@@ -340,18 +222,10 @@ def offer_resume(win):
     b.set_margin_top(12)
 
     def go(*_):
-        m = win.engine.model
-        try:
-            en = m.getText().createEnumeration()
-            k = 0
-            while en.hasMoreElements():
-                p = en.nextElement()
-                if k == rec["para"]:
-                    modelapi.view_cursor(m).gotoRange(p.getStart(), False)
-                    break
-                k += 1
-        except Exception as e:
-            print("resume:", e)
+        ed = win.engine.ed
+        blocks = ed.body_blocks()
+        if rec["para"] < len(blocks) and ed.goto_node(blocks[rec["para"]][1]):
+            win.engine.view.after_move()
         close()
         win.focus_document()
 
@@ -365,70 +239,3 @@ def offer_resume(win):
     GLib.timeout_add_seconds(20, close)
     win.canvas.get_vadjustment().connect(
         "value-changed", lambda a: close() if a.get_value() > 400 else None)
-
-
-# ---------------------------------------------------------------- collapsed by default
-COLLAPSED_PROP = "FolioCollapsedHeadings"
-
-
-def _collapsed_list(m):
-    import json
-    try:
-        v = m.getDocumentProperties().getUserDefinedProperties().getPropertyValue(
-            COLLAPSED_PROP)
-        return list(json.loads(v))
-    except Exception:
-        return []
-
-
-def _store_collapsed(m, items):
-    import json
-    udp = m.getDocumentProperties().getUserDefinedProperties()
-    val = json.dumps(items)
-    try:
-        if udp.getPropertySetInfo().hasPropertyByName(COLLAPSED_PROP):
-            if items:
-                udp.setPropertyValue(COLLAPSED_PROP, val)
-            else:
-                udp.removeProperty(COLLAPSED_PROP)
-        elif items:
-            udp.addProperty(COLLAPSED_PROP, 128, val)     # REMOVABLE
-    except Exception as e:
-        print("collapsed headings:", e)
-
-
-def _para_of(vc):
-    c = vc.getText().createTextCursorByRange(vc.getStart())
-    c.gotoStartOfParagraph(False)
-    c.gotoEndOfParagraph(True)
-    en = c.createEnumeration()
-    return en.nextElement() if en.hasMoreElements() else None
-
-
-def is_collapsed_by_default(m, vc):
-    try:
-        p = _para_of(vc)
-        return p is not None and p.getString().strip() in _collapsed_list(m)
-    except Exception:
-        return False
-
-
-def set_collapsed_by_default(win, m, vc, on):
-    p = _para_of(vc)
-    if p is None:
-        return
-    text = p.getString().strip()
-    items = [t for t in _collapsed_list(m) if t != text]
-    if on and text:
-        items.append(text)
-    was = m.isModified()
-    _store_collapsed(m, items)
-    folds = win.folds
-    lvl = p.OutlineLevel or 0
-    if on and lvl and folds._is_collapsed(p) is None:
-        folds.toggle(p, lvl)
-
-
-def apply_collapsed_defaults(win):
-    """On opening: collapse the headings set to be collapsed by default."""
-    return False

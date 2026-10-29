@@ -38,6 +38,8 @@ pub struct Section {
     /// page numbering: restart value and format
     pub pg_start: Option<i32>,
     pub pg_fmt: String,
+    /// chapter numbers before page numbers: heading level (1-9), separator
+    pub pg_chap: Option<(u8, String)>,
     /// page borders (lines or art)
     pub pg_borders: Option<crate::art::PageBorders>,
     /// line numbers: count by, first number, distance from text (twips,
@@ -71,6 +73,7 @@ impl Default for Section {
             hf_rids: Vec::new(),
             pg_start: None,
             pg_fmt: "decimal".into(),
+            pg_chap: None,
             pg_borders: None,
             ln_num: None,
         }
@@ -140,6 +143,16 @@ impl Section {
                     s.pg_start = int_attr(doc, c, "w:start");
                     if let Some(f) = doc.attr(c, "w:fmt") {
                         s.pg_fmt = f.to_string();
+                    }
+                    if let Some(l) = int_attr(doc, c, "w:chapStyle").filter(|l| (1..=9).contains(l)) {
+                        let sep = match doc.attr(c, "w:chapSep").unwrap_or("hyphen") {
+                            "period" => ".",
+                            "colon" => ":",
+                            "emDash" => "\u{2014}",
+                            "enDash" => "\u{2013}",
+                            _ => "-",
+                        };
+                        s.pg_chap = Some((l as u8, sep.to_string()));
                     }
                 }
                 _ => {}
@@ -350,6 +363,11 @@ pub struct Document {
     pub balloons: bool,
     /// formatting changes marked (Show Markup > Formatting)
     pub show_fmt_changes: bool,
+    /// collapsed headings (a view setting): their text up to the next
+    /// heading of the same or a higher level isn't shown
+    pub folded: std::collections::HashSet<NodeId>,
+    /// reviewers whose changes aren't marked (Show Markup > Specific People)
+    pub hidden_authors: std::collections::HashSet<String>,
 }
 
 /// Display for Review.
@@ -510,7 +528,8 @@ impl Document {
             }
         }
         let mut d = Document { numbering, num_dom, num_part, styles_dom: styles_xml, styles_part, theme_dom: theme, pkg, main, dom, styles, settings, sections: Vec::new(), blocks: Vec::new(), body, images, parts, hf_by_rid, notes, show_codes: false, code_fields: Default::default(),
-                               markup: Markup::Simple, balloons: false, show_fmt_changes: true };
+                               markup: Markup::Simple, balloons: false, show_fmt_changes: true,
+                               folded: Default::default(), hidden_authors: Default::default() };
         d.scan();
         Ok(d)
     }
@@ -865,6 +884,12 @@ impl Document {
         self.styles.run(base, &direct)
     }
 
+    /// Is a change (w:ins, w:del...) by a reviewer whose markup is hidden?
+    pub fn hidden_author(&self, change: NodeId) -> bool {
+        !self.hidden_authors.is_empty()
+            && self.dom.attr(change, "w:author").map_or(false, |a| self.hidden_authors.contains(a))
+    }
+
     /// The kind of change the review display leaves out: "del" (the final
     /// text, or deletions in balloons), "ins" (the original) or "".
     pub fn hidden_change(&self) -> &'static str {
@@ -916,6 +941,22 @@ impl Document {
                         }
                         out.push(Piece { item: Item::Math(m, true), run: None, node: Some(m), rpr: base.clone(),
                                          change, link, field: None, note: None, fmt_change: false });
+                    }
+                }
+                // a reviewer hidden (Show Markup > Specific People): their insertions
+                // shown as plain text, their deletions gone
+                "w:ins" | "w:moveTo" if self.hidden_author(c) => self.walk(c, base, out, change, link, st),
+                "w:del" | "w:moveFrom" if self.hidden_author(c) => {
+                    let start = out.len();
+                    self.walk(c, base, out, change, link, st);
+                    for pc in out[start..].iter_mut() {
+                        if !matches!(pc.item, Item::Hidden(_)) {
+                            let t = match &pc.item {
+                                Item::Text(t) => t.clone(),
+                                other => other_text(other),
+                            };
+                            pc.item = Item::Hidden(t);
+                        }
                     }
                 }
                 "w:ins" | "w:moveTo" => self.walk(c, base, out, "ins", link, st),

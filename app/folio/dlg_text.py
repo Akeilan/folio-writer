@@ -421,7 +421,7 @@ class TextDialogs:
                         min(cur["outline"], 9))
         collapsed = Gtk.CheckButton.new_with_mnemonic("Collapsed by de_fault")
         from . import editfeatures
-        collapsed.set_active(editfeatures.is_collapsed_by_default(m, vc))
+        collapsed.set_active(editfeatures.is_collapsed_by_default(self.win))
         p1.pack_start(grid([["Ali_gnment:", align], ["_Outline level:", outline, collapsed]]),
                       False, False, 0)
         outline.connect("changed", lambda c: collapsed.set_sensitive(c.get_active() > 0))
@@ -625,8 +625,7 @@ class TextDialogs:
             ned.apply_para([("w:mirrorIndents", [] if mirror.get_active() else None)], "Paragraph")
         if default_scope is None and outline.get_active() > 0:
             try:
-                editfeatures.set_collapsed_by_default(self.win, m, self._cursor(m),
-                                                      collapsed.get_active())
+                editfeatures.set_collapsed_by_default(self.win, collapsed.get_active())
             except Exception as e:
                 print("collapsed by default:", e)
         if default_scope == "all":

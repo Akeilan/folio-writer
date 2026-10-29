@@ -505,26 +505,15 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
                 item("_Continue Numbering", lambda: nl.continue_numbering(self.win))
                 item("Set Numbering _Value...", lambda: nl.set_numbering_value(self.win))
             sep()
-        lvl, par = 0, None
-        try:
-            vc = modelapi.read_cursor(m)
-            cur = vc.getText().createTextCursorByRange(vc.getStart())
-            cur.gotoStartOfParagraph(False)
-            cur.gotoEndOfParagraph(True)
-            en = cur.createEnumeration()
-            par = en.nextElement() if en.hasMoreElements() else None
-            lvl = (getattr(par, "OutlineLevel", 0) or 0) if par is not None else 0
-        except Exception:
-            lvl = 0
-        if m is not None and lvl:
+        from .editfeatures import caret_heading
+        node, lvl = caret_heading(self.win)
+        if node is not None:
             folds = self.win.folds
             mi = Gtk.MenuItem(label="Expand/Collapse")
             sub = Gtk.Menu()
             for label, cb in (
-                    ("Expand Heading", lambda: folds.toggle(par, lvl)
-                     if folds._is_collapsed(par) is not None else None),
-                    ("Collapse Heading", lambda: folds.toggle(par, lvl)
-                     if folds._is_collapsed(par) is None else None),
+                    ("Expand Heading", lambda: folds.toggle(node) if folds.is_collapsed(node) else None),
+                    ("Collapse Heading", lambda: folds.toggle(node) if not folds.is_collapsed(node) else None),
                     ("Expand All Headings", folds.expand_all),
                     ("Collapse All Headings", folds.collapse_all)):
                 si = Gtk.MenuItem(label=label)
@@ -534,7 +523,7 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
             menu.append(mi)
             sep()
         from . import pastelink
-        if m is not None and pastelink.section_at_cursor(m) is not None:
+        if pastelink.at_caret(self.win):
             item("Update _Link", lambda: pastelink.update(self.win), True,
                  "cmd/sc_updatecurindex")
             sep()

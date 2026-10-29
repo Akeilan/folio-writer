@@ -215,6 +215,7 @@ pub enum Story {
 
 mod objects;
 mod hf;
+mod inspect;
 mod fields;
 mod fieldcodes;
 mod refs;
@@ -322,6 +323,7 @@ impl Editor {
             crate::paginate::set_continuous(false, false);
             self.doc.sections = keep;
         } else {
+            self.unfold_caret();
             self.layout = layout_document_cached(&self.doc, &mut self.fonts, &mut self.cache);
         }
         self.line_loc.clear();
