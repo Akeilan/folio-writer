@@ -542,6 +542,41 @@ fn lead_height(paras: &[Arc<ParaLayout>], tables: &[Option<TableLayout>], blocks
     }
 }
 
+/// The outline level of a body paragraph that is a heading (0-8).
+pub fn heading_level(doc: &Document, b: &crate::document::Block) -> Option<u8> {
+    if !matches!(b.kind, BlockKind::Para) {
+        return None;
+    }
+    doc.para_props(b.node).0.outline_lvl.filter(|l| *l < 9)
+}
+
+/// The blocks hidden under collapsed headings.
+pub fn fold_hidden(doc: &Document) -> Vec<bool> {
+    let mut out = vec![false; doc.blocks.len()];
+    if doc.folded.is_empty() {
+        return out;
+    }
+    let mut hide_below: Option<u8> = None;
+    for (i, b) in doc.blocks.iter().enumerate() {
+        let lvl = heading_level(doc, b);
+        if let (Some(h), Some(l)) = (hide_below, lvl) {
+            if l <= h {
+                hide_below = None;
+            }
+        }
+        if hide_below.is_some() {
+            out[i] = true;
+            continue;
+        }
+        if let Some(l) = lvl {
+            if doc.folded.contains(&b.node) {
+                hide_below = Some(l);
+            }
+        }
+    }
+    out
+}
+
 pub fn layout_document(doc: &Document, fonts: &mut FontCache) -> Layout {
     let mut cache = ParaCache::new();
     layout_document_cached(doc, fonts, &mut cache)
@@ -621,8 +656,13 @@ pub fn layout_document_cached(doc: &Document, fonts: &mut FontCache, cache: &mut
     f.new_page(0);
     f.sec_mark = (0, 0, 0, f.y);
     let nb = doc.blocks.len();
+    let hidden = fold_hidden(doc);
     let mut bi = 0;
     while bi < nb {
+        if hidden[bi] {
+            bi += 1;
+            continue;
+        }
         let blk = &doc.blocks[bi];
         let pending = f.pending.take();
         let new_page_section = blk.section != f.sec
@@ -783,6 +823,7 @@ fn finish_pages(f: &mut Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout>>)
     let doc = f.doc;
     let total = f.pages.len();
     let g = std::mem::replace(&mut m.grid, 0.0);
+    let chap_labels = if doc.sections.iter().any(|s| s.pg_chap.is_some()) { list_labels(doc) } else { HashMap::new() };
     for i in 0..total {
         let (sec, number, header, footer) = {
             let p = &f.pages[i];
@@ -791,7 +832,30 @@ fn finish_pages(f: &mut Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout>>)
         let s = &doc.sections[sec];
         let sec_pages = f.pages.iter().filter(|p| p.section == sec).count();
         let vals = crate::layout::FieldValues {
-            page: crate::numbering::format_number(number, &s.pg_fmt),
+            page: {
+                let n = crate::numbering::format_number(number, &s.pg_fmt);
+                match &s.pg_chap {
+                    Some((lvl, sep)) => {
+                        // the number of the last chapter heading up to the end of this page
+                        let upto = f.pages.get(i + 1).map(|p| p.first_block + 1).unwrap_or(doc.blocks.len())
+                            .min(doc.blocks.len());
+                        let chap = doc.blocks[..upto].iter().rev().filter(|b| matches!(b.kind, BlockKind::Para))
+                            .find_map(|b| {
+                                let (pp, _) = doc.para_props(b.node);
+                                if pp.outline_lvl == Some(*lvl - 1) {
+                                    chap_labels.get(&b.node).map(|l| l.text.trim().trim_end_matches(['.', ')', ':']).to_string())
+                                } else {
+                                    None
+                                }
+                            });
+                        match chap {
+                            Some(c) if !c.is_empty() => format!("{c}{sep}{n}"),
+                            _ => n,
+                        }
+                    }
+                    None => n,
+                }
+            },
             pages: total.to_string(),
             section_pages: sec_pages.to_string(),
             section: (sec + 1).to_string(),

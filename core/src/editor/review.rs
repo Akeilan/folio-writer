@@ -123,6 +123,27 @@ impl Editor {
         }
     }
 
+    /// Show Markup > Specific People: the reviewers whose changes aren't marked.
+    pub fn set_hidden_authors(&mut self, names: &[String]) {
+        let set: std::collections::HashSet<String> = names.iter().cloned().collect();
+        if set != self.doc.hidden_authors {
+            self.doc.hidden_authors = set;
+            self.cache.retain(|_, _| false);
+            self.relayout();
+        }
+    }
+
+    /// Everyone with a tracked change in the document.
+    pub fn change_authors(&self) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        for (_k, a, ..) in self.change_list() {
+            if !a.is_empty() && !out.contains(&a) {
+                out.push(a);
+            }
+        }
+        out
+    }
+
     pub fn set_markup(&mut self, m: Markup) {
         if self.doc.markup != m {
             self.doc.markup = m;

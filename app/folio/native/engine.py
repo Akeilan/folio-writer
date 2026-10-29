@@ -795,6 +795,12 @@ class NativeEngine(GObject.GObject):
         else:
             Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(t, -1)
         _store_fragment(t, frag, self._doc_token())
+        if not cut:
+            try:
+                from .. import pastelink
+                pastelink.remember_copy(self.win, t)
+            except Exception as e:
+                print("paste link:", e)
         if cut:
             self._edit(self.ed.delete, True)
 

@@ -782,38 +782,43 @@ def language_dialog(parent, p):
     d.add(nocheck)
     if d.ask() == Gtk.ResponseType.OK:
         if nocheck.get_active():
-            p.CharLocale = docapi.locale("zxx", "")
+            p.CharLocale = values.struct("com.sun.star.lang.Locale", Language="zxx", Country="")
         else:
             _n, lang, country = modelapi.LANGUAGES[c.get_active()]
-            p.CharLocale = docapi.locale(lang, country)
+            p.CharLocale = values.struct("com.sun.star.lang.Locale", Language=lang, Country=country)
     d.done()
 
 
+NUM_CHOICES = [("None", None), ("Bullet \u2022", (6, "\u2022", "Symbol")),
+               ("Bullet \u25e6", (6, "\u25e6", "Courier New")), ("Bullet \u25aa", (6, "\u25aa", "Wingdings")),
+               ("1. 2. 3.", (4, "%1%.", None)), ("1) 2) 3)", (4, "%1%)", None)),
+               ("a. b. c.", (1, "%1%.", None)), ("A. B. C.", (0, "%1%.", None)),
+               ("i. ii. iii.", (3, "%1%.", None)), ("I. II. III.", (2, "%1%.", None))]
+
+
 def numbering_dialog(parent, m, p):
+    """Modify Style > Format > Numbering: a bullet or number for the style's
+    paragraphs (a list definition linked to the style)."""
+    from .native import lists
     d = FDialog(parent, "Numbering and Bullets")
-    fam = m.getStyleFamilies().getByName("NumberingStyles")
-    names = []
-    for n in fam.getElementNames():
-        try:
-            names.append((fam.getByName(n).DisplayName, n))
-        except Exception:
-            names.append((n, n))
-    names.sort(key=lambda t: t[0].lower())
-    labels = ["None"] + [t[0] for t in names]
-    cur = 0
-    try:
-        current = p.NumberingStyleName
-        for i, (_disp, n) in enumerate(names):
-            if n == current:
-                cur = i + 1
-    except Exception:
-        pass
-    c = combo(labels, cur)
-    d.add(Gtk.Label(label="List style:", xalign=0))
+    c = combo([n for n, _v in NUM_CHOICES], 0)
+    d.add(Gtk.Label(label="Bullet or number:", xalign=0))
     d.add(c)
     if d.ask() == Gtk.ResponseType.OK:
-        i = c.get_active()
-        p.NumberingStyleName = "" if i <= 0 else names[i - 1][1]
+        v = NUM_CHOICES[max(0, c.get_active())][1]
+        sid = getattr(p, "sid", None) or getattr(getattr(p, "_base", None), "sid", None)
+        ed = m.eng.ed if hasattr(m, "eng") else None
+        if sid and ed is not None:
+            if v is None:
+                ed.style_set_num(sid, 0, 0)
+            else:
+                kind, fmt, font = v
+                spec = {"kind": kind, "fmt": fmt, "n": 0}
+                if kind == 6:
+                    spec.update(char=fmt, font=font)
+                nid = ed.new_list_definition(lists.levels_xml([spec]))
+                if nid:
+                    ed.style_set_num(sid, nid, 0)
     d.done()
 
 

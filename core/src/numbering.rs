@@ -216,6 +216,7 @@ fn capitalize(s: String) -> String {
 pub fn format_number(n: i32, fmt: &str) -> String {
     match fmt {
         "decimal" => n.to_string(),
+        "numberInDash" => format!("- {n} -"),
         "decimalZero" => {
             if (0..10).contains(&n) {
                 format!("0{n}")

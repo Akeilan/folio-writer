@@ -121,7 +121,18 @@ class CursorProps:
         if k == "CharStyleName":
             return r()["style"]
         if k == "CharLocale":
-            return values.struct("com.sun.star.lang.Locale", Language="en", Country="US")
+            tag = ""
+            try:
+                tag = r().get("lang") or ""
+            except Exception:
+                pass
+            if not tag and type(self).__name__ == "CursorProps":
+                try:
+                    tag = self.eng.ed.state().get("lang") or ""
+                except Exception:
+                    tag = ""
+            lang, _s, country = (tag or "en-US").replace("_", "-").partition("-")
+            return values.struct("com.sun.star.lang.Locale", Language=lang, Country=country)
         # paragraph
         if k == "ParaAdjust":
             return JC_TO_ADJ.get(p()["align"], 0)
@@ -288,7 +299,14 @@ class CursorProps:
             self._run(self._toggle("w:emboss", n == 1) + self._toggle("w:imprint", n == 2))
         elif k == "CharStyleName":
             self._set_char_style(v)
-        elif k in ("CharTransparence", "CharLocale", "CharBackColor", "CharBackTransparent"):
+        elif k == "CharLocale":
+            lang, country = getattr(v, "Language", "en"), getattr(v, "Country", "")
+            if lang == "zxx":
+                self._run([("w:noProof", [])])
+            else:
+                self._run([("w:lang", [("w:val", "%s-%s" % (lang, country) if country else lang)]),
+                           ("w:noProof", None)])
+        elif k in ("CharTransparence", "CharBackColor", "CharBackTransparent"):
             pass
         # paragraph
         elif k == "ParaAdjust":

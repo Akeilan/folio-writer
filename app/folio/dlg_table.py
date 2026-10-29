@@ -112,11 +112,11 @@ class TableDialogs:
 
 
     def table_properties(self, page=0):
-        from .tabledraw import properties_dialog
+        from .native.tables import properties_dialog
         return properties_dialog(self.win, page)
 
     def insert_cells(self):
-        from .tabledraw import insert_cells_dialog
+        from .native.tables import insert_cells_dialog
         insert_cells_dialog(self.win)
 
     def select_cell(self):

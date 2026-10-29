@@ -1,20 +1,17 @@
 """Paste Special > Paste link: text copied from a saved document is pasted as
-a link to it, and updates when the source changes (F9 / right-click
-Update Link). The copied range gets a hidden bookmark in the source; the
-target gets a section linked to that bookmark."""
-import time
-
-from . import bridge, docapi
-from .native import values
-from . import modelapi
+a LINK field pointing at a bookmark of the copied text in the source, and
+updates from it (F9, or right-click Update Link), as in the original."""
 
 SOURCE = {}
 
 
 def remember_copy(win, text):
-    """Called on Copy: keep the copied range so it can be linked to later."""
+    """Called on Copy: keep where the copied text is, so it can be linked to."""
     SOURCE.clear()
-    return
+    ed = win.engine.ed
+    if ed is None or not text or ed.story() != "body":
+        return
+    SOURCE.update(win=win, text=text, range=tuple(ed.selection_range()))
 
 
 def available(win, clip_text):
@@ -28,69 +25,46 @@ def paste(win):
     src = SOURCE.get("win")
     if src is None:
         return False
-    sm = src.engine.model
     if not src.engine.path:
         win.dialogs.message("Save the document you copied from first, then paste the "
                             "link again.")
         return False
-    marks = sm.getBookmarks()
+    sed = src.engine.ed
+    names = set(sed.all_bookmark_names())
     n = 1
-    while marks.hasByName("_Link%d" % n):
+    while "OLE_LINK%d" % n in names:
         n += 1
-    name = "_Link%d" % n
-    bm = sm.createInstance("com.sun.star.text.Bookmark")
-    bm.setName(name)
-    rng = SOURCE["range"]
-    rng.getText().insertTextContent(rng, bm, True)
-    src.save()
-    m = win.engine.model
-    vc = modelapi.view_cursor(m)
-    text = vc.getText()
-    sec = m.createInstance("com.sun.star.text.TextSection")
-    secs = m.getTextSections()
-    k = 1
-    while secs.hasByName("Link%d" % k):
-        k += 1
-    sec.setName("Link%d" % k)
-    link = values.struct("com.sun.star.text.SectionFileLink")
-    link.FileURL = docapi.uno_url(src.engine.path)
-    link.FilterName = ""
-    sec.FileLink = link
-    sec.LinkRegion = name
-    um = m.getUndoManager()
-    um.enterUndoContext("Paste Link")
+    name = "OLE_LINK%d" % n
+    keep = tuple(sed.selection_range())
+    pa, a, pb, b = SOURCE["range"]
+    if not sed.select_nodes(pa, a, pb, b) or not sed.add_bookmark(name):
+        win.dialogs.message("The text you copied has changed in its document. Copy it again, "
+                            "then paste the link.")
+        sed.select_nodes(*keep)
+        return False
+    sed.select_nodes(*keep)
+    src.engine.view.document_changed()
+    if not src.engine.save():
+        return False
+    path = src.engine.path.replace("\\", "\\\\").replace('"', "")
+    ed = win.engine.ed
+    ed.begin_group("Paste Link")
     try:
-        text.insertTextContent(vc, sec, False)
+        ed.insert_field('LINK Word.Document.12 "%s" "%s" \\a \\t' % (path, name), SOURCE["text"])
     finally:
-        um.leaveUndoContext()
-    update(win)
+        ed.end_group()
+    win.engine.view.after_edit()
     return True
 
 
-def links(m):
-    out = []
-    secs = m.getTextSections()
-    for i in range(secs.getCount()):
-        s = secs.getByIndex(i)
-        try:
-            if s.FileLink.FileURL:
-                out.append(s)
-        except Exception:
-            pass
-    return out
+def at_caret(win):
+    """Is the caret in a pasted link?"""
+    ed = win.engine.ed
+    return ed is not None and ed.field_at_caret("LINK") is not None
 
 
 def update(win):
-    win.engine.command(".uno:UpdateAllLinks")
-
-
-def section_at_cursor(m):
-    try:
-        sec = modelapi.read_cursor(m).TextSection
-        while sec is not None:
-            if sec.FileLink.FileURL:
-                return sec
-            sec = sec.getParentSection()
-    except Exception:
-        pass
-    return None
+    """Update Link: the links in the selection (all of them if there is none)."""
+    ed = win.engine.ed
+    ed.update_fields(not ed.has_selection() and not at_caret(win))
+    win.engine.view.after_edit()

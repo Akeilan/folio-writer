@@ -444,3 +444,161 @@ def call(win, fn, *args):
         return False
     f(win, *args)
     return True
+
+
+# ================================================================ Draw Table / Eraser
+class TableDrawTool:
+    """Table Layout > Draw Table and Eraser. 'draw': drag a rectangle outside
+    a table to make one that size, or a line across a cell to split it;
+    'erase': click the line between two cells to merge them. Esc stops."""
+
+    def __init__(self, win):
+        self.win = win
+        self.tool = None
+        self.start = None
+        self.cur = None
+
+    @property
+    def active(self):
+        return self.tool is not None
+
+    def begin(self, tool):
+        from gi.repository import Gdk
+        if self.tool == tool:
+            self.stop()
+            return
+        self.tool = tool
+        w = self.win.engine.view.get_window()
+        if w is not None:
+            try:
+                w.set_cursor(Gdk.Cursor.new_from_name(w.get_display(), "pencil" if tool == "draw" else "cell"))
+            except Exception:
+                pass
+        self.win.status.flash("Drag to draw a table or a line inside one. Esc to stop."
+                              if tool == "draw" else "Click a line between cells to merge them. Esc to stop.")
+        for k, b in getattr(self.win, "table_draw_buttons", {}).items():
+            b.apply_state("true" if k == tool else "false")
+
+    def stop(self):
+        self.tool = None
+        self.start = self.cur = None
+        v = self.win.engine.view
+        w = v.get_window()
+        if w is not None:
+            w.set_cursor(None)
+        for b in getattr(self.win, "table_draw_buttons", {}).values():
+            b.apply_state("false")
+        v.queue_draw()
+
+    def key(self, event):
+        from gi.repository import Gdk
+        if self.active and event.keyval == Gdk.KEY_Escape:
+            self.stop()
+            return True
+        return False
+
+    def press(self, ev):
+        if ev.button != 1:
+            return False
+        self.start = self.cur = (ev.x, ev.y)
+        return True
+
+    def motion(self, ev):
+        if self.start is None:
+            return True
+        self.cur = (ev.x, ev.y)
+        self.win.engine.view.queue_draw()
+        return True
+
+    def release(self, ev):
+        if self.start is None or ev.button != 1:
+            return False
+        (x0, y0), (x1, y1) = self.start, (ev.x, ev.y)
+        self.start = self.cur = None
+        try:
+            if self.tool == "draw":
+                self._draw_at(x0, y0, x1, y1)
+            else:
+                self._erase_at(x1, y1)
+        except Exception as e:
+            print("draw table:", e)
+        self.win.engine.view.queue_draw()
+        return True
+
+    def draw(self, cr):
+        if self.start is None or self.cur is None or self.tool != "draw":
+            return
+        (x0, y0), (x1, y1) = self.start, self.cur
+        cr.save()
+        cr.set_source_rgb(0.1, 0.1, 0.1)
+        cr.set_line_width(1)
+        cr.set_dash([3, 2])
+        if abs(x1 - x0) > 12 and abs(y1 - y0) > 12:
+            cr.rectangle(min(x0, x1), min(y0, y1), abs(x1 - x0), abs(y1 - y0))
+        elif abs(x1 - x0) >= abs(y1 - y0):
+            cr.move_to(x0, y0)
+            cr.line_to(x1, y0)
+        else:
+            cr.move_to(x0, y0)
+            cr.line_to(x0, y1)
+        cr.stroke()
+        cr.restore()
+
+    # ------------------------------------------------------------ actions
+    def _click(self, x, y, extend=False):
+        v = self.win.engine.view
+        hit = v.page_at(x, y)
+        if hit is None:
+            return None
+        _ed(self.win).click(hit[0], hit[1], hit[2], extend)
+        return hit
+
+    def _draw_at(self, x0, y0, x1, y1):
+        ed = _ed(self.win)
+        v = self.win.engine.view
+        s = v.ppp
+        box = abs(x1 - x0) > 12 and abs(y1 - y0) > 12
+        if not self._click(min(x0, x1) + 2, min(y0, y1) + 2):
+            return
+        in_table = bool(ed.cell_name())
+        if box and not in_table:
+            # a new table as big as the rectangle (points -> 1/100 mm)
+            ed.begin_group("Draw Table")
+            try:
+                ed.insert_table(1, 1)
+                set_col_width(self.win, abs(x1 - x0) / s * 2540.0 / 72.0)
+                set_row_height(self.win, abs(y1 - y0) / s * 2540.0 / 72.0)
+            finally:
+                ed.end_group()
+            _done(self.win)
+            return
+        if not in_table:
+            return
+        # a line inside a cell splits it
+        self._click((x0 + x1) / 2.0, (y0 + y1) / 2.0)
+        if not ed.cell_name():
+            return
+        if abs(x1 - x0) >= abs(y1 - y0):
+            ed.split_cells(1, 2)
+        else:
+            ed.split_cells(2, 1)
+        _done(self.win)
+
+    def _erase_at(self, x, y):
+        """Merge the two cells either side of the line at (x, y)."""
+        ed = _ed(self.win)
+        for dx, dy in ((5, 0), (0, 5)):
+            if not self._click(x - dx, y - dy):
+                continue
+            a = ed.cell_name()
+            if not a:
+                continue
+            self._click(x + dx, y + dy)
+            b = ed.cell_name()
+            if b and b != a:
+                self._click(x - dx, y - dy)
+                self._click(x + dx, y + dy, True)
+                if ed.table_command("merge"):
+                    _done(self.win)
+                    return
+        self.win.status.flash("Click a line between two cells to merge them.")

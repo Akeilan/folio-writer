@@ -625,6 +625,33 @@ impl Editor {
                     n.to_string()
                 }
             }
+            "LINK" | "INCLUDETEXT" => {
+                // text from (a bookmark of) another document, as plain text
+                let (path, mark) = if ins.kind == "LINK" {
+                    (ins.args.get(1)?.clone(), ins.args.get(2).cloned())
+                } else {
+                    (ins.args.first()?.clone(), ins.args.get(1).cloned())
+                };
+                let path = path.replace("\\\\", "\\");
+                let Ok(doc) = crate::document::Document::open_path(&path) else {
+                    return Some("Error! Not a valid filename.".into());
+                };
+                let other = Editor::new(doc, crate::fonts::FontCache::new());
+                match mark.filter(|m| !m.is_empty()) {
+                    Some(m) => {
+                        let marks = other.bookmarks();
+                        let Some(&(start, end)) = marks.get(&m) else {
+                            return Some("Error! Reference source not found.".into());
+                        };
+                        other.bookmark_text(start, end)
+                    }
+                    None => {
+                        let dom = &other.doc.dom;
+                        other.doc.blocks.iter().filter(|b| dom.is(b.node, "w:p"))
+                            .map(|b| other.doc.para_text(b.node)).collect::<Vec<_>>().join("\n")
+                    }
+                }
+            }
             "REF" | "PAGEREF" | "NOTEREF" => {
                 let name = ins.args.first()?.clone();
                 let marks = self.bookmarks();

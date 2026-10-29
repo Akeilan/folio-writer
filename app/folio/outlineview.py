@@ -5,7 +5,6 @@ import html
 
 from gi.repository import Gdk, GLib, Gtk, Pango
 
-from . import docapi
 from .actions import engine_style, word_style
 from . import modelapi
 
@@ -58,14 +57,8 @@ class OutlineView(Gtk.Box):
 
     # ------------------------------------------------------------ build
     def load(self, keep_selection=True):
-        return
-
-    def _same(self, a, b):
-        try:
-            m = self.win.engine.model
-            return m.getText().compareRegionStarts(a.getStart(), b.getStart()) == 0
-        except Exception:
-            return False
+        """Fill the outline from the document (native/views.py)."""
+        raise NotImplementedError
 
     def _symbols(self, parent):
         """Word's outline symbols: ⊕ heading with content under it, ⊖ heading
@@ -115,33 +108,6 @@ class OutlineView(Gtk.Box):
     def _selected_para(self):
         it = self._selected()
         return self.store[it][3] if it is not None else None
-
-    def _goto(self, p):
-        try:
-            modelapi.view_cursor(self.win.engine.model).gotoRange(p.getStart(), False)
-        except Exception:
-            pass
-
-    # ------------------------------------------------------------ editing
-    def _editing_started(self, cell, editable, path):
-        p = self.store[path][3]
-        if isinstance(editable, Gtk.Entry):
-            editable.set_text(p.getString())
-
-    def _edited(self, cell, path, text):
-        p = self.store[path][3]
-        if text == p.getString():
-            return
-        m = self.win.engine.model
-        um = m.getUndoManager()
-        um.enterUndoContext("Typing")
-        try:
-            c = p.getText().createTextCursorByRange(p.getStart())
-            c.gotoEndOfParagraph(True)
-            c.setString(text)
-        finally:
-            um.leaveUndoContext()
-        self.store[path][0] = self._markup(p, self.store[path][2])
 
     def _toggle_row(self, tv, path, col):
         if tv.row_expanded(path):
@@ -221,68 +187,6 @@ class OutlineView(Gtk.Box):
             if new > 9:
                 new = BODY
         self.set_level(new)
-
-    def set_level(self, level):
-        p = self._selected_para()
-        if p is None:
-            return
-        m = self.win.engine.model
-        um = m.getUndoManager()
-        um.enterUndoContext("Promote/Demote")
-        try:
-            p.ParaStyleName = engine_style("Normal" if level == BODY else
-                                           "Heading %d" % level)
-        finally:
-            um.leaveUndoContext()
-        self.load()
-
-    def move(self, delta):
-        it = self._selected()
-        if it is None:
-            return
-        m = self.win.engine.model
-        p = self.store[it][3]
-        level = self.store[it][2]
-        if level == BODY:
-            self._goto(p)
-            self.win.engine.command(".uno:MoveUp" if delta < 0 else ".uno:MoveDown")
-            GLib.timeout_add(150, lambda: (self.load(), False)[1])
-            return
-        sib = self.store.iter_previous(it) if delta < 0 else self.store.iter_next(it)
-        while sib is not None and self.store[sib][2] == BODY:
-            sib = self.store.iter_previous(sib) if delta < 0 else self.store.iter_next(sib)
-        if sib is None:
-            return
-        try:
-            docapi.move_section(m, p, self.store[sib][3], after=delta > 0)
-        except Exception as e:
-            print("outline move:", e)
-        self.load()
-
-    def _dropped(self, tv, ctx, x, y, data, info, time):
-        model, it = tv.get_selection().get_selected()
-        res = tv.get_dest_row_at_pos(x, y)
-        if it is None or res is None:
-            Gtk.drag_finish(ctx, False, False, time)
-            return
-        path, pos = res
-        dst = self.store[path][3]
-        src = self.store[it][3]
-        after = pos in (Gtk.TreeViewDropPosition.AFTER,
-                        Gtk.TreeViewDropPosition.INTO_OR_AFTER)
-        m = self.win.engine.model
-        try:
-            if self.store[it][2] == BODY:
-                docapi.move_paragraph(m, src, dst, after) if hasattr(
-                    docapi, "move_paragraph") else None
-            else:
-                docapi.move_section(m, src, dst, after=after)
-        except Exception as e:
-            print("outline drop:", e)
-        Gtk.drag_finish(ctx, True, False, time)
-        ctx.drag_status(0, time)
-        GLib.idle_add(lambda: (self.load(), False)[1])
-        tv.stop_emission_by_name("drag-data-received")
 
     def expand(self, on):
         it = self._selected()
