@@ -929,7 +929,8 @@ impl Editor {
     /// Insert a field and show its result straight away.
     pub fn insert_field_now(&mut self, instr: &str) {
         let mut seq = HashMap::new();
-        let v = self.evaluate_field(instr, None, &mut seq).unwrap_or_default();
+        let at = if instr.trim_start().starts_with('=') { Some(self.caret.para) } else { None };
+        let v = self.evaluate_field(instr, at, &mut seq).unwrap_or_default();
         self.insert_field(instr, &v);
         if matches!(parse_instr(instr).kind.as_str(), "PAGE" | "PAGEREF" | "SEQ" | "NUMPAGES") {
             self.update_fields(true);

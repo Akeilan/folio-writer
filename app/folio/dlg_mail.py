@@ -603,7 +603,7 @@ def send_email(win):
     subj.set_width_chars(36)
     title = ""
     try:
-        title = win.title_text()
+        title = win.doc_name()
     except Exception:
         pass
     subj.set_text(os.path.splitext(title or "")[0])

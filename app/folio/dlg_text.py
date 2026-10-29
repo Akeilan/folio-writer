@@ -637,15 +637,27 @@ class TextDialogs:
                 except Exception:
                     pass
 
-            def tmpl(doc):
-                st = doc.getStyleFamilies().getByName("ParagraphStyles").getByName("Standard")
+            def tmpl(t):
+                from .native.uno_props import StyleProps
+
+                class _Eng:
+                    ed = t
+
+                    class view:
+                        @staticmethod
+                        def after_edit():
+                            pass
+                sid = {n: i for i, n in t.paragraph_styles()}.get("Normal", "Normal")
+                st = StyleProps(_Eng, sid)
+                object.__setattr__(st, "_group", True)      # no undo group in the template
                 for k, v in props.items():
                     try:
                         st.setPropertyValue(k, v)
                     except Exception:
                         pass
             try:
-                self.win.app._edit_normal_template(tmpl)
+                from .native import edit_normal_template
+                edit_normal_template(self.win.app, tmpl)
             except Exception as e:
                 print("paragraph default:", e)
         d.done()

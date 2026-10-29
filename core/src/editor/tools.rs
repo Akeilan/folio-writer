@@ -138,6 +138,13 @@ impl Editor {
                     }
                 }
                 dom.insert(ppr, idx, copy);
+                // the new section's headers and footers are the previous one's (Link
+                // to Previous), as Word makes them
+                for k in dom.elements(sect).collect::<Vec<_>>() {
+                    if matches!(dom.name(k), "w:headerReference" | "w:footerReference") {
+                        dom.detach(k);
+                    }
+                }
                 // the part after the break starts the way asked
                 let ty = match dom.child(sect, "w:type") {
                     Some(t) => t,
