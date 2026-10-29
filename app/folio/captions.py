@@ -2,9 +2,7 @@
 Delete Label, Numbering (format, chapter number) and AutoCaption."""
 from gi.repository import Gtk
 
-from . import docapi
 from .widgets import FDialog, combo, grid, heading
-from . import modelapi
 
 BUILTIN = ["Equation", "Figure", "Table"]
 NUMFMT = [("1, 2, 3, ...", 4), ("a, b, c, ...", 1), ("A, B, C, ...", 0),
@@ -140,17 +138,6 @@ def dialog(win):
     win.focus_document()
 
 
-def insert(m, label, text, below, spec, exclude=False):
-    um = m.getUndoManager()
-    um.enterUndoContext("Insert Caption")
-    try:
-        docapi.insert_caption(m, label, text, below=below, numtype=spec.get("fmt", 4),
-                              chapter=(spec["level"], spec["sep"]) if spec.get("chapter")
-                              else None, exclude_label=exclude)
-    finally:
-        um.leaveUndoContext()
-
-
 def autocaption_dialog(win):
     st = win.app.settings
     auto = dict(st.get("autocaption", {}))
@@ -201,6 +188,21 @@ def autocaption_dialog(win):
 
 
 def after_insert(win, kind):
-    """Called after a picture / table / equation is inserted."""
+    """AutoCaption: called after a picture / table / equation is inserted."""
     spec = win.app.settings.get("autocaption", {}).get(kind)
-    return
+    ed = win.engine.ed
+    if not spec or ed is None:
+        return
+    num = win.app.settings.get("caption_numbering", {}).get(
+        spec["label"], {"fmt": 4, "chapter": False, "level": 1, "sep": "-"})
+    fmt = {0: "ALPHABETIC", 1: "alphabetic", 2: "ROMAN", 3: "roman"}.get(num.get("fmt", 4), "ARABIC")
+    try:
+        keep = tuple(ed.selection_range())
+        ed.insert_caption(spec["label"], "", spec.get("below", True), fmt, False)
+        try:
+            ed.select_nodes(*keep)
+        except Exception:
+            pass
+        win.engine.view.after_edit()
+    except Exception as e:
+        print("autocaption:", e)

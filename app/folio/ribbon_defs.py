@@ -1789,7 +1789,6 @@ def build_ribbon(win):
         [btn("Merge Cells", "cmd/sc_mergecells", ".uno:MergeCells", keytip="M"),
          btn("Split Cells", "cmd/sc_splitcell", "split-cells", keytip="P"),
          btn("Split Table", "cmd/sc_splittable", "split-table", keytip="T")]]))
-    from . import tablelayout as TL
     tl = lambda fn, *a: win.model_call_sync("tablelayout." + fn, *a)  # noqa: E731
     win.cell_spins = {}
 
@@ -1810,13 +1809,7 @@ def build_ribbon(win):
         return b
 
     def autofit(how):
-        if how == "contents":
-            def go():
-                A.cmd(".uno:SelectTable")
-                A.cmd(".uno:SetOptimalColumnWidth")
-            win.engine.sync(go)
-        else:
-            tl("autofit", how)
+        tl("autofit", how)
     t.add(Group("Cell Size", [
         MenuButton(r, "AutoFit", "cmd/lc_setoptimalcolumnwidth", [
             ("AutoFit Contents", lambda: autofit("contents")),
@@ -1842,19 +1835,19 @@ def build_ribbon(win):
           al("right", "bottom", "Align Bottom Right", "cellalign-br", "BR")]],
         btn("Text\nDirection", "cmd/lc_textdirectiontoptobottom",
             lambda: tl("text_direction"), size="large", keytip="X"),
-        btn("Cell\nMargins", "cmd/lc_tabledialog", lambda: TL.cell_margins_dialog(win),
+        btn("Cell\nMargins", "cmd/lc_tabledialog", lambda: __import__("folio.native.tables", fromlist=["x"]).cell_margins_dialog(win),
             size="large", keytip="M")]))
     win.repeat_header_btn = btn("Repeat Header Rows", "cmd/sc_tableheadline" if False else
                                 "cmd/sc_insertrowsbefore", lambda: tl("repeat_header"),
                                 keytip="RH")
     t.add(Group("Data", [
-        btn("Sort", "cmd/lc_sortascending", lambda: TL.sort_dialog(win), size="large",
+        btn("Sort", "cmd/lc_sortascending", lambda: win.dialogs.sort_dialog(), size="large",
             keytip="SO"),
         [win.repeat_header_btn,
          btn("Convert to Text", "cmd/sc_converttexttable" if False else "cmd/sc_inserttable",
-             lambda: TL.convert_dialog(win), keytip="V"),
+             lambda: __import__("folio.native.tables", fromlist=["x"]).convert_dialog(win), keytip="V"),
          btn("Formula", "cmd/sc_insertformula" if False else "cmd/sc_dbviewfunctions",
-             lambda: TL.formula_dialog(win), keytip="UL")]]))
+             lambda: __import__("folio.native.tables", fromlist=["x"]).formula_dialog(win), keytip="UL")]]))
     r.add_tab(t)
 
     # ================================================================= TABLE DESIGN
@@ -2001,7 +1994,7 @@ def build_ribbon(win):
                            "cmd/lc_graphicfiltertoolbox", artistic_menu, keytip="X"),
                 [btn("Compress Pictures", "cmd/sc_compressgraphic" if icons.exists(
                     "cmd/sc_compressgraphic") else "cmd/sc_graphicdialog",
-                     lambda: __import__("folio.pictools", fromlist=["x"]).compress_dialog(win),
+                     lambda: __import__("folio.native.arrange", fromlist=["x"]).compress_dialog(win),
                      keytip="M"),
                  btn("Change Picture", "cmd/sc_insertgraphic",
                      lambda: win.dialogs.change_picture(), keytip="G"),
@@ -2249,20 +2242,18 @@ def build_ribbon(win):
         obj = NC.selected(win)
         if obj is not None and not NC.special(obj):
             return charts.filter_popover_for(win, obj, NC)
-        if obj is None or charts.is_image(obj) or charts.special(obj):
-            pop = Gtk.Popover()
-            lab = Gtk.Label(label="Filters work on column, bar, line, area and pie charts.",
-                            margin=10)
-            lab.show()
-            pop.add(lab)
-            return pop
-        return charts.filter_popover(win, obj)
+        pop = Gtk.Popover()
+        lab = Gtk.Label(label="Filters work on column, bar, line, area and pie charts.",
+                        margin=10)
+        lab.show()
+        pop.add(lab)
+        return pop
 
     def format_pane():
-        from . import charts
+        from .native import charts as NC
         cls = getattr(win, "_chart_pane_cls", None)
         if cls is None:
-            cls = charts.ChartFormatPane.make(win)
+            cls = NC.FormatPane.make(win)
             win._chart_pane_cls = cls
         win.show_pane(cls)
     t.add(Group("Data", [

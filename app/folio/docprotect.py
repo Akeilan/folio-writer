@@ -7,7 +7,6 @@ import time
 
 from gi.repository import Gtk
 
-from . import docapi
 from . import modelapi
 
 
@@ -209,9 +208,13 @@ def open_version(win, ts, vpath):
             w.dialogs.message("The version couldn't be restored.")
 
     def compare():
-        from .engine import file_url
-        w.engine.command(".uno:CompareDocuments", {"URL": file_url(original),
-                                                   "NoAcceptDialog": True})
+        from .native import compare as C
+        w.read_only = False
+        w.engine.view.set_edit(True)
+        if not C.compare(w, original, win.app.user_name() or "Author"):
+            w.dialogs.message("This version and the saved document are the same.")
+        w.engine.view.set_edit(False)
+        w.read_only = True
 
     def ready():
         w.read_only = True

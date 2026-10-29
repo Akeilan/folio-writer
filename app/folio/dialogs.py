@@ -4,7 +4,7 @@ import os
 
 from gi.repository import Gdk, GLib, Gtk, Pango
 
-from . import APP_NAME, VERSION, docapi
+from . import APP_NAME, VERSION
 from .widgets import FDialog
 from .dlg_text import TextDialogs
 from .dlg_doc import DocDialogs
@@ -372,35 +372,12 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
         m = self.model
         link = modelapi.selected_link(m) if m is not None else ""
         word = ""
-        misspelled = None
         ned = getattr(self.eng, "ed", None)
         if ned is not None:
             has_sel = ned.has_selection()
             in_table = bool(ned.cell_name())
             if has_sel:
                 word = " ".join(ned.selected_text().split())
-        if m is not None and ned is None:
-            # the engine's table state can lag behind a click; ask the cursor
-            try:
-                vc = modelapi.view_cursor(m)
-                in_table = vc.TextTable is not None
-                if has_sel:
-                    word = " ".join(vc.getString().split())
-            except Exception:
-                pass
-        if m is not None and not has_sel:
-            try:
-                vc = modelapi.view_cursor(m)
-                cur = vc.getText().createTextCursorByRange(vc)
-                cur.gotoStartOfWord(False)
-                cur.gotoEndOfWord(True)
-                word = cur.getString().strip()
-                if word and modelapi.WORD_RE.fullmatch(word):
-                    loc = docapi.doc_locale(m)
-                    if not docapi.spell_ok(word, loc):
-                        misspelled = (cur, docapi.suggestions(word, loc, 6))
-            except Exception:
-                pass
 
         def item(label, action, sensitive=True, icon=None):
             mi = Gtk.MenuItem()
@@ -430,7 +407,12 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
                 hit = None
             if sp is not None and hit is not None:
                 native_hit = sp.at(*hit)
-            misspelled = None
+        elif ned is not None:
+            # Shift+F10: the word at the caret
+            sp = getattr(self.eng.view, "speller", None)
+            r = ned.caret_rect()
+            if sp is not None and r:
+                native_hit = sp.at(r[0], r[1] + 0.5, r[2] + r[3] / 2.0)
         if native_hit is not None:
             from .native import spell
             for it in spell.menu_items(self.win, native_hit):
@@ -442,17 +424,6 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
                     mi = item(it[0], it[1])
                     if it[0] not in ("Ignore All", "Add to Dictionary"):
                         mi.get_child().get_children()[1].set_markup("<b>%s</b>" % GLib.markup_escape_text(it[0]))
-        if misspelled is not None:
-            cur, sugg = misspelled
-            for s in sugg:
-                mi = item(s, lambda s=s, c=cur: (c.setString(s)))
-                mi.get_child().get_children()[1].set_markup(
-                    "<b>%s</b>" % GLib.markup_escape_text(s))
-            if not sugg:
-                item("(No Spelling Suggestions)", None, sensitive=False)
-            item("Ignore All", lambda w=word: self._ignore_word(w))
-            item("Add to Dictionary", lambda w=word: docapi.add_to_dictionary(w))
-            sep()
         item("Cu_t", "cut", has_sel, "cmd/sc_cut")
         item("_Copy", "copy", has_sel, "cmd/sc_copy")
         item("Paste Options:", None, False, "cmd/sc_paste")
@@ -541,14 +512,14 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
             item("_Open Link", lambda: Gtk.show_uri_on_window(self.win, link,
                                                               Gtk.get_current_event_time()))
             item("Copy Link", lambda: Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(link, -1))
-            item("_Remove Link", lambda: docapi.remove_link(self.model), True,
+            item("_Remove Link", lambda: (ned.remove_link(), self.eng.view.after_edit()), True,
                  "cmd/sc_removehyperlink")
         else:
             item("L_ink", "hyperlink", True, "cmd/sc_hyperlinkdialog")
         try:
-            from . import citations
-            if self.eng.model is not None and citations.citation_at_cursor(self.eng.model):
-                from . import dlg_cite
+            from . import dlg_cite
+            C, cm = dlg_cite._C(self.win), dlg_cite._M(self.win)
+            if ned is not None and C.citation_at_cursor(cm) is not None:
                 menu.append(Gtk.SeparatorMenuItem())
                 ci = Gtk.MenuItem.new_with_mnemonic("Edit _Citation...")
                 ci.connect("activate", lambda *_: dlg_cite.edit_citation(self.win))
@@ -556,13 +527,12 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
                 cs = Gtk.MenuItem.new_with_mnemonic("Edit _Source...")
 
                 def edit_src(*_):
-                    m = self.eng.model
-                    tag, _o = citations.citation_info(m, citations.citation_at_cursor(m))
-                    src = [x for x in citations.doc_sources(m) if x.get("tag") == tag]
+                    tag, _o = C.citation_info(cm, C.citation_at_cursor(cm))
+                    src = [x for x in C.doc_sources(cm) if x.get("tag") == tag]
                     if src:
                         out = dlg_cite.source_dialog(self.win, src[0], "Edit Source")
                         if out:
-                            citations.add_source(m, out)
+                            C.add_source(cm, out)
                 cs.connect("activate", edit_src)
                 menu.append(cs)
         except Exception as e:
@@ -588,7 +558,6 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
 
     def _ignore_word(self, w):
         self.win.ignored_words.add(w)
-        docapi.ignore_all(w)
 
     # ------------------------------------------------------------ search box
     def autocorrect_options(self, tab=0):

@@ -8,8 +8,7 @@ import tempfile
 
 from gi.repository import GdkPixbuf, GLib, Gtk, Pango
 
-from . import APP_NAME, SHARE, docapi, icons
-from .native import values
+from . import APP_NAME, SHARE, icons
 from . import modelapi
 
 NAV = [("back", None), ("home", "Home"), ("new", "New"), ("open", "Open"), None,

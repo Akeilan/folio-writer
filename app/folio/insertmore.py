@@ -9,7 +9,6 @@ import tempfile
 
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
-from . import docapi
 from . import modelapi
 
 
@@ -224,58 +223,58 @@ def icons_dialog(win):
 QUICK_TABLES = ["Calendar 1", "Double Table", "Matrix", "Tabular List", "With Subheads 1"]
 
 
-def quick_table(m, name):
-    from . import tablestyles
+def quick_table(win, name):
+    """Insert > Table > Quick Tables: a ready-made table with sample text."""
     import calendar
     import datetime
+    from .native import tables as NT
+    ed = win.engine.ed
+    title = None
     if name == "Calendar 1":
         today = datetime.date.today()
-        vc = modelapi.view_cursor(m)
-        vc.getText().insertString(vc, today.strftime("%B %Y"), False)
-        vc.getText().insertControlCharacter(vc, 0, False)
         weeks = calendar.Calendar(6).monthdayscalendar(today.year, today.month)
-        t = tablestyles.insert_table(m, len(weeks) + 1, 7)
-        for c, day in enumerate(["S", "M", "T", "W", "T", "F", "S"]):
-            t.getCellByPosition(c, 0).setString(day)
-        for r, week in enumerate(weeks, start=1):
-            for c, day in enumerate(week):
-                t.getCellByPosition(c, r).setString(str(day) if day else "")
-        return t
-    data = {
-        "Double Table": [["College", "New students", "Graduating students", "Change"],
-                         ["Cedar University", "110", "103", "+7"],
-                         ["Elm College", "223", "214", "+9"],
-                         ["Maple Academy", "197", "120", "+77"],
-                         ["Pine College", "134", "121", "+13"],
-                         ["Total", "998", "908", "90"]],
-        "Matrix": [["City or Town", "Point A", "Point B", "Point C", "Point D"],
-                   ["Point A", "—", "", "", ""], ["Point B", "87", "—", "", ""],
-                   ["Point C", "64", "56", "—", ""], ["Point D", "37", "32", "91", "—"]],
-        "Tabular List": [["ITEM", "NEEDED"], ["Books", "1"], ["Magazines", "3"],
-                         ["Notebooks", "1"], ["Paper pads", "1"], ["Pens", "3"],
-                         ["Pencils", "2"], ["Highlighter", "2 colors"], ["Scissors", "1 pair"]],
-        "With Subheads 1": [["College", "New students", "Graduating students", "Change"],
-                            ["Undergraduate", "", "", ""],
-                            ["Cedar University", "110", "103", "+7"],
-                            ["Oak Institute", "202", "210", "-8"],
-                            ["Graduate", "", "", ""],
-                            ["Cedar University", "24", "20", "+4"],
-                            ["Total", "336", "333", "3"]],
-    }[name]
-    t = tablestyles.insert_table(m, len(data), len(data[0]))
-    for r, row in enumerate(data):
-        for c, val in enumerate(row):
-            t.getCellByPosition(c, r).setString(val)
+        rows = [["S", "M", "T", "W", "T", "F", "S"]] + [[str(d) if d else "" for d in w] for w in weeks]
+        title = today.strftime("%B %Y")
+    else:
+        rows = {
+            "Double Table": [["College", "New students", "Graduating students", "Change"],
+                             ["Cedar University", "110", "103", "+7"],
+                             ["Elm College", "223", "214", "+9"],
+                             ["Maple Academy", "197", "120", "+77"],
+                             ["Pine College", "134", "121", "+13"],
+                             ["Total", "998", "908", "90"]],
+            "Matrix": [["City or Town", "Point A", "Point B", "Point C", "Point D"],
+                       ["Point A", "—", "", "", ""], ["Point B", "87", "—", "", ""],
+                       ["Point C", "64", "56", "—", ""], ["Point D", "37", "32", "91", "—"]],
+            "Tabular List": [["ITEM", "NEEDED"], ["Books", "1"], ["Magazines", "3"],
+                             ["Notebooks", "1"], ["Paper pads", "1"], ["Pens", "3"],
+                             ["Pencils", "2"], ["Highlighter", "2 colors"], ["Scissors", "1 pair"]],
+            "With Subheads 1": [["College", "New students", "Graduating students", "Change"],
+                                ["Undergraduate", "", "", ""],
+                                ["Cedar University", "110", "103", "+7"],
+                                ["Oak Institute", "202", "210", "-8"],
+                                ["Graduate", "", "", ""],
+                                ["Cedar University", "24", "20", "+4"],
+                                ["Total", "336", "333", "3"]],
+        }[name]
+    ed.begin_group("Quick Tables")
     try:
-        tablestyles.apply(m, "list", tablestyles.ACCENTS[1] if hasattr(
-            tablestyles, "ACCENTS") else 0x4472C4, {"header": True, "banded_rows": True,
-                                                    "first_col": False, "total":
-                                                    name in ("Double Table", "With Subheads 1"),
-                                                    "last_col": False, "banded_cols": False},
-                          t=t)
-    except Exception as e:
-        print("quick table style:", e)
-    return t
+        if title:
+            ed.type_text(title + "\n")
+        ed.insert_table(len(rows), len(rows[0]))
+        for r, row in enumerate(rows):
+            for c, val in enumerate(row):
+                if val:
+                    ed.type_text(val)
+                if r < len(rows) - 1 or c < len(row) - 1:
+                    ed.cell_step(False)
+        if name != "Calendar 1":
+            NT.apply_style(win, "list", 0x4472C4)
+            if name in ("Double Table", "With Subheads 1") and not (ed.table_info() or {}).get("total"):
+                NT.set_option(win, "total")
+    finally:
+        ed.end_group()
+    win.engine.view.after_edit()
 
 
 # ------------------------------------------------------------ SmartArt

@@ -4,13 +4,12 @@ import subprocess
 
 from gi.repository import Gdk, GLib, Gtk
 
-from . import APP_NAME, docapi
+from . import APP_NAME
 from .actions import Actions, para_margins, para_spacing, word_style
 from .keys import KeyMap, PASSTHROUGH
 from .ribbon import Ribbon
 from .statusbar import StatusBar
 from . import icons
-from . import modelapi
 
 
 class DocWindow(Gtk.ApplicationWindow):
@@ -130,8 +129,6 @@ class DocWindow(Gtk.ApplicationWindow):
         self.folds = HeadingFolds(self)
         from .textlinks import Linker
         self.text_linker = Linker(self)
-        from .textmouse import DragMove
-        self.drag_move = DragMove(self)
         from . import dropcap
         dropcap.install(self)
         from .painter import Painter
@@ -410,6 +407,9 @@ class DocWindow(Gtk.ApplicationWindow):
                     docprotect.apply_final(self)
             except Exception as e:
                 print("protection:", e)
+        if ok and self.app.settings.get("track_options"):
+            from . import trackoptions
+            trackoptions.apply(self)
         if ok and not getattr(self.engine, "is_new", False):
             from . import editfeatures
             GLib.timeout_add(900, self.folds.apply_defaults)
@@ -1931,15 +1931,6 @@ class DocWindow(Gtk.ApplicationWindow):
             ("Enter password to modify, or open read only.\n\n\u201c%s\u201d is reserved."
              if modify else "Enter password to open file\n%s") % name)
         view.set_document_password(url, pw)
-
-    def edit_object(self, obj):
-        """Embedded objects other than equations (charts...)."""
-        try:
-            from .charts import is_chart, edit_chart
-            if is_chart(obj):
-                edit_chart(self, obj)
-        except ImportError:
-            pass
 
     def on_link(self, view, url):
         if not url or url.startswith("#"):

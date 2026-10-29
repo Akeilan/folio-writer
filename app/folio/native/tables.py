@@ -602,3 +602,166 @@ class TableDrawTool:
                     _done(self.win)
                     return
         self.win.status.flash("Click a line between two cells to merge them.")
+
+
+# ================================================================ Data group / Table Options
+def _table_index(ed):
+    """The body table the caret is in: its index for table_cells(), or None."""
+    node = ed.caret_pos()[0]
+    for kind, _n, i in ed.body_blocks():
+        if kind == "t":
+            for row in ed.table_cells(i):
+                for cell in row:
+                    if node in cell:
+                        return i
+    return None
+
+
+def convert_dialog(win):
+    """Table Layout > Convert to Text: the cells as text, one row a paragraph,
+    separated by tabs (or another character)."""
+    from gi.repository import Gtk
+    from ..widgets import FDialog
+    ed = _ed(win)
+    n = _table_index(ed) if ed.cell_name() else None
+    if n is None:
+        win.status.flash("Put the cursor in a table first.")
+        return
+    d = FDialog(win, "Convert Table To Text")
+    d.add(Gtk.Label(label="Separate text with", xalign=0))
+    marks = Gtk.RadioButton.new_with_mnemonic(None, "_Paragraph marks")
+    tabs = Gtk.RadioButton.new_with_mnemonic_from_widget(marks, "_Tabs")
+    commas = Gtk.RadioButton.new_with_mnemonic_from_widget(marks, "Co_mmas")
+    other = Gtk.RadioButton.new_with_mnemonic_from_widget(marks, "_Other:")
+    oe = Gtk.Entry(text="-")
+    oe.set_width_chars(3)
+    tabs.set_active(True)
+    for w in (marks, tabs, commas):
+        d.add(w)
+    row = Gtk.Box(spacing=6)
+    row.pack_start(other, False, False, 0)
+    row.pack_start(oe, False, False, 0)
+    d.add(row)
+    r = d.ask()
+    sep = "\n" if marks.get_active() else "\t" if tabs.get_active() else "," if commas.get_active() \
+        else (oe.get_text() or "-")
+    d.done()
+    if r != Gtk.ResponseType.OK:
+        return
+    lines = []
+    for row in ed.table_cells(n):
+        cells = [" ".join(ed.para_text_of(p).replace("￼", "") for p in cell) for cell in row]
+        lines.append(sep.join(cells))
+    ed.begin_group("Convert Table to Text")
+    try:
+        ed.table_command("delete_table")
+        ed.type_text("\n".join(lines))
+    finally:
+        ed.end_group()
+    _done(win)
+
+
+FUNCS = ("ABS", "AND", "AVERAGE", "COUNT", "DEFINED", "FALSE", "IF", "INT", "MAX", "MIN", "MOD",
+         "NOT", "OR", "PRODUCT", "ROUND", "SIGN", "SUM", "TRUE")
+NUMBER_FORMATS = ("#,##0", "#,##0.00", "$#,##0.00;($#,##0.00)", "0", "0%", "0.00", "0.00%")
+
+
+def _default_formula(ed):
+    """=SUM(ABOVE) under numbers, =SUM(LEFT) beside them, as Word suggests."""
+    n = _table_index(ed)
+    if n is None:
+        return "=SUM(ABOVE)"
+    node = ed.caret_pos()[0]
+    rows = ed.table_cells(n)
+    for r, row in enumerate(rows):
+        for c, cell in enumerate(row):
+            if node in cell:
+                def num(rr, cc):
+                    try:
+                        t = " ".join(ed.para_text_of(p) for p in rows[rr][cc]).replace(",", "").strip()
+                        float(t)
+                        return True
+                    except (ValueError, IndexError):
+                        return False
+                if r > 0 and num(r - 1, c):
+                    return "=SUM(ABOVE)"
+                if c > 0 and num(r, c - 1):
+                    return "=SUM(LEFT)"
+    return "=SUM(ABOVE)"
+
+
+def formula_dialog(win):
+    """Table Layout > Formula: a formula field (= SUM(ABOVE) and the like)."""
+    from gi.repository import Gtk
+    from ..widgets import FDialog, grid
+    ed = _ed(win)
+    if not ed.cell_name():
+        win.status.flash("Put the cursor in a table cell first.")
+        return
+    d = FDialog(win, "Formula")
+    fe = Gtk.Entry(text=_default_formula(ed))
+    fe.set_width_chars(36)
+    fmt = Gtk.ComboBoxText.new_with_entry()
+    for f in NUMBER_FORMATS:
+        fmt.append_text(f)
+    paste = Gtk.ComboBoxText()
+    paste.append_text("Paste function")
+    for f in FUNCS:
+        paste.append_text(f)
+    paste.set_active(0)
+
+    def put(c):
+        if c.get_active() > 0:
+            pos = fe.get_position()
+            fe.insert_text(FUNCS[c.get_active() - 1] + "()", pos)
+            fe.set_position(pos + len(FUNCS[c.get_active() - 1]) + 1)
+            c.set_active(0)
+    paste.connect("changed", put)
+    marks = Gtk.ComboBoxText()
+    marks.append_text("Paste bookmark")
+    names = list(ed.bookmark_names())
+    for b in names:
+        marks.append_text(b)
+    marks.set_active(0)
+
+    def put_mark(c):
+        if c.get_active() > 0:
+            fe.insert_text(names[c.get_active() - 1], fe.get_position())
+            c.set_active(0)
+    marks.connect("changed", put_mark)
+    d.add(grid([["_Formula:", fe], ["_Number format:", fmt]]))
+    row = Gtk.Box(spacing=8)
+    row.pack_start(paste, True, True, 0)
+    row.pack_start(marks, True, True, 0)
+    d.add(row)
+    r = d.ask()
+    text, pic = fe.get_text().strip(), fmt.get_child().get_text().strip()
+    d.done()
+    if r != Gtk.ResponseType.OK or not text:
+        return
+    if not text.startswith("="):
+        text = "=" + text
+    instr = text + ((' \\# "%s"' % pic) if pic else "")
+    ed.insert_field_now(instr)
+    _done(win)
+
+
+def cell_margins_dialog(win):
+    """Table Layout > Cell Margins (Table Options): default cell margins."""
+    from gi.repository import Gtk
+    from ..widgets import FDialog, LengthSpin, grid, heading
+    ed = _ed(win)
+    cur = ed.table_cell_margins() if ed.cell_name() else None
+    if cur is None:
+        win.status.flash("Put the cursor in a table first.")
+        return
+    d = FDialog(win, "Table Options")
+    spins = [LengthSpin(int(round(v * MM)), 0, 25400) for v in cur]
+    d.add(heading("Default cell margins"))
+    d.add(grid([["_Top:", spins[0], "_Left:", spins[2]],
+                ["_Bottom:", spins[1], "_Right:", spins[3]]]))
+    if d.ask() == Gtk.ResponseType.OK:
+        tw = [int(round(s.mm100 / MM)) for s in spins]
+        ed.set_table_cell_margins(*tw)
+        _done(win)
+    d.done()

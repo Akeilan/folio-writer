@@ -453,7 +453,7 @@ impl Editor {
     }
 
     /// The text between a bookmark's start and end.
-    fn bookmark_text(&self, start: NodeId, end: Option<NodeId>) -> String {
+    pub(super) fn bookmark_text(&self, start: NodeId, end: Option<NodeId>) -> String {
         let dom = &self.doc.dom;
         let mut nodes = Vec::new();
         order(dom, self.doc.body, &mut nodes);
@@ -538,6 +538,10 @@ impl Editor {
     /// What a field shows now (None: one we leave as it is).
     pub fn evaluate_field(&self, instr: &str, at: Option<NodeId>, seq: &mut HashMap<String, i64>) -> Option<String> {
         let ins = parse_instr(instr);
+        if instr.trim_start().starts_with('=') {
+            let v = self.formula_value(instr, at).unwrap_or_else(|| "!Syntax Error".into());
+            return Some(apply_format(v, &ins));
+        }
         let pic = ins.switches.iter().find(|(s, _)| *s == '@').and_then(|(_, a)| a.clone());
         let v = match ins.kind.as_str() {
             "DATE" | "TIME" => {

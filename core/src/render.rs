@@ -13,6 +13,43 @@ use std::sync::Arc;
 /// author colour).
 const CHANGE_COLOR: u32 = 0xB5082E;
 
+/// Track Changes Options: how insertions and deletions are marked (0 none,
+/// 1 bold, 2 italic, 3 underline / strikethrough, 4 double underline), their
+/// colours (None: the change colour), and the changed-line bars (0 none,
+/// 1 left, 2 right, 3 outside border) with their colour.
+#[derive(Clone, Copy)]
+pub struct RevMarks {
+    pub ins_mark: u8,
+    pub ins_color: Option<u32>,
+    pub del_mark: u8,
+    pub del_color: Option<u32>,
+    pub line_mark: u8,
+    pub line_color: Option<u32>,
+}
+
+impl Default for RevMarks {
+    fn default() -> Self {
+        RevMarks { ins_mark: 3, ins_color: None, del_mark: 3, del_color: None, line_mark: 1, line_color: None }
+    }
+}
+
+thread_local! {
+    pub static REV_MARKS: std::cell::Cell<RevMarks> = std::cell::Cell::new(RevMarks::default());
+}
+
+fn rev() -> RevMarks {
+    REV_MARKS.with(|r| r.get())
+}
+
+fn change_color(change: u8) -> u32 {
+    let r = rev();
+    match change {
+        1 => r.ins_color.unwrap_or(CHANGE_COLOR),
+        2 => r.del_color.unwrap_or(CHANGE_COLOR),
+        _ => CHANGE_COLOR,
+    }
+}
+
 fn rgb(cr: &cairo::Context, c: u32) {
     cr.set_source_rgb(((c >> 16) & 255) as f64 / 255.0, ((c >> 8) & 255) as f64 / 255.0, (c & 255) as f64 / 255.0);
 }
@@ -168,14 +205,22 @@ impl Renderer {
         // change bars in the left margin
         if layout.markup != crate::document::Markup::Final && layout.markup != crate::document::Markup::Original {
             let simple = layout.markup == crate::document::Markup::Simple;
-            if simple {
-                cr.set_source_rgb(0.85, 0.1, 0.1);
-            } else {
-                cr.set_source_rgb(0.45, 0.45, 0.45);
+            let rm = rev();
+            match rm.line_color {
+                Some(c) if !simple => rgb(cr, c),
+                _ if simple => cr.set_source_rgb(0.85, 0.1, 0.1),
+                _ => cr.set_source_rgb(0.45, 0.45, 0.45),
             }
             cr.set_line_width(if simple { 1.0 } else { 0.75 });
-            let bar_x = page.left - 14.0;
-            for pl in &page.lines {
+            let right = page.width - page.right + 14.0;
+            let left = page.left - 14.0;
+            let bar_x = match rm.line_mark {
+                2 => right,
+                3 if page.number % 2 == 0 => left,
+                3 => right,
+                _ => left,
+            };
+            for pl in page.lines.iter().filter(|_| rm.line_mark != 0) {
                 let p = &layout.paras[pl.para];
                 if p.line_changed(pl.line) {
                     let h = p.lines[pl.line].height;
@@ -322,7 +367,7 @@ impl Renderer {
                     cr.save().ok();
                     cr.set_font_face(&face);
                     cr.set_font_matrix(cairo::Matrix::new(st.draw_size * st.scale, 0.0, 0.0, st.draw_size, 0.0, 0.0));
-                    let c = if st.change != 0 { CHANGE_COLOR } else { st.color.unwrap_or(0) };
+                    let c = if st.change != 0 { change_color(st.change) } else { st.color.unwrap_or(0) };
                     rgb(cr, c);
                     cr.show_glyphs(&[cairo::Glyph::new(g.gid as _, x, base_y - st.raise)]).ok();
                     cr.restore().ok();
@@ -339,7 +384,7 @@ impl Renderer {
                 x0: f64, base_y: f64) {
         let st = &sh.style;
         let color = if st.change != 0 {
-            CHANGE_COLOR
+            change_color(st.change)
         } else {
             match st.color {
                 Some(c) => c,
@@ -435,14 +480,19 @@ impl Renderer {
         let f = &sh.font;
         let size = st.draw_size;
         let thick = (f.underline_thick * size / f.upem).max(0.5);
-        let ul = if st.change == 1 && st.underline.is_none() { Some("single".to_string()) } else { st.underline.clone() };
+        let rm = rev();
+        let ul = if st.change == 1 && st.underline.is_none() && matches!(rm.ins_mark, 3 | 4) {
+            Some(if rm.ins_mark == 4 { "double" } else { "single" }.to_string())
+        } else {
+            st.underline.clone()
+        };
         if let Some(kind) = ul {
             let uy = y - f.underline_pos * size / f.upem;
-            let uc = if st.change != 0 { CHANGE_COLOR } else { st.underline_color.unwrap_or(color) };
+            let uc = if st.change != 0 { change_color(st.change) } else { st.underline_color.unwrap_or(color) };
             rgb(cr, uc);
             draw_underline(cr, &kind, xa, xb, uy, thick, p, line, a, eb);
         }
-        if st.strike || st.dstrike || st.change == 2 {
+        if st.strike || st.dstrike || (st.change == 2 && rm.del_mark == 3) {
             let sy = y - f.strike_pos * size / f.upem;
             rgb(cr, color);
             cr.set_line_width(thick);

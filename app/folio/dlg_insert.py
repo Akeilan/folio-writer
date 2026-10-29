@@ -7,9 +7,8 @@ import unicodedata
 
 from gi.repository import Gdk, GLib, Gtk, Pango
 
-from . import bridge, docapi, icons
+from . import icons
 from .widgets import FDialog, combo, combo_text, grid, heading, list_select, list_selected, listbox
-from .native import values
 from . import modelapi
 
 SPECIAL_CHARS = [
@@ -504,11 +503,6 @@ class InsertDialogs:
         from . import captions
         captions.dialog(self.win)
 
-    def toc_dialog(self):
-        if self._model_or_warn() is not None:
-            from . import tocdlg
-            tocdlg.toc_dialog(self.win)
-
     # ============================================================ comments, notes
     def comment(self):
         margin = getattr(self.win, "comments", None)
@@ -686,8 +680,7 @@ class InsertDialogs:
             menu = Gtk.Menu()
             for name in insertmore.QUICK_TABLES:
                 it = Gtk.MenuItem(label=name)
-                it.connect("activate", lambda _i, n=name: self.eng.sync(
-                    lambda: insertmore.quick_table(self.model, n)))
+                it.connect("activate", lambda _i, n=name: insertmore.quick_table(self.win, n))
                 menu.append(it)
             menu.show_all()
             menu.popup_at_pointer(None)
@@ -713,18 +706,10 @@ class InsertDialogs:
         return pop
 
     def _new_table(self, rows, cols):
-        m = self.model
-        if m is None:
-            return
-        from . import tablestyles
-        try:
-            tablestyles.insert_table(m, rows, cols)
-            from . import captions
-            captions.after_insert(self.win, "table")
-        except Exception as e:
-            print("insert table:", e)
-            self.eng.command(".uno:InsertTable", {"Columns": ("long", cols),
-                                                  "Rows": ("long", rows)})
+        self.eng.ed.insert_table(rows, cols)
+        self.eng.view.after_edit()
+        from . import captions
+        captions.after_insert(self.win, "table")
 
     def insert_table_dialog(self):
         from .widgets import LengthSpin
@@ -1074,23 +1059,8 @@ class InsertDialogs:
             self.message("This file couldn't be inserted. (%s)" % e, kind="error")
         return
 
-    # ============================================================ figures / index
-    def table_of_figures(self):
-        if self._model_or_warn() is None:
-            return
-        from . import tocdlg
-        labels = ["Equation", "Figure", "Table"] + \
-            self.win.app.settings.get("caption_labels", [])
-        tocdlg.figures_dialog(self.win, labels)
-
-    def insert_index(self):
-        if self._model_or_warn() is not None:
-            from . import tocdlg
-            tocdlg.index_dialog(self.win)
-
     # ============================================================ language
     def language_dialog(self):
-        native = getattr(self.eng, "native", False)
         m = None
         if m is None and False:
             return
@@ -1154,16 +1124,10 @@ class InsertDialogs:
         d.done()
 
 
-# ================================================================ pictures
-def _sel_obj(self):
-    from . import drawing
-    m = self.model
-    return (m, drawing.selected_shape(m)) if m is not None else (None, None)
-
-
 def _change_picture(self):
-    m, obj = _sel_obj(self)
-    if obj is None:
+    o = self.eng.ed.selected_object() if self.eng.ed is not None else None
+    if o is None or o.get("kind") != "picture":
+        self.win.status.flash("Select a picture first.")
         return
     path = self.pick_file("Insert Picture", ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp",
                                              "*.svg", "*.tif", "*.tiff", "*.webp"],
@@ -1177,30 +1141,20 @@ def _alt_text(self):
     self.win.show_pane(AltTextPane, "right")
 
 
-def _crop(self):
-    from . import drawing
-    from .widgets import LengthSpin
-    m, obj = _sel_obj(self)
-    if obj is None or not drawing.is_picture(obj):
-        return
-    d = FDialog(self.win, "Crop")
-    spins = {k: LengthSpin(0, 0, 558800) for k in ("left", "right", "top", "bottom")}
-    d.add(heading("Crop from"))
-    d.add(grid([["_Left:", spins["left"], "_Top:", spins["top"]],
-                ["_Right:", spins["right"], "_Bottom:", spins["bottom"]]]))
-    if d.ask() == Gtk.ResponseType.OK:
-        self.win.object_call("crop", *(spins[k].mm100 for k in ("left", "top", "right",
-                                                                "bottom")))
-    d.done()
-
-
 def _picture_corrections(self):
-    from . import drawing
-    m, obj = _sel_obj(self)
-    if obj is None or not drawing.is_picture(obj):
+    import re
+    from .native import objects
+    ed = self.eng.ed
+    o = ed.selected_object() if ed is not None else None
+    if o is None or o.get("kind") != "picture":
+        self.win.status.flash("Select a picture first.")
         return
+    xml = ed.selected_drawing_xml() or ""
+    lum = re.search(r"<a:lum\b([^>]*)>", xml)
+    get = lambda k: int(int(re.search(r'%s="(-?\d+)"' % k, lum.group(1)).group(1)) / 1000) \
+        if lum and re.search(r'%s="(-?\d+)"' % k, lum.group(1)) else 0  # noqa: E731
+    b0, c0 = get("bright"), get("contrast")
     d = FDialog(self.win, "Format Picture")
-    b0, c0 = obj.AdjustLuminance, obj.AdjustContrast
     vals = {}
     rows = []
     for key, label, v in (("b", "_Brightness:", b0), ("c", "_Contrast:", c0)):
@@ -1209,10 +1163,11 @@ def _picture_corrections(self):
         sc.set_size_request(260, -1)
         sc.set_value_pos(Gtk.PositionType.RIGHT)
         sc.connect("format-value", lambda s, x: "%+d%%" % x)
-        sc.connect("value-changed", lambda s: drawing.set_adjust(
-            obj, int(vals["b"].get_value()), int(vals["c"].get_value())))
         vals[key] = sc
         rows.append([label, sc])
+    for sc in vals.values():
+        sc.connect("value-changed", lambda s: objects.set_adjust(
+            self.win, int(vals["b"].get_value()), int(vals["c"].get_value())))
     d.add(heading("Picture Corrections"))
     d.add(grid(rows))
     reset = Gtk.Button(label="_Reset", use_underline=True)
@@ -1220,11 +1175,10 @@ def _picture_corrections(self):
     reset.connect("clicked", lambda *_: (vals["b"].set_value(0), vals["c"].set_value(0)))
     d.add(reset)
     if d.ask() != Gtk.ResponseType.OK:
-        drawing.set_adjust(obj, b0, c0)
+        objects.set_adjust(self.win, b0, c0)
     d.done()
 
 
 InsertDialogs.change_picture = _change_picture
 InsertDialogs.alt_text = _alt_text
-InsertDialogs.crop = _crop
 InsertDialogs.picture_corrections = _picture_corrections

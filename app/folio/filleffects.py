@@ -1,11 +1,8 @@
 """Page Color > Fill Effects: gradient, pattern and picture page
 backgrounds, as in the original."""
-from ._lazy import uno
 from gi.repository import Gtk
 
-from . import bridge, docapi
 from .widgets import FDialog, Preview, color_button, combo, grid, heading, rgb
-from .native import values
 
 STYLES = [("Horizontal", 0), ("Vertical", 90), ("Diagonal up", 45), ("Diagonal down", 135),
           ("From corner", "corner"), ("From center", "center")]
@@ -13,61 +10,6 @@ PATTERNS = [("5%", 0, 0, 30), ("Light horizontal", 0, 0, 8), ("Light vertical", 
             ("Light upward diagonal", 0, 450, 8), ("Light downward diagonal", 0, 1350, 8),
             ("Small grid", 1, 0, 8), ("Large grid", 1, 0, 20), ("Diagonal cross", 1, 450, 10),
             ("Wide horizontal", 0, 0, 4), ("Wide vertical", 0, 900, 4)]
-
-
-def _apply(m, spec):
-    styles = []
-    try:
-        from .pagesetup import used_page_styles
-        styles = used_page_styles(m)
-    except Exception:
-        styles = [docapi.page_style(m)]
-    for ps in styles:
-        try:
-            ps.BackgroundFullSize = True
-        except Exception:
-            pass
-        kind = spec["kind"]
-        if kind == "gradient":
-            g = values.struct("com.sun.star.awt.Gradient")
-            c1, c2 = spec["c1"], spec["c2"]
-            st = spec["style"]
-            if st == "center":
-                g.Style = values.enum("com.sun.star.awt.GradientStyle", "RADIAL")
-                g.XOffset = g.YOffset = 50
-            elif st == "corner":
-                g.Style = values.enum("com.sun.star.awt.GradientStyle", "RADIAL")
-                g.XOffset = g.YOffset = 0
-            else:
-                g.Style = values.enum("com.sun.star.awt.GradientStyle", "LINEAR")
-                g.Angle = int(st) * 10
-            g.StartColor, g.EndColor = c1, c2
-            g.StartIntensity = g.EndIntensity = 100
-            g.StepCount = 0
-            ps.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "GRADIENT")
-            uno.invoke(ps, "setPropertyValue", ("FillGradient", uno.Any("com.sun.star.awt.Gradient", g)))
-        elif kind == "pattern":
-            _n, style, angle, dist = PATTERNS[spec["pattern"]]
-            h = values.struct("com.sun.star.drawing.Hatch")
-            h.Style = values.enum("com.sun.star.drawing.HatchStyle",
-                                  "DOUBLE" if style else "SINGLE")
-            h.Color = spec["fg"]
-            h.Distance = dist * 10
-            h.Angle = angle
-            ps.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "HATCH")
-            uno.invoke(ps, "setPropertyValue", ("FillHatch", uno.Any("com.sun.star.drawing.Hatch", h)))
-            try:
-                ps.FillBackground = True
-                ps.FillColor = spec["bg"]
-            except Exception:
-                pass
-        elif kind == "picture":
-            prov = bridge.create("com.sun.star.graphic.GraphicProvider")
-            g = prov.queryGraphic((values.prop("URL", docapi.uno_url(spec["path"])),))
-            ps.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "BITMAP")
-            ps.FillBitmap = g
-            ps.FillBitmapMode = values.enum("com.sun.star.drawing.BitmapMode",
-                                            "STRETCH" if not spec.get("tile") else "REPEAT")
 
 
 def _apply_native(win, spec):
@@ -95,7 +37,6 @@ def _apply_native(win, spec):
 
 
 def dialog(win):
-    native = getattr(win.engine, "native", False)
     m = None
     if m is None and False:
         return
@@ -222,19 +163,10 @@ def dialog(win):
                                         "bg": bg.color if bg.color is not None and
                                         bg.color >= 0 else 0xFFFFFF} if pg == 1 else \
             ({"kind": "picture", "path": path[0], "tile": tile.get_active()} if path[0] else None)
-        if spec and native:
+        if spec:
             try:
                 _apply_native(win, spec)
             except Exception as e:
                 win.dialogs.message("The fill couldn't be applied: %s" % e)
-        elif spec:
-            um = m.getUndoManager()
-            um.enterUndoContext("Page Color")
-            try:
-                _apply(m, spec)
-            except Exception as e:
-                win.dialogs.message("The fill couldn't be applied: %s" % e)
-            finally:
-                um.leaveUndoContext()
     d.destroy()
     win.focus_document()

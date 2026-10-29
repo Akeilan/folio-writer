@@ -2,7 +2,6 @@
 borders for the whole table."""
 from gi.repository import Gtk
 
-from . import docapi
 from .widgets import FDialog, LengthSpin, color_button, combo, grid, heading
 from . import modelapi
 

@@ -496,6 +496,16 @@ impl PyEditor {
         ok
     }
 
+    fn table_cell_margins(&self) -> Option<(i32, i32, i32, i32)> {
+        self.ed.table_cell_margins()
+    }
+
+    fn set_table_cell_margins(&mut self, top: i32, bottom: i32, left: i32, right: i32) -> bool {
+        let ok = self.ed.set_table_cell_margins(top, bottom, left, right);
+        self.touched();
+        ok
+    }
+
     /// Border lines on "table" or "cells": [(side, attrs | None)].
     fn set_borders(&mut self, target: &str, sides: Vec<(String, Option<Vec<(String, String)>>)>) -> bool {
         let ok = self.ed.set_borders(target, &sides);
@@ -755,6 +765,10 @@ impl PyEditor {
 
     fn current_section(&self) -> usize {
         self.ed.current_section()
+    }
+
+    fn caret_line_col(&self) -> Option<(usize, usize)> {
+        self.ed.caret_line_col()
     }
 
     fn caret_page(&self) -> usize {
@@ -1954,6 +1968,17 @@ impl PyEditor {
         let n = self.ed.accept_reject(accept);
         self.touched();
         n
+    }
+
+    /// Track Changes Options: marks (see render::RevMarks) and colours (-1: the
+    /// change colour).
+    fn set_revision_marks(&mut self, ins_mark: u8, ins_color: i64, del_mark: u8, del_color: i64,
+                          line_mark: u8, line_color: i64) {
+        let c = |v: i64| if v < 0 { None } else { Some(v as u32 & 0xFFFFFF) };
+        crate::render::REV_MARKS.with(|r| r.set(crate::render::RevMarks {
+            ins_mark, ins_color: c(ins_color), del_mark, del_color: c(del_color), line_mark, line_color: c(line_color),
+        }));
+        self.touched();
     }
 
     fn set_hidden_authors(&mut self, names: Vec<String>) {

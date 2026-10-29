@@ -6,7 +6,6 @@ import html
 from gi.repository import Gdk, GLib, Gtk, Pango
 
 from .actions import engine_style, word_style
-from . import modelapi
 
 BODY = 10     # level used for body text
 

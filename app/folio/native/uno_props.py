@@ -3,7 +3,6 @@ app's dialogs already use (CharWeight, ParaLeftMargin...), read from and
 written to Folio's own engine."""
 from gi.repository import GLib
 
-from .. import bridge
 from . import values
 
 MM = 2540.0 / 1440.0      # 1/100 mm per twip

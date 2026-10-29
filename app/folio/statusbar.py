@@ -2,7 +2,6 @@
 import re
 
 from gi.repository import GLib, Gtk
-from . import modelapi
 
 
 def _num(s):
@@ -27,87 +26,6 @@ ITEMS = [("formatted_page", "Formatted Page Number", False), ("section", "Sectio
          ("caps", "Caps Lock", False), ("overtype", "Overtype", False),
          ("focus", "Focus", True), ("views", "View Shortcuts", True),
          ("zoomslider", "Zoom Slider", True), ("zoom", "Zoom", True)]
-
-
-def cursor_metrics(m, want_line):
-    """{'section', 'vpos' (mm100 from page top), 'line', 'column', 'page_label'}."""
-    from . import docapi
-    out = {}
-    vc = modelapi.view_cursor(m)
-    try:
-        y = vc.getPosition().Y
-        out["y"] = y
-    except Exception:
-        y = None
-    # section: page-style breaks and continuous sections before the cursor
-    try:
-        body = m.getText()
-        here = vc.getStart()
-        n = 1
-        en = body.createEnumeration()
-        first = True
-        while en.hasMoreElements():
-            p = en.nextElement()
-            try:
-                if body.compareRegionStarts(p.getStart(), here) < 0:
-                    break
-            except Exception:
-                break
-            if not first:
-                try:
-                    if p.supportsService("com.sun.star.text.Paragraph") and p.PageDescName:
-                        n += 1
-                except Exception:
-                    pass
-            first = False
-        secs = m.getTextSections()
-        for i in range(secs.getCount()):
-            sec = secs.getByIndex(i)
-            try:
-                if sec.getName().startswith("Folio") or sec.getParentSection() is not None:
-                    continue
-                if body.compareRegionStarts(sec.getAnchor().getStart(), here) > 0:
-                    n += 1
-            except Exception:
-                pass
-        out["section"] = n
-    except Exception:
-        pass
-    # line counting moves the view cursor; outside the main text putting it
-    # back would land on another page's copy of the header/footer
-    in_body = False
-    try:
-        in_body = "HeadFoot" not in vc.getText().getImplementationName()
-    except Exception:
-        pass
-    if want_line and vc.isCollapsed() and in_body:
-        # the engine coalesces cursor updates, so only the restored position
-        # is ever drawn
-        try:
-            rng = vc.getText().createTextCursorByRange(vc.getStart())
-            try:
-                col = 1
-                vc.gotoStartOfLine(True)
-                col = len(vc.getString()) + 1
-                vc.gotoRange(rng, False)
-                target = vc.getPosition().Y
-                vc.jumpToStartOfPage()
-                line = 1
-                last = None
-                while line < 400:
-                    py = vc.getPosition().Y
-                    if py >= target - 5 or py == last:
-                        break
-                    last = py
-                    if not vc.goDown(1, False):
-                        break
-                    line += 1
-                out["line"], out["column"] = line, col
-            finally:
-                vc.gotoRange(rng, False)
-        except Exception as e:
-            print("line:", e)
-    return out
 
 
 class StatusBar(Gtk.Box):
@@ -306,7 +224,33 @@ class StatusBar(Gtk.Box):
         self._metric_timer = GLib.timeout_add(delay, self._metrics)
 
     def _metrics(self):
+        """Section, Line, Column, vertical position and characters, for the
+        status bar items that are on."""
         self._metric_timer = None
+        ed = self.win.engine.ed
+        if ed is None:
+            return False
+        eqb = getattr(self.win, "eqbar", None)
+        if eqb is not None and eqb.ed.active:
+            return False
+        on = self.enabled()
+        try:
+            self.section.set_text("Section: %d" % (ed.current_section() + 1))
+            lc = ed.caret_line_col() if ed.story() == "body" else None
+            if lc:
+                self.line.set_text("Line: %d" % lc[0])
+                self.column.set_text("Column: %d" % lc[1])
+            r = ed.caret_rect()
+            if r:
+                from .widgets import fmt_len
+                self.vpos.set_text("At: %s" % fmt_len(int(r[2] * 2540 / 72.0)))
+            if on.get("chars"):
+                st = ed.stats(True)
+                self.chars.set_text("{:,} characters".format(st.get("chars_spaces", 0)))
+        except Exception as e:
+            print("status metrics:", e)
+        if on.get("formatted_page"):
+            self.formatted_page.set_text(self.page.get_label().split(" of ")[0])
         return False
 
     def set_recording(self, on):
@@ -418,10 +362,9 @@ class StatusBar(Gtk.Box):
                 # physical page and page count, as the original shows them
                 # (the engine's state can show a restarted page number)
                 try:
-                    doc = self.win.engine.model
-                    ctl = doc.getCurrentController()
-                    cur = str(ctl.getViewCursor().getPage())
-                    total = str(ctl.PageCount)
+                    ed = self.win.engine.ed
+                    cur = str(ed.caret_page() + 1)
+                    total = str(ed.page_count())
                 except Exception:
                     pass
                 self.page.set_label("Page %s of %s" % (cur, total))
@@ -440,7 +383,7 @@ class StatusBar(Gtk.Box):
             if code == "zxx" or value.startswith("[None]"):
                 self.lang.set_label("Do not check")
             else:
-                from .docapi import language_name
+                from .modelapi import language_name
                 n = language_name(code)
                 self.lang.set_label(LANG_NAMES.get(code, n if n != code else value.split(";")[0]))
         elif key == ".uno:TrackChanges":

@@ -62,11 +62,69 @@ def _dict(tag):
 
 def reload_user_words():
     _DICTS.clear()
+    _EXTRA.clear()
+
+
+# ---------------------------------------------------------------- custom dictionaries
+DICT_DIR = "~/.config/folio-writer/dictionaries"
+_EXTRA = []
+_STATE = {"active": {}}
+
+
+def custom_dictionaries():
+    """[(shown name, path, active)]: CUSTOM.DIC (the default, where Add to
+    Dictionary goes) and the dictionaries made in Custom Dictionaries."""
+    import os
+    out = [("CUSTOM.DIC (Default)", user_words_path(), True)]
+    d = os.path.expanduser(DICT_DIR)
+    if os.path.isdir(d):
+        for n in sorted(os.listdir(d), key=str.lower):
+            if n.lower().endswith(".dic"):
+                out.append((n, os.path.join(d, n), _STATE["active"].get(n, True)))
+    return out
+
+
+def set_active(settings, name, on):
+    act = settings.setdefault("custom_dicts", {})
+    act[name] = bool(on)
+    _STATE["active"] = dict(act)
+    reload_user_words()
+
+
+def read_words(path):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return [w.strip() for w in f if w.strip() and not w.startswith("#")]
+    except OSError:
+        return []
+
+
+def write_words(path, words):
+    import os
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(sorted(set(words), key=str.lower)) + ("\n" if words else ""))
+    reload_user_words()
+
+
+def _extra_words():
+    """The words of the other active custom dictionaries."""
+    if not _EXTRA:
+        words = set()
+        for _n, path, on in custom_dictionaries()[1:]:
+            if on:
+                words.update(read_words(path))
+        _EXTRA.append(words)
+    return _EXTRA[0]
 
 
 class Speller:
     def __init__(self, win):
         self.win = win
+        try:
+            _STATE["active"] = dict(win.app.settings.get("custom_dicts") or {})
+        except Exception:
+            pass
         self.cache = {}           # (para, text) -> [(a, b, word)]
         self.pages = {}           # page -> (version, [(para, a, b, word)], [(x, y, w, h, para, a, b, word)])
         self.pending = set()
@@ -104,6 +162,8 @@ class Speller:
             return True
         d = _dict(lang or self.default_lang())
         if d is None:
+            return True
+        if word in _extra_words():
             return True
         try:
             return d.check(word) or d.check(word.replace("’", "'"))

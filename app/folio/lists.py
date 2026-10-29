@@ -3,33 +3,10 @@ menu (Restart at 1, Continue Numbering, Set Numbering Value, Adjust List
 Indents) and the Multilevel List gallery."""
 from gi.repository import Gtk
 
-from . import bridge, docapi
-from .native import values
-from . import modelapi
 
 ARABIC, UPPER, LOWER, ROMAN_UP, ROMAN_LOW, BULLET, NONE = 4, 0, 1, 2, 3, 6, 5
 LISTTAB, SPACE, NOTHING = 0, 1, 2
 INDENT = 635          # 0.25" per level (1/100 mm)
-
-
-# ---------------------------------------------------------------- helpers
-def _para_cursor(m):
-    vc = modelapi.view_cursor(m)
-    c = vc.getText().createTextCursorByRange(vc.getStart())
-    c.gotoStartOfParagraph(False)
-    c.gotoEndOfParagraph(True)
-    return vc, c
-
-
-def _paragraph(m):
-    _vc, c = _para_cursor(m)
-    en = c.createEnumeration()
-    return en.nextElement() if en.hasMoreElements() else None
-
-
-def _native(m):
-    eng = getattr(m, "eng", None)
-    return eng is not None and getattr(eng, "native", False)
 
 
 def _nwin(m):
@@ -37,142 +14,29 @@ def _nwin(m):
 
 
 def in_numbered_list(m):
-    if _native(m):
-        i = m.eng.ed.list_info()
-        return i is not None and not i[2]
-    try:
-        p = _paragraph(m)
-        return p is not None and bool(getattr(p, "NumberingIsNumber", False)) and \
-            bool(p.NumberingStyleName or p.NumberingRules is not None) and \
-            _level_type(p) not in (BULLET, NONE)
-    except Exception:
-        return False
+    i = m.eng.ed.list_info()
+    return i is not None and not i[2]
 
 
 def in_list(m):
-    if _native(m):
-        return m.eng.ed.list_info() is not None
-    try:
-        p = _paragraph(m)
-        return p is not None and bool(getattr(p, "NumberingIsNumber", False))
-    except Exception:
-        return False
-
-
-def _level_props(p):
-    rules = p.NumberingRules
-    lvl = p.NumberingLevel or 0
-    return {x.Name: x.Value for x in rules.getByIndex(lvl)}, rules, lvl
-
-
-def _level_type(p):
-    try:
-        return _level_props(p)[0].get("NumberingType", ARABIC)
-    except Exception:
-        return ARABIC
-
-
-def _list_paragraphs(m, p):
-    """Every paragraph of p's list, in document order."""
-    lid = p.ListId
-    out = []
-    en = m.getText().createEnumeration()
-    while en.hasMoreElements():
-        q = en.nextElement()
-        try:
-            if q.supportsService("com.sun.star.text.Paragraph") and \
-                    getattr(q, "NumberingIsNumber", False) and q.ListId == lid:
-                out.append(q)
-        except Exception:
-            pass
-    return out
-
-
-def _undo(m, title, fn):
-    um = m.getUndoManager()
-    um.enterUndoContext(title)
-    try:
-        return fn()
-    finally:
-        um.leaveUndoContext()
+    return m.eng.ed.list_info() is not None
 
 
 # ---------------------------------------------------------------- numbering value
 def restart_at(m, value=1):
-    if _native(m):
-        from .native import lists as NL
-        return NL.restart_at(_nwin(m), value)
-
-    def go():
-        p = _paragraph(m)
-        p.ParaIsNumberingRestart = True
-        p.NumberingStartValue = int(value)
-    _undo(m, "Restart Numbering", go)
+    from .native import lists as NL
+    return NL.restart_at(_nwin(m), value)
 
 
 def continue_numbering(m):
     """Join this list onto the previous list (of the same kind)."""
-    if _native(m):
-        from .native import lists as NL
-        return NL.continue_numbering(_nwin(m))
-    def go():
-        p = _paragraph(m)
-        prev = None
-        en = m.getText().createEnumeration()
-        lid = p.ListId
-        while en.hasMoreElements():
-            q = en.nextElement()
-            if not q.supportsService("com.sun.star.text.Paragraph"):
-                continue
-            if m.getText().compareRegionStarts(q.getStart(), p.getStart()) == 0:
-                break
-            if getattr(q, "NumberingIsNumber", False) and q.ListId != lid and \
-                    _level_type(q) not in (BULLET, NONE):
-                prev = q
-        p.ParaIsNumberingRestart = False
-        try:
-            p.setPropertyToDefault("NumberingStartValue")
-        except Exception:
-            pass
-        if prev is None:
-            return False
-        rules = prev.NumberingRules
-        # this paragraph and the rest of its list follow on from prev
-        tail, on = [], False
-        for q in _list_paragraphs(m, p):
-            if m.getText().compareRegionStarts(q.getStart(), p.getStart()) == 0:
-                on = True
-            if on:
-                tail.append(q)
-        for q in tail:
-            lvl = q.NumberingLevel
-            if prev.NumberingStyleName:
-                q.NumberingStyleName = prev.NumberingStyleName
-            else:
-                q.NumberingRules = rules
-            q.ListId = prev.ListId
-            q.NumberingLevel = lvl
-        return True
-    return _undo(m, "Continue Numbering", go)
+    from .native import lists as NL
+    return NL.continue_numbering(_nwin(m))
 
 
 def set_numbering_value(win):
     from .native import lists as NL
     return NL.set_numbering_value(win)
-
-
-# ---------------------------------------------------------------- indents
-def _set_level(p, rules, lvl, changes):
-    out = []
-    for x in rules.getByIndex(lvl):
-        if x.Name in changes:
-            x = values.prop(x.Name, changes.pop(x.Name))
-        out.append(x)
-    for k, v in changes.items():
-        out.append(values.prop(k, v))
-    import uno
-    uno.invoke(rules, "replaceByIndex",
-               (lvl, uno.Any("[]com.sun.star.beans.PropertyValue", tuple(out))))
 
 
 def adjust_indents(win):
@@ -208,88 +72,16 @@ MULTI = [
 ]
 
 
-def _rules_for(m, levels, headings=False):
-    rules = m.createInstance("com.sun.star.text.NumberingRules")
-    for spec in levels:
-        i = spec["n"]
-        ch = {"PositionAndSpaceMode": 1,
-              "IndentAt": INDENT * (i + 1),
-              "FirstLineIndent": -INDENT,
-              "LabelFollowedBy": LISTTAB,
-              "ListtabStopPosition": INDENT * (i + 1),
-              "NumberingType": spec["kind"]}
-        if spec["kind"] == BULLET:
-            ch.update({"BulletChar": spec["char"], "Prefix": "", "Suffix": ""})
-            try:
-                f = values.struct("com.sun.star.awt.FontDescriptor", Name=spec["font"])
-                ch["BulletFont"] = f
-            except Exception:
-                pass
-        else:
-            ch["ListFormat"] = spec["fmt"]
-            ch["StartWith"] = 1
-            # Prefix/Suffix/ParentNumbering for engines without ListFormat
-            fmt = spec["fmt"]
-            pre = fmt.split("%")[0]
-            suf = fmt.rsplit("%", 1)[-1]
-            ch["Prefix"], ch["Suffix"] = pre, suf
-            ch["ParentNumbering"] = max(1, fmt.count("%") // 2)
-        _set_level(None, rules, i, ch)
-    return rules
-
-
 def apply_multilevel(m, levels):
-    if _native(m):
-        from .native import lists as NL
-        return NL.apply_multilevel(_nwin(m), levels)
-
-    def go():
-        rules = _rules_for(m, levels)
-        vc = modelapi.view_cursor(m)
-        c = vc.getText().createTextCursorByRange(vc.getStart())
-        c.gotoRange(vc.getEnd(), True)
-        en = c.createEnumeration()
-        paras = []
-        while en.hasMoreElements():
-            q = en.nextElement()
-            if q.supportsService("com.sun.star.text.Paragraph"):
-                paras.append(q)
-        for q in paras:
-            lvl = q.NumberingLevel if getattr(q, "NumberingIsNumber", False) else 0
-            q.NumberingStyleName = ""
-            q.NumberingRules = rules
-            q.NumberingLevel = max(0, lvl or 0)
-        # one list for the whole selection
-        if len(paras) > 1:
-            lid = paras[0].ListId
-            for q in paras[1:]:
-                try:
-                    q.ListId = lid
-                except Exception:
-                    pass
-    _undo(m, "Multilevel List", go)
+    from .native import lists as NL
+    return NL.apply_multilevel(_nwin(m), levels)
 
 
 def heading_numbering(m, chapter=False):
     """Number the Heading styles: '1 Heading 1', '1.1 Heading 2' (or
     'Chapter 1')."""
-    if _native(m):
-        from .native import lists as NL
-        return NL.heading_numbering(_nwin(m), chapter)
-
-    def go():
-        cn = m.getChapterNumberingRules()
-        for i in range(9):
-            first = chapter and i == 0
-            fmt = "Chapter %1%" if first else ".".join("%%%d%%" % (k + 1) for k in range(i + 1))
-            _set_level(None, cn, i, {
-                "NumberingType": ARABIC, "ListFormat": fmt, "StartWith": 1,
-                "Prefix": "Chapter " if first else "", "Suffix": "",
-                "ParentNumbering": 1 if first else i + 1,
-                "PositionAndSpaceMode": 1, "LabelFollowedBy": LISTTAB if not first else SPACE,
-                "IndentAt": 0, "FirstLineIndent": 0,
-                "ListtabStopPosition": 762 + 254 * i})
-    _undo(m, "Heading Numbering", go)
+    from .native import lists as NL
+    return NL.heading_numbering(_nwin(m), chapter)
 
 
 def _preview(levels, W=96, H=78):
@@ -399,7 +191,7 @@ def multilevel_gallery(win):
     lm = Gtk.Menu()
     for i in range(9):
         mi = Gtk.MenuItem(label="Level %d" % (i + 1))
-        mi.connect("activate", lambda _m, i=i: (pop.popdown(), set_level(win.engine.model, i)))
+        mi.connect("activate", lambda _m, i=i: (pop.popdown(), set_level(win, i)))
         lm.append(mi)
     lm.show_all()
     lvlbtn.set_popup(lm)
@@ -410,18 +202,14 @@ def multilevel_gallery(win):
     return pop
 
 
-def set_level(m, lvl):
-    def go():
-        vc = modelapi.view_cursor(m)
-        c = vc.getText().createTextCursorByRange(vc.getStart())
-        c.gotoRange(vc.getEnd(), True)
-        en = c.createEnumeration()
-        while en.hasMoreElements():
-            q = en.nextElement()
-            if q.supportsService("com.sun.star.text.Paragraph") and \
-                    getattr(q, "NumberingIsNumber", False):
-                q.NumberingLevel = lvl
-    _undo(m, "Change List Level", go)
+def set_level(win, lvl):
+    """Change List Level: the selected list paragraphs to level lvl (0-8)."""
+    ed = win.engine.ed
+    info = ed.list_info() if ed is not None else None
+    if info is None:
+        return
+    if lvl != info[1] and ed.change_list_level(lvl - info[1]):
+        win.engine.view.after_edit()
 
 
 KINDS = [("1, 2, 3, ...", ARABIC), ("I, II, III, ...", ROMAN_UP), ("i, ii, iii, ...", ROMAN_LOW),
@@ -431,10 +219,6 @@ KINDS = [("1, 2, 3, ...", ARABIC), ("I, II, III, ...", ROMAN_UP), ("i, ii, iii, 
 def define_dialog(win):
     """Define New Multilevel List: each level's number style, format and
     position."""
-    native = getattr(win.engine, "native", False)
-    m = None
-    if m is None and False:
-        return
     from .widgets import FDialog
     from .widgets import LengthSpin, grid, combo
     levels = [dict(x) for x in MULTI[0][1]]
@@ -508,39 +292,9 @@ def define_dialog(win):
     load(0)
     d.show_all()
     ok = d.ask() == Gtk.ResponseType.OK
-    if ok and native:
+    if ok:
         store()
         from .native import lists as nl
         nl.apply_multilevel(win, [dict(x, n=i) for i, x in enumerate(levels)])
-    elif ok:
-        store()
-
-        def go():
-            rules = m.createInstance("com.sun.star.text.NumberingRules")
-            for i, x in enumerate(levels):
-                ch = {"PositionAndSpaceMode": 1, "NumberingType": x["kind"],
-                      "IndentAt": x["indent"], "FirstLineIndent": x["pos"] - x["indent"],
-                      "ListtabStopPosition": x["indent"], "LabelFollowedBy": x.get("follow", 0),
-                      "StartWith": x.get("start", 1)}
-                if x["kind"] == BULLET:
-                    ch["BulletChar"] = x.get("char") or "•"
-                else:
-                    ch["ListFormat"] = x["fmt"]
-                    ch["Prefix"] = x["fmt"].split("%")[0]
-                    ch["Suffix"] = x["fmt"].rsplit("%", 1)[-1]
-                    ch["ParentNumbering"] = max(1, x["fmt"].count("%") // 2)
-                _set_level(None, rules, i, ch)
-            vc = modelapi.view_cursor(m)
-            c = vc.getText().createTextCursorByRange(vc.getStart())
-            c.gotoRange(vc.getEnd(), True)
-            en = c.createEnumeration()
-            while en.hasMoreElements():
-                q = en.nextElement()
-                if q.supportsService("com.sun.star.text.Paragraph"):
-                    lvl = q.NumberingLevel if getattr(q, "NumberingIsNumber", False) else 0
-                    q.NumberingStyleName = ""
-                    q.NumberingRules = rules
-                    q.NumberingLevel = lvl or 0
-        _undo(m, "Multilevel List", go)
     d.destroy()
     win.focus_document()

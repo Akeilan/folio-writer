@@ -12,11 +12,9 @@ import unicodedata
 
 from gi.repository import Gdk, GLib, Gtk
 
-from . import docapi
 from .eqn import latex, model as M, render as R, unicodemath as U
 from .eqn import symbols as S
 from .eqn.unicodemath import Atom, Seq
-from . import modelapi
 
 LINEAR_MARK = "%% folio:linear"
 OP_CHARS = set(S.OPERATORS) | set("←↔↦⟶⟵,;:!") | S.RELATIONS

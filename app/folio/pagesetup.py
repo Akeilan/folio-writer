@@ -4,7 +4,6 @@ even / first page, header and footer distance from edge, vertical
 alignment), Apply to, and Set As Default."""
 from gi.repository import Gtk
 
-from . import docapi
 from .widgets import FDialog, LengthSpin, Preview, combo, grid, heading
 
 PAPER = [("Letter", 21590, 27940), ("Legal", 21590, 35560), ("Executive", 18415, 26670),
@@ -16,36 +15,6 @@ VALIGN = [("Top", "TOP"), ("Center", "CENTER"), ("Justified", "BLOCK"), ("Bottom
 APPLY = ["Whole document", "This section", "This point forward"]
 
 
-def _layout(ps):
-    try:
-        return ps.PageStyleLayout.value
-    except Exception:
-        return "ALL"
-
-
-
-
-def used_page_styles(m):
-    fam = m.getStyleFamilies().getByName("PageStyles")
-    out = []
-    for n in fam.getElementNames():
-        st = fam.getByName(n)
-        try:
-            if st.isInUse():
-                out.append(st)
-        except Exception:
-            pass
-    return out or [docapi.page_style(m)]
-
-
-def section_start_of(m, ps):
-    """The current section's start type, from its page style."""
-    lay = _layout(ps)
-    if lay == "LEFT":
-        return 3
-    if lay == "RIGHT":
-        return 4
-    return 2
 
 
 
@@ -53,7 +22,6 @@ def section_start_of(m, ps):
 
 def dialog(win, tab=0):
     from .native import pagesetup as NP
-    m = None
     info = NP.read(win)
     n_styles = info["section_count"]
     do_apply = lambda v, where: NP.apply_to(win, v, where)  # noqa: E731

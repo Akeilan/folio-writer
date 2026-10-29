@@ -6,7 +6,6 @@ import os
 
 from gi.repository import GLib, Gtk
 
-from . import docapi
 from .panes import Pane
 from .widgets import FDialog, grid, heading
 from . import modelapi

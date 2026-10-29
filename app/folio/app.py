@@ -15,84 +15,6 @@ from . import APP_ID, APP_NAME, SHARE, VERSION  # noqa: E402
 CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
                       "folio-writer")
 
-# Engine settings, written into its private profile.
-ENGINE_SETTINGS = [
-    ("/org.openoffice.Office.Writer/AutoFunction/Completion", "Enable", "false"),
-    ("/org.openoffice.Office.Writer/AutoFunction/Format/ByInput", "ApplyBulletsAfterSpace", "true"),
-    ("/org.openoffice.Office.Writer/AutoFunction/Format/ByInput/ApplyNumbering", "Enable", "true"),
-    ("/org.openoffice.Office.Common/Filter/Microsoft/Export", "CharBackgroundToHighlighting", "true"),
-    ("/org.openoffice.Office.Common/Save/Document", "WarnAlienFormat", "false"),
-    ("/org.openoffice.Office.Common/Misc", "ShowTipOfTheDay", "false"),
-    ("/org.openoffice.Office.Common/Misc", "FirstRun", "false"),
-    ("/org.openoffice.Office.Common/Security/Scripting", "MacroSecurityLevel", "3"),
-    ("/org.openoffice.Office.Writer/Content/NonprintingCharacter", "HiddenCharacter", "false"),
-    ("/org.openoffice.Office.Writer/Content/Display", "TextBoundaries", "false"),
-    ("/org.openoffice.Office.Writer/Content/Display", "SectionBoundaries", "false"),
-]
-COLOR_SCHEME = "/org.openoffice.Office.UI/ColorScheme/ColorSchemes/" \
-               "org.openoffice.Office.UI:ColorScheme['COLOR_SCHEME_LIBREOFFICE_AUTOMATIC']"
-HIDDEN_MARKS = ("DocBoundaries", "WriterFieldShadings", "WriterSectionBoundaries",
-                "WriterIdxShadings", "TableBoundaries")
-
-
-AC = "/org.openoffice.Office.Common/AutoCorrect"
-BYINPUT = "/org.openoffice.Office.Writer/AutoFunction/Format/ByInput"
-
-
-def engine_config(settings):
-    """Engine options that follow the user's Options choices."""
-    g = lambda k, d=True: "true" if settings.get(k, d) else "false"  # noqa: E731
-    return [
-        (AC, "CapitalAtStartSentence", g("ac_caps_first")),
-        (AC, "TwoCapitalsAtStart", g("ac_two_caps")),
-        (AC, "ReplaceDoubleQuote", g("ac_quotes")),
-        (AC, "ReplaceSingleQuote", g("ac_quotes")),
-        (AC, "SetInetAttribute", g("ac_urls")),
-        (AC, "ChangeOrdinalNumber", g("ac_ordinals")),
-        (AC, "ChangeDash", g("ac_dashes")),
-        (AC, "UseReplacementTable", g("ac_replace")),
-        (BYINPUT, "ApplyBulletsAfterSpace", g("ac_bullets", settings.get("ac_lists", True))),
-        (BYINPUT + "/ApplyNumbering", "Enable", g("ac_numbers", settings.get("ac_lists", True))),
-        (AC, "ChangeUnderlineWeight", g("ac_bold_italic", True)),
-        (AC, "CorrectAccidentalCapsLock", g("ac_capslock")),
-        (BYINPUT, "ChangeToBorders", g("ac_borders")),
-        (BYINPUT, "ChangeToTable", g("ac_tables")),
-        (BYINPUT, "ChangeDash", g("ac_dashes")),
-        ("/org.openoffice.Office.Linguistic/SpellChecking", "IsSpellAuto", g("auto_spell")),
-        ("/org.openoffice.Office.Linguistic/GrammarChecking", "IsAutoCheck", g("auto_grammar")),
-        ("/org.openoffice.Office.Common/Security/Scripting", "HyperlinksWithCtrlClick",
-         g("ctrl_click_links")),
-    ]
-
-
-def apply_engine_config(settings):
-    """Change the running engine's options (no restart needed)."""
-    from . import bridge
-    if bridge.ctx is None:
-        return False
-    try:
-        import uno
-        prov = bridge.create("com.sun.star.configuration.ConfigurationProvider")
-        groups = {}
-        for path, prop, value in engine_config(settings):
-            groups.setdefault(path, []).append((prop, value == "true"))
-        for path, props in groups.items():
-            arg = uno.createUnoStruct("com.sun.star.beans.PropertyValue")
-            arg.Name, arg.Value = "nodepath", path
-            acc = prov.createInstanceWithArguments(
-                "com.sun.star.configuration.ConfigurationUpdateAccess", (arg,))
-            for prop, value in props:
-                try:
-                    acc.setPropertyValue(prop, value)
-                except Exception as e:
-                    print("config", path, prop, e)
-            acc.commitChanges()
-        return True
-    except Exception as e:
-        print("engine config:", e)
-        return False
-
-
 def install_autocorrect(user):
     try:
         from .autocorrect import install
@@ -101,36 +23,11 @@ def install_autocorrect(user):
         print("autocorrect:", e)
 
 
-def _xcu_item(path, prop, value):
-    return ('<item oor:path="%s"><prop oor:name="%s" oor:op="fuse"><value>%s</value>'
-            '</prop></item>' % (path, prop, value))
-
-
 def prepare_engine_profile(profile, settings=None):
+    """Folio's own data folder for the editor: the AutoCorrect lists."""
     user = os.path.join(profile, "user")
     os.makedirs(user, exist_ok=True)
     install_autocorrect(user)
-    fn = os.path.join(user, "registrymodifications.xcu")
-    stamp = os.path.join(profile, "folio.version")
-    conf = engine_config(settings or {})
-    import hashlib
-    key = VERSION + " " + hashlib.sha1(repr(ENGINE_SETTINGS + conf).encode()).hexdigest()[:12]
-    if os.path.exists(fn) and os.path.exists(stamp):
-        with open(stamp) as f:
-            if f.read().strip() == key:
-                return
-    items = [_xcu_item(p, k, v) for p, k, v in ENGINE_SETTINGS + conf]
-    for entry in HIDDEN_MARKS:
-        items.append(_xcu_item(COLOR_SCHEME + "/" + entry, "IsVisible", "false"))
-    body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<oor:items xmlns:oor="http://openoffice.org/2001/registry" '
-            'xmlns:xs="http://www.w3.org/2001/XMLSchema" '
-            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n%s\n</oor:items>\n'
-            % "\n".join(items))
-    with open(fn, "w", encoding="utf-8") as f:
-        f.write(body)
-    with open(stamp, "w") as f:
-        f.write(key + "\n")
 
 
 def _paper_is_letter():
@@ -224,7 +121,6 @@ class FolioApp(Gtk.Application):
     def apply_settings(self):
         from .widgets import set_units
         set_units(self.settings.get("units"))
-        apply_engine_config(self.settings)
         prepare_engine_profile(self.engine_profile, self.settings)
         for w in self.windows:
             w.schedule_autorecover()
@@ -264,8 +160,9 @@ class FolioApp(Gtk.Application):
                 return os.path.abspath(p)
         raise FileNotFoundError(name)
 
-    def set_default_font(self, name, size):
-        """Set As Default: the Normal template's Normal style (and the document defaults)."""
+    def set_default_font(self, name, size, ed=None):
+        """Set As Default: the Normal style of this document (ed) and of the
+        Normal template."""
         from .native import edit_normal_template
 
         def fn(t):
@@ -277,6 +174,12 @@ class FolioApp(Gtk.Application):
                 edits += [("w:sz", [("w:val", hp)]), ("w:szCs", [("w:val", hp)])]
             sid = {n: i for i, n in t.paragraph_styles()}.get("Normal", "Normal")
             t.style_apply_run(sid, edits)
+        if ed is not None:
+            ed.begin_group("Set As Default")
+            try:
+                fn(ed)
+            finally:
+                ed.end_group()
         try:
             edit_normal_template(self, fn)
         except Exception as e:
