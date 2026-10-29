@@ -1,7 +1,7 @@
 import os as _o; TESTS = _o.environ.get("FOLIO_WRITER_TESTS") or (lambda f: f(f, _o.path.dirname(_o.path.abspath(_o.environ.get("FOLIO_TEST_SCRIPT", "./x")))))(lambda f, d: d if _o.path.exists(_o.path.join(d, "common.py")) or d in ("/", "") else f(f, _o.path.dirname(d))); exec(open(TESTS + "/common.py").read())
 exec(open(TESTS + "/word/wc.py").read())
 from folio.native.uno_props import CursorProps
-from folio import bridge
+from folio.native import values as bridge
 def a():
     yield 1.0
     focus(); yield 0.2

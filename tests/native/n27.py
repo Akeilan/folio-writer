@@ -76,7 +76,7 @@ def a():
     check("Mark as Final", docprotect.is_final(win.docmodel))
     docprotect._set_final(win.docmodel, False)
     check("Unmark as Final", not docprotect.is_final(win.docmodel))
-    from folio import docapi
+    from folio import modelapi as docapi
     docapi.set_doc_property(win.docmodel, "title", "Quarterly Report")
     docapi.set_doc_property(win.docmodel, "keywords", "sales, q3")
     props = docapi.doc_properties(win.docmodel)
