@@ -466,3 +466,16 @@ popover button:not(.flat):not(.folio-swatch):not(.suggested-action):not(.folio-d
   background-image: none; background-color: #ffffff; border: 1px solid #d4d4d4; }
 popover button:not(.flat):not(.folio-swatch):not(.suggested-action):not(.folio-default):not(.folio-style):not(.folio-gridcell):not(.folio-symbol):hover {
   background-color: #e8f1ea; border-color: #9cc3a4; }
+/* X3-05: on Wayland GTK draws dialogs' title bars itself (client-side decorations); they keep
+   the app's colours, focused or not (:backdrop), as the dialog body does */
+headerbar.default-decoration, headerbar.default-decoration:backdrop,
+.titlebar.default-decoration, .titlebar.default-decoration:backdrop {
+  background-image: none; background-color: #f3f3f3; color: #262626; border-color: #d6d6d6;
+  box-shadow: none; text-shadow: none; }
+headerbar.default-decoration label, headerbar.default-decoration:backdrop label,
+headerbar.default-decoration .title, headerbar.default-decoration .subtitle { color: #262626; text-shadow: none; }
+headerbar.default-decoration button.titlebutton, headerbar.default-decoration:backdrop button.titlebutton {
+  background-image: none; background-color: transparent; border-color: transparent; box-shadow: none;
+  color: #262626; -gtk-icon-shadow: none; }
+headerbar.default-decoration button.titlebutton:hover { background-color: #e1e1e1; }
+headerbar.default-decoration button.titlebutton.close:hover { background-color: #e81123; color: #ffffff; }
