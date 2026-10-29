@@ -8,7 +8,7 @@ CUR = {"name": "?"}
 
 def K(*specs):
     for s in specs:
-        subprocess.run(["xdotool", "key", "--clearmodifiers", s], env=dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99")))
+        subprocess.run(["xdotool", "key", "--clearmodifiers", s], env=dict(os.environ, DISPLAY=(os.environ.get("XTEST_DISPLAY") or os.environ.get("DISPLAY") or ":99")))
         time.sleep(0.06)
 
 def T(text, delay=15):
@@ -18,10 +18,10 @@ def T(text, delay=15):
             K("Return")
         if part:
             subprocess.run(["xdotool", "type", "--delay", str(delay), "--", part],
-                           env=dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99")))
+                           env=dict(os.environ, DISPLAY=(os.environ.get("XTEST_DISPLAY") or os.environ.get("DISPLAY") or ":99")))
 
 def X(*args):
-    subprocess.run(["xdotool"] + [str(a) for a in args], env=dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99")))
+    subprocess.run(["xdotool"] + [str(a) for a in args], env=dict(os.environ, DISPLAY=(os.environ.get("XTEST_DISPLAY") or os.environ.get("DISPLAY") or ":99")))
 
 def check(name, cond, detail=""):
     tag = "PASS" if cond else "FAIL"

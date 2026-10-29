@@ -9,7 +9,7 @@ for w, nm in ((E.view, "view"), (win, "win")):
 def d_drag():
     fresh(); yield 0.3
     T("Drop here: "); yield 0.4
-    p = subprocess.Popen(["/usr/bin/python3", HELPER, "text"], env=dict(os.environ, DISPLAY=os.environ.get("DISPLAY", ":99")))
+    p = subprocess.Popen(["/usr/bin/python3", HELPER, "text"], env=dict(os.environ, DISPLAY=(os.environ.get("XTEST_DISPLAY") or os.environ.get("DISPLAY") or ":99")))
     yield 2.0
     x0, y0, w, h = win._follow_rect
     dx, dy = doc_screen(x0 + 200, y0 + h / 2)
