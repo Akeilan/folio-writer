@@ -1496,7 +1496,6 @@ def build_ribbon(win):
             keytip="N", tip="Mark Entry (Alt+Shift+X)"),
         [btn("Insert Index", "cmd/sc_insertindexesentry", "insert-index", keytip="X"),
          btn("Update Index", "cmd/sc_updatecurindex", "update-toc", keytip="D")]]))
-    from . import authorities as TOA
     t.add(Group("Table of Authorities", [
         btn("Mark\nCitation", "cmd/lc_insertauthoritiesentry" if icons.exists(
             "cmd/lc_insertauthoritiesentry") else "cmd/lc_insertindexesentry",

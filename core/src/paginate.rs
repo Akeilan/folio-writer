@@ -836,9 +836,9 @@ fn finish_pages(f: &mut Flow, m: &mut Measure, paras: &mut Vec<Arc<ParaLayout>>)
                 let n = crate::numbering::format_number(number, &s.pg_fmt);
                 match &s.pg_chap {
                     Some((lvl, sep)) => {
-                        // the number of the last chapter heading up to the end of this page
-                        let upto = f.pages.get(i + 1).map(|p| p.first_block + 1).unwrap_or(doc.blocks.len())
-                            .min(doc.blocks.len());
+                        // the chapter the page starts in: the last chapter heading up to
+                        // its first paragraph
+                        let upto = (f.pages[i].first_block + 1).min(doc.blocks.len());
                         let chap = doc.blocks[..upto].iter().rev().filter(|b| matches!(b.kind, BlockKind::Para))
                             .find_map(|b| {
                                 let (pp, _) = doc.para_props(b.node);

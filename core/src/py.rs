@@ -2138,6 +2138,26 @@ impl PyEditor {
         Ok(self.ed.find_all(query, &o).map_err(err)?.into_iter().map(|(a, b, c)| (a.para, a.off, b.para, b.off, c)).collect())
     }
 
+    /// The header and footer text of a page as laid out (fields as shown there).
+    fn page_hf_text(&self, page: usize) -> String {
+        let Some(pg) = self.ed.layout.pages.get(page) else { return String::new() };
+        let mut seen = Vec::new();
+        let mut out = String::new();
+        for l in &pg.hf_lines {
+            if seen.contains(&l.para) {
+                continue;
+            }
+            seen.push(l.para);
+            if let Some(p) = self.ed.layout.paras.get(l.para) {
+                for sh in &p.shaped {
+                    out.extend(sh.text.iter());
+                }
+                out.push('\n');
+            }
+        }
+        out
+    }
+
     /// The paragraphs on a page with their text and languages (spelling as you type).
     fn page_text(&self, page: usize) -> Vec<(u32, String, Vec<(usize, usize, String)>)> {
         self.ed.page_text(page)

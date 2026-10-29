@@ -92,7 +92,8 @@ class _Apply:
         if not texts:
             return
         if after is not None:
-            if not self.select(after[1], len(after[2]), after[1], len(after[2])):
+            end = len(self.ed.para_text_of(after[1]))
+            if not self.select(after[1], end, after[1], end):
                 return
             self.ed.type_text("\n" + "\n".join(texts))
         elif before is not None:
@@ -127,37 +128,39 @@ def compare(win, revised_path, author, combine=False):
     try:
         sm = difflib.SequenceMatcher(None, [_key(u) for u in a_units], [_key(u) for u in b_units],
                                      autojunk=False)
+        tail = []           # paragraphs added at the very end: done last
         for tag, i1, i2, j1, j2 in reversed(sm.get_opcodes()):
             if tag == "equal":
                 continue
             olds, news = a_units[i1:i2], b_units[j1:j2]
+            pairs, extra_old, extra_new = [], olds, news
             if tag == "replace":
-                # pair paragraphs (and tables of the same shape) one to one; the
+                # paragraphs (and tables of the same shape) paired one to one; the
                 # rest are deleted or inserted
                 k = 0
-                pairs = []
                 while k < min(len(olds), len(news)) and olds[k][0] == news[k][0]:
                     pairs.append((olds[k], news[k]))
                     k += 1
                 extra_old, extra_new = olds[k:], news[k:]
-                # inserted ones go after the last paired paragraph
-                last = next((o for o, _n in reversed(pairs) if o[0] == "p"), None)
-                if extra_new:
-                    anchor = last or _prev_para(a_units, i1)
-                    ap.insert_paras(anchor, None if anchor else _next_unit_para(a_units, i1),
-                                    [u[2] for u in extra_new if u[0] == "p"])
+            for o, n in reversed(pairs):
+                if o[0] == "p":
+                    ap.words(o[1], o[2], n[2])
+                else:
+                    _table(ap, o[2], n[2])
+            if tag != "insert":
                 ap.delete_paras(extra_old)
-                for o, n in reversed(pairs):
-                    if o[0] == "p":
-                        ap.words(o[1], o[2], n[2])
-                    else:
-                        _table(ap, o[2], n[2])
-            elif tag == "delete":
-                ap.delete_paras(olds)
-            elif tag == "insert":
-                anchor = _prev_para(a_units, i1)
-                ap.insert_paras(anchor, None if anchor else _next_unit_para(a_units, i1),
-                                [u[2] for u in news if u[0] == "p"])
+            texts = [u[2] for u in extra_new if u[0] == "p"]
+            if texts:
+                # before the next paragraph (its node stays the same); at the very end,
+                # after the last one, once everything else is done
+                nxt = _next_unit_para(a_units, i2)
+                if nxt is not None:
+                    ap.insert_paras(None, nxt, texts)
+                else:
+                    tail.append(texts)
+        for texts in tail:
+            last = _prev_para(a_units, len(a_units))
+            ap.insert_paras(last if last is not None else None, None, texts)
     finally:
         ed.end_group()
         ed.set_track_changes(was_track)
