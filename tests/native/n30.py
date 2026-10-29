@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import zipfile
 
-DATA = "/tmp/fw/tests/data/import"
+DATA = TESTS + "/data/import"
 CALLS = []
 _run = subprocess.run
 
@@ -81,7 +81,8 @@ def a():
     check("told why", any("97-2003" in m for m in MSG), MSG)
     check("now a docx", E.format == "docx" and "Compatibility" not in win.get_title(), (E.format, win.get_title()))
     # ---- the gallery's templates (.ott) open as new documents
-    gal = "/tmp/fw/share/templates/gallery"
+    from folio import SHARE
+    gal = os.path.join(SHARE, "templates", "gallery")
     otts = sorted(f for f in os.listdir(gal) if f.endswith(".ott")) if os.path.isdir(gal) else []
     for f in otts[:3]:
         win.new_document(os.path.join(gal, f)); yield 1.5
