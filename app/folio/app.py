@@ -264,60 +264,59 @@ class FolioApp(Gtk.Application):
                 return os.path.abspath(p)
         raise FileNotFoundError(name)
 
-    def _edit_normal_template(self, fn):
-        """Open the Normal template hidden, let fn(doc) change it, store it as
-        the user's Normal template."""
-        from . import bridge
-        from .engine import file_url
-        src = self.normal_template()
-        dst = self.user_template_path()
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        if bridge.ctx is None:
-            return False
-        desktop = bridge.create("com.sun.star.frame.Desktop")
-        doc = desktop.loadComponentFromURL(file_url(src), "_blank", 0,
-                                           (bridge.prop("Hidden", True),
-                                            bridge.prop("AsTemplate", False)))
-        try:
-            fn(doc)
-            doc.storeToURL(file_url(dst), (bridge.prop("FilterName", "writer8_template"),
-                                           bridge.prop("Overwrite", True)))
-        finally:
-            doc.close(True)
-        return True
-
     def set_default_font(self, name, size):
-        from . import docapi
+        """Set As Default: the Normal template's Normal style (and the document defaults)."""
+        from .native import edit_normal_template
+
+        def fn(t):
+            edits = []
+            if name:
+                edits.append(("w:rFonts", [("w:ascii", name), ("w:hAnsi", name), ("w:cs", name)]))
+            if size:
+                hp = str(int(round(float(size) * 2)))
+                edits += [("w:sz", [("w:val", hp)]), ("w:szCs", [("w:val", hp)])]
+            sid = {n: i for i, n in t.paragraph_styles()}.get("Normal", "Normal")
+            t.style_apply_run(sid, edits)
         try:
-            self._edit_normal_template(lambda d: docapi.set_default_font(d, name, size))
+            edit_normal_template(self, fn)
         except Exception as e:
             print("default font:", e)
 
     def save_styles_as_default(self, engine):
+        """New documents based on this template: the document's styles go into Normal."""
+        import shutil
         import tempfile
-        from . import bridge
-        from .engine import file_url
+        import zipfile
+        from .native import normal_docx
         tmp = tempfile.mkdtemp(prefix="folio-styles-")
-        path = os.path.join(tmp, "styles.odt")
-        if not engine.save_as(path, "odt", keep=False):
-            return
-
-        def load(doc):
-            doc.getStyleFamilies().loadStylesFromURL(file_url(path), (
-                bridge.prop("OverwriteStyles", True), bridge.prop("LoadTextStyles", True),
-                bridge.prop("LoadPageStyles", True), bridge.prop("LoadNumberingStyles", True)))
         try:
-            self._edit_normal_template(load)
+            cur = os.path.join(tmp, "doc.docx")
+            engine.ed.save(cur)
+            src, dst = normal_docx(self)
+            with zipfile.ZipFile(cur) as z:
+                styles = z.read("word/styles.xml")
+                numbering = z.read("word/numbering.xml") if "word/numbering.xml" in z.namelist() else None
+            with zipfile.ZipFile(src) as z:
+                parts = {n: z.read(n) for n in z.namelist()}
+            parts["word/styles.xml"] = styles
+            if numbering is not None and "word/numbering.xml" in parts:
+                parts["word/numbering.xml"] = numbering
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            out = dst + ".folio-tmp"
+            with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+                z.writestr("[Content_Types].xml", parts.pop("[Content_Types].xml"))
+                for n, v in parts.items():
+                    z.writestr(n, v)
+            os.replace(out, dst)
         except Exception as e:
             print("save styles:", e)
         finally:
-            import shutil
             shutil.rmtree(tmp, ignore_errors=True)
 
     def remember_style(self, name, family, props):
         # New documents based on the template: copy the whole style set over
         for w in self.windows:
-            if w.engine.model is not None:
+            if getattr(w.engine, "ed", None) is not None:
                 self.save_styles_as_default(w.engine)
                 break
 
