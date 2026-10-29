@@ -1986,3 +1986,75 @@ def i_dbtables(cr):
 def i_dbfunctions(cr):
     rect(cr, 3.5, 3.5, 17, 17, PAPER, INK)
     centred(cr, "Σ", 12, 17, 12, ACC, bold=True)
+
+
+# --- master documents (W3-07) and AutoFormat (W3-09)
+def _subdoc(cr, x, y, w=11, h=13):
+    """A small page with a corner tab: a subdocument."""
+    page(cr, x, y, w, h, 3)
+    text_lines(cr, x + 2, y + 5, w - 4, 2)
+
+
+@icon("showmasterdocument")
+def i_showmaster(cr):
+    page(cr, 3.5, 2.5, 15, 19, 4)
+    rect(cr, 6.5, 7.5, 9, 4, PALE, ACC)
+    rect(cr, 6.5, 13.5, 9, 4, PALE, ACC)
+
+
+@icon("collapsesubdocuments")
+def i_collapsesub(cr):
+    page(cr, 3.5, 2.5, 15, 19, 4)
+    rect(cr, 6.5, 9.5, 9, 5, PALE, ACC)
+    line(cr, 8.5, 12, 13.5, 12, ACC, 1.6)
+
+
+@icon("createsubdocument")
+def i_createsub(cr):
+    _subdoc(cr, 4.5, 4.5)
+    badge_plus(cr, 17, 18)
+
+
+@icon("insertsubdocument")
+def i_insertsub(cr):
+    page(cr, 2.5, 2.5, 13, 17, 3)
+    _subdoc(cr, 10.5, 9.5, 10, 12)
+    arrow(cr, 3, 13, 9, 13, ACC, 2.5, 1.4)
+
+
+@icon("unlinksubdocument")
+def i_unlinksub(cr):
+    _subdoc(cr, 4.5, 3.5)
+    badge_x(cr, 17, 18)
+
+
+@icon("mergesubdocuments")
+def i_mergesub(cr):
+    _subdoc(cr, 2.5, 3.5, 9, 11)
+    _subdoc(cr, 12.5, 3.5, 9, 11)
+    arrow(cr, 7, 16, 12, 20, ACC, 2.5, 1.4)
+    arrow(cr, 17, 16, 12, 20, ACC, 2.5, 1.4)
+
+
+@icon("splitsubdocument")
+def i_splitsub(cr):
+    _subdoc(cr, 6.5, 2.5, 10, 9)
+    _subdoc(cr, 6.5, 13.5, 10, 9)
+    cr.save()
+    cr.set_dash([1.5, 1.5])
+    line(cr, 3, 12, 21, 12, RED, 1.2)
+    cr.restore()
+
+
+@icon("lockdocument")
+def i_lockdocument(cr):
+    _subdoc(cr, 3.5, 2.5, 13, 16)
+    lock(cr, 12.5, 13)
+
+
+@icon("autoformat")
+def i_autoformat(cr):
+    page(cr, 3.5, 2.5, 14, 18, 4)
+    bar(cr, 6, 7, 8, 2.2, ACC)
+    text_lines(cr, 6, 12, 9, 3)
+    star(cr, 18, 18, 3.4)
