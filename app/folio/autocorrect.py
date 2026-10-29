@@ -8,7 +8,7 @@ import zipfile
 
 # Folio's own copies first (LibreOffice's English lists, MPL-2.0), so they work without it
 _HERE = os.path.dirname(os.path.abspath(__file__))
-SHARE_DIRS = ["/usr/share/folio-writer/autocorr", os.path.join(_HERE, "..", "..", "share", "autocorr"),
+SHARE_DIRS = ["/usr/share/folio-page/autocorr", os.path.join(_HERE, "..", "..", "share", "autocorr"),
               "/usr/lib/libreoffice/share/autocorr", "/opt/libreoffice/share/autocorr"]
 LANGS = ["en-US", "en-GB", "en-AU", "en-ZA"]
 AC_VERSION = "3"

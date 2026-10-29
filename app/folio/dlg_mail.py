@@ -67,7 +67,7 @@ def envelopes(win):
                                              GLib.idle_add(lambda: (labels(win), False)[1])))
     epost = Gtk.Button(label="E-postage Properties...")
     epost.set_sensitive(False)
-    epost.set_tooltip_text("E-postage isn't available in Folio Writer.")
+    epost.set_tooltip_text("E-postage isn't available in Folio Page.")
     tabs.pack_start(to_labels, False, False, 0)
     tabs.pack_start(epost, False, False, 0)
     d.add(tabs)
@@ -562,7 +562,7 @@ def start_mail_merge(win, kind):
 
 
 def not_available(win, what):
-    win.status.flash("%s isn't available in Folio Writer: it has no e-mail or Outlook connection." % what)
+    win.status.flash("%s isn't available in Folio Page: it has no e-mail or Outlook connection." % what)
 
 
 def _need_post(win, what):

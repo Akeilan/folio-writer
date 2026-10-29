@@ -1,0 +1,20 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Folio Page
+GenericName=Word Processor
+Comment=Create and edit documents, letters and reports
+Exec=folio-page %U
+TryExec=folio-page
+Icon=folio-page
+Terminal=false
+StartupNotify=true
+StartupWMClass=folio-page
+Categories=Office;WordProcessor;
+Keywords=document;word;docx;doc;letter;text;writer;processor;
+MimeType=application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.openxmlformats-officedocument.wordprocessingml.template;application/vnd.ms-word.document.macroEnabled.12;application/vnd.ms-word.template.macroEnabled.12;application/msword;application/rtf;text/rtf;application/vnd.oasis.opendocument.text;application/vnd.oasis.opendocument.text-template;text/plain;
+Actions=new-document;
+
+[Desktop Action new-document]
+Name=New Document
+Exec=folio-page

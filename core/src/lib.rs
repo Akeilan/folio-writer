@@ -1,4 +1,4 @@
-//! Folio Writer's document engine.
+//! Folio Page's document engine.
 pub mod xml;
 pub mod package;
 pub mod fonts;

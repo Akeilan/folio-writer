@@ -834,7 +834,7 @@ class Writer:
             for kw in [k.strip() for k in m["keywords"].replace(";", ",").split(",") if k.strip()]:
                 metax.append("<meta:keyword>%s</meta:keyword>" % esc(kw))
         metax.append("<meta:creation-date>%s</meta:creation-date><dc:date>%s</dc:date>"
-                     "<meta:generator>Folio Writer</meta:generator>" % (esc((m.get("created") or now).rstrip("Z")), now))
+                     "<meta:generator>Folio Page</meta:generator>" % (esc((m.get("created") or now).rstrip("Z")), now))
         meta = HDR + '<office:document-meta %s><office:meta>%s</office:meta></office:document-meta>' % (NSDECL, "".join(metax))
         settings = (HDR + '<office:document-settings xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
                     'xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" office:version="1.3"><office:settings>'

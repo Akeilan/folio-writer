@@ -1366,7 +1366,7 @@ pub fn export_pdf_with(layout: &Layout, fonts: &mut FontCache, path: &str, o: &P
             surf.set_metadata(k, v).ok();
         }
     }
-    surf.set_metadata(cairo::PdfMetadata::Creator, "Folio Writer").ok();
+    surf.set_metadata(cairo::PdfMetadata::Creator, "Folio Page").ok();
     // bookmarks: their pages renumbered to the ones exported
     let mut parents: Vec<(u32, i32)> = Vec::new();
     for (level, text, page, y) in &o.outline {

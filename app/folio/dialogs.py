@@ -286,7 +286,7 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
         src = pastelink.SOURCE.get("win")
         if self.win.clipboard_owned and src is not None:
             name = src.engine.path or (src.get_title() or "Document").split(" - ")[0]
-            d.add(Gtk.Label(label="Source:   Folio Writer Document\n               %s" % name,
+            d.add(Gtk.Label(label="Source:   Folio Page Document\n               %s" % name,
                             xalign=0))
         else:
             d.add(Gtk.Label(label="Source:   Unknown", xalign=0))
@@ -618,7 +618,7 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
     def about(self):
         d = FDialog(self.win, "About " + APP_NAME, buttons=(("OK", Gtk.ResponseType.OK),))
         from . import icons
-        img = icons.image("folio-writer", 64)
+        img = icons.image("folio-page", 64)
         d.add(img)
         t = Gtk.Label()
         t.set_markup('<span size="x-large"><b>%s</b></span>\nVersion %s' % (APP_NAME, VERSION))
@@ -626,7 +626,7 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
         d.add(t)
         info = Gtk.Label(label="A word processor for the Linux desktop.\n\n"
                                "Built on open-source components; their licenses and notices\n"
-                               "are in /usr/share/doc/folio-writer/copyright.")
+                               "are in /usr/share/doc/folio-page/copyright.")
         info.set_justify(Gtk.Justification.CENTER)
         info.get_style_context().add_class("dim-label")
         d.add(info)

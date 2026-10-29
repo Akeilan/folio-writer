@@ -1,4 +1,4 @@
-"""Folio Writer's own vector icons, drawn with cairo on a 24x24 grid in the suite's style
+"""Folio Page's own vector icons, drawn with cairo on a 24x24 grid in the suite's style
 (as Folio Draw's): dark ink outlines, white paper, Writer's hunter green as the accent.
 Keyed by command name (the LibreOffice-style names the ribbon uses: 'bold', 'insertfootnote')."""
 import math

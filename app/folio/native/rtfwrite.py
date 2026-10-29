@@ -540,7 +540,7 @@ class Writer:
         dsz = dr.get("sz") or 22
         return ("{\\rtf1\\ansi\\ansicpg1252\\deff%d\\uc1\\deflang1033\n{\\fonttbl%s}\n{\\colortbl%s}\n"
                 "{\\*\\defchp \\f%d\\fs%d}{\\*\\defpap \\ql\\sa160\\sl259\\slmult1}\n%s%s"
-                "{\\*\\generator Folio Writer;}%s\n\\deftab%d\\viewkind1%s\\fet0\n%s}\n" % (
+                "{\\*\\generator Folio Page;}%s\n\\deftab%d\\viewkind1%s\\fet0\n%s}\n" % (
                     dfont, fonts, colors, dfont, dsz, styles, lists, self.info(), d.tab_stop or 720,
                     docfmt, content))
 

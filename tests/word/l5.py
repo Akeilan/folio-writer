@@ -40,7 +40,7 @@ def toc():
         if "Show page numbers" in (w.get_label() or ""): w.set_active(False)
     respond("Table of Contents"); yield 1.0
     # "Do you want to replace the selected table of contents?" - Yes
-    respond("Folio Writer", Gtk.ResponseType.YES)
+    respond("Folio Page", Gtk.ResponseType.YES)
     yield 1.5
     check("one TOC only", len(NR._toc_fields(win)) == 1, NR._toc_fields(win))
     x, t = idx_text("TOC")

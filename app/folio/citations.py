@@ -4,7 +4,7 @@ IEEE style, and a bibliography that formats itself in the same style.
 Citations are the engine's bibliography fields; the source's tag is kept in
 the field's Custom1 entry so a citation can be re-rendered when the style or
 the source changes. Sources that aren't cited yet live in a document property
-and in the user's master list (~/.config/folio-writer/sources.json)."""
+and in the user's master list (~/.config/folio-page/sources.json)."""
 import json
 import os
 import re
@@ -49,7 +49,7 @@ FIELDS = {
 
 
 MASTER = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
-                      "folio-writer", "sources.json")
+                      "folio-page", "sources.json")
 
 
 # ------------------------------------------------------------------ authors

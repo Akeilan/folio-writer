@@ -166,7 +166,7 @@ impl FontCache {
         let mut db = fontdb::Database::new();
         db.load_system_fonts();
         // Folio's own fonts, when installed next to the program
-        for d in ["/usr/share/folio-writer/fonts", "/usr/local/share/folio-writer/fonts"] {
+        for d in ["/usr/share/folio-page/fonts", "/usr/share/folio-writer/fonts", "/usr/local/share/folio-writer/fonts"] {
             if std::path::Path::new(d).is_dir() {
                 db.load_fonts_dir(d);
             }

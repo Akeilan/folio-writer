@@ -2,7 +2,7 @@
 name = "folio_core"
 version = "0.1.0"
 edition = "2021"
-description = "Folio Writer document engine: .docx model, Word-compatible layout, rendering and editing"
+description = "Folio Page document engine: .docx model, Word-compatible layout, rendering and editing"
 
 [lib]
 name = "folio_core"

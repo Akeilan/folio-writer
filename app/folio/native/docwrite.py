@@ -1157,7 +1157,7 @@ def _summary(meta):
         v = meta.get(key)
         if v:
             props.append((pid, v))
-    props.append((18, "Folio Writer"))
+    props.append((18, "Folio Page"))
     body = []
     entries = []
     off = 8 + 8 * (len(props) + 1)

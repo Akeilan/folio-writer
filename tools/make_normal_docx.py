@@ -254,7 +254,7 @@ APP = HDR + (
     '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" '
     'xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">'
     '<Template>Normal.dotm</Template><TotalTime>0</TotalTime><Pages>1</Pages><Words>0</Words>'
-    '<Characters>0</Characters><Application>Folio Writer</Application><DocSecurity>0</DocSecurity>'
+    '<Characters>0</Characters><Application>Folio Page</Application><DocSecurity>0</DocSecurity>'
     '<Lines>1</Lines><Paragraphs>1</Paragraphs><ScaleCrop>false</ScaleCrop>'
     '<LinksUpToDate>false</LinksUpToDate><CharactersWithSpaces>0</CharactersWithSpaces>'
     '<SharedDoc>false</SharedDoc><HyperlinksChanged>false</HyperlinksChanged><AppVersion>16.0000</AppVersion>'

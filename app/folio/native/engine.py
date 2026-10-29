@@ -28,7 +28,7 @@ SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 
 
 def _clip_path():
-    d = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or tempfile.gettempdir(), "folio-writer")
+    d = os.path.join(os.environ.get("XDG_RUNTIME_DIR") or tempfile.gettempdir(), "folio-page")
     os.makedirs(d, mode=0o700, exist_ok=True)
     return os.path.join(d, "clipboard.json")
 
@@ -146,7 +146,7 @@ class NativeEngine(GObject.GObject):
         if ext in (".txt", ".text", ".md", ".csv", ".log"):
             tpl = None
             here = os.path.dirname(os.path.abspath(__file__))
-            for d in ("/usr/share/folio-writer/templates",
+            for d in ("/usr/share/folio-page/templates",
                       os.path.join(here, "..", "..", "..", "share", "templates")):
                 p = os.path.join(d, "Normal-Letter.docx")
                 if os.path.exists(p):
@@ -233,7 +233,7 @@ class NativeEngine(GObject.GObject):
         """A new document from the Normal template (.docx)."""
         base, ext = os.path.splitext(template)
         # Set as Default keeps the user's own .docx Normal template
-        user = os.path.join(os.path.expanduser("~/.config/folio-writer/templates"),
+        user = os.path.join(os.path.expanduser("~/.config/folio-page/templates"),
                             os.path.basename(base) + ".docx")
         try:
             from ..app import CONFIG
@@ -248,7 +248,7 @@ class NativeEngine(GObject.GObject):
                 template = cand
             else:
                 here = os.path.dirname(os.path.abspath(__file__))
-                for d in ("/usr/share/folio-writer/templates",
+                for d in ("/usr/share/folio-page/templates",
                           os.path.join(here, "..", "..", "..", "share", "templates")):
                     p = os.path.join(d, os.path.basename(base) + ".docx")
                     if os.path.exists(p):

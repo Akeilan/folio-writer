@@ -8,7 +8,7 @@ from gi.repository import GLib, Gtk
 from .widgets import FDialog, combo, grid, heading
 
 QUICKPARTS = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
-                          "folio-writer", "quickparts.json")
+                          "folio-page", "quickparts.json")
 
 # (name, fill colour, outline, shadow, bold)
 EFFECTS = [

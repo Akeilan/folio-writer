@@ -40,7 +40,7 @@ def autoformat_now(win, doc_type="General document"):
 def dialog(win):
     d = FDialog(win, "AutoFormat", width=420)
     lab = Gtk.Label(xalign=0)
-    lab.set_text("Folio Writer will automatically format “%s”." % win.doc_name())
+    lab.set_text("Folio Page will automatically format “%s”." % win.doc_name())
     d.add(lab)
     now = Gtk.RadioButton.new_with_mnemonic(None, "_AutoFormat now")
     review = Gtk.RadioButton.new_with_mnemonic_from_widget(now, "AutoFormat and _review each change")

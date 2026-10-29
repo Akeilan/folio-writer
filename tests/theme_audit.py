@@ -1,4 +1,4 @@
-# X2-01: run inside Folio Writer (FOLIO_TEST_SCRIPT, native engine) started under
+# X2-01: run inside Folio Page (FOLIO_TEST_SCRIPT, native engine) started under
 # GTK_THEME=Adwaita:dark or FolioTestColour (tools/run_theme_audit.sh). Every ribbon tab,
 # the File view, the panes, a comment balloon, every dialog and menu a ribbon command opens
 # keep the app's own colours; text stays readable.
