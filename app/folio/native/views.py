@@ -135,8 +135,34 @@ class NativeOutlineView(OutlineView):
             except Exception:
                 pass
         self._symbols(None)
+        self._mark_subdocs(ed)
         if target is not None:
             self.tv.get_selection().select_iter(target)
+
+    def _mark_subdocs(self, ed):
+        """Paragraphs in a subdocument get Word's subdocument mark (master documents)."""
+        try:
+            from . import masterdoc
+            spans = masterdoc.ranges(ed)
+        except Exception:
+            return
+        if not spans:
+            return
+        order = [r[0] for r in ed.outline_paras()]
+        inside = {}
+        for n, (a, b, exp) in spans.items():
+            for i in range(a, b + 1):
+                if i < len(order):
+                    inside[order[i]] = "\u25a4" if exp else "\u25a3"
+
+        def walk(it):
+            while it is not None:
+                node = self.store[it][3].node
+                if node in inside:
+                    self.store[it][1] = inside[node] + " " + self.store[it][1]
+                walk(self.store.iter_children(it))
+                it = self.store.iter_next(it)
+        walk(self.store.get_iter_first())
 
     def _markup(self, p, level):
         text = p.text

@@ -109,6 +109,30 @@ class OptionsDialog:
         sv.pack_start(grid([["Save files in this _format:", fmt]]), False, False, 0)
         sv.pack_start(ar, False, False, 0)
         sv.pack_start(grid([["Default local file location:", loc]]), False, False, 0)
+        # this document's fonts travel with it (W3-08)
+        ed_now = getattr(self.win.engine, "ed", None)
+
+        def _flag(tag):
+            try:
+                return bool(ed_now and ed_now.settings_xml(tag))
+            except Exception:
+                return False
+        sv.pack_start(heading("Preserve fidelity when sharing this document:  " + self.win.doc_name()),
+                      False, False, 0)
+        emb = Gtk.CheckButton(label="Embed fonts in the _file", use_underline=True)
+        emb.set_active(_flag("w:embedTrueTypeFonts"))
+        emb_sub = Gtk.CheckButton(label="Embed only the _characters used in the document (best for reducing file size)",
+                                  use_underline=True)
+        emb_sub.set_active(_flag("w:saveSubsetFonts"))
+        emb_sys = Gtk.CheckButton(label="Do not embed common _system fonts", use_underline=True)
+        emb_sys.set_active(not _flag("w:embedSystemFonts"))
+        for cb in (emb_sub, emb_sys):
+            cb.set_margin_start(24)
+            cb.set_sensitive(emb.get_active())
+        emb.connect("toggled", lambda b: [c.set_sensitive(b.get_active()) for c in (emb_sub, emb_sys)])
+        for cb in (emb, emb_sub, emb_sys):
+            cb.set_sensitive(cb.get_sensitive() and ed_now is not None)
+            sv.pack_start(cb, False, False, 0)
 
         # Advanced
         adv = page("Advanced")
@@ -366,6 +390,13 @@ class OptionsDialog:
             s["autorecover"] = autosave.get_active()
             s["autorecover_minutes"] = int(mins.get_value())
             s["default_dir"] = loc.get_filename() or s.get("default_dir")
+            if ed_now is not None:
+                want = {"w:embedTrueTypeFonts": emb.get_active(),
+                        "w:saveSubsetFonts": emb.get_active() and emb_sub.get_active(),
+                        "w:embedSystemFonts": emb.get_active() and not emb_sys.get_active()}
+                for tag, on in want.items():
+                    if on != _flag(tag):
+                        ed_now.set_settings_xml(tag, "<%s/>" % tag if on else None)
             s["ctrl_click_links"] = ctrl_click.get_active()
             s["engine"] = "native" if new_engine.get_active() else "classic"
             s["paste_within"] = keys[max(0, within.get_active())]
@@ -599,22 +630,21 @@ def autocorrect_options(win, tab=0, with_text=None):
     mpage.pack_start(fb, False, False, 0)
     nb.append_page(mpage, Gtk.Label(label="Math AutoCorrect"))
     nb.append_page(page(AC_TABS[1][1]), Gtk.Label(label="AutoFormat As You Type"))
-    if "ac_define_styles" in checks:
-        checks["ac_define_styles"].set_active(False)
-        checks["ac_define_styles"].set_sensitive(False)
-        checks["ac_define_styles"].set_tooltip_text("Making styles from your formatting isn't available in this version.")
-    for tab_name, note in (("AutoFormat", "AutoFormat for the whole document at once isn't available in %s; "
-                                          "AutoFormat As You Type makes the same changes while you type."),
-                           ("Actions", "Additional actions in the right-click menu (dates, financial symbols and "
-                                       "the like) aren't available in %s.")):
-        from . import APP_NAME as _APP
-        tb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        tb.set_border_width(10)
-        lab = Gtk.Label(label=note % _APP, xalign=0)
-        lab.set_line_wrap(True)
-        lab.set_max_width_chars(60)
-        tb.pack_start(lab, False, False, 0)
-        nb.append_page(tb, Gtk.Label(label=tab_name))
+    # AutoFormat: what AutoFormat Now (Ctrl+Alt+K) changes in the whole document
+    from .native import autoformat as _AF
+    afp = page(_AF.OPTIONS)
+    afp.pack_start(Gtk.Label(label="Run AutoFormat from the Quick Access Toolbar (AutoFormat...) or with Ctrl+Alt+K.",
+                             xalign=0), False, False, 6)
+    nb.append_page(afp, Gtk.Label(label="AutoFormat"))
+    from . import APP_NAME as _APP
+    tb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+    tb.set_border_width(10)
+    lab = Gtk.Label(label="Additional actions in the right-click menu (dates, financial symbols and "
+                          "the like) aren't available in %s." % _APP, xalign=0)
+    lab.set_line_wrap(True)
+    lab.set_max_width_chars(60)
+    tb.pack_start(lab, False, False, 0)
+    nb.append_page(tb, Gtk.Label(label="Actions"))
     d.add(nb, expand=True)
     nb.show_all()
     nb.set_current_page(tab)

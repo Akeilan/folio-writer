@@ -1164,6 +1164,13 @@ impl Editor {
         v.sort();
         v
     }
+
+    /// Every bookmark, the hidden ones ("_Toc...", subdocuments) too.
+    pub fn all_bookmark_names(&self) -> Vec<String> {
+        let mut v: Vec<String> = self.bookmarks().into_keys().collect();
+        v.sort();
+        v
+    }
 }
 
 impl Editor {
@@ -1277,15 +1284,13 @@ impl Editor {
     }
 
     /// Put the caret at a bookmark.
-    pub fn goto_bookmark(&mut self, name: &str) -> bool {
-        let marks = self.bookmarks();
-        let Some(&(start, _)) = marks.get(name) else { return false };
+    /// Where a bookmark boundary sits: its paragraph and the content before it there.
+    fn bookmark_marker_pos(&self, mark: NodeId) -> Option<Pos> {
         let dom = &self.doc.dom;
-        let Some(p) = para_of(dom, start) else { return false };
-        // its position: the content before it in the paragraph
+        let p = para_of(dom, mark)?;
         let mut nodes = Vec::new();
         order(dom, p, &mut nodes);
-        let before: Vec<NodeId> = nodes.iter().copied().take_while(|&n| n != start).collect();
+        let before: Vec<NodeId> = nodes.iter().copied().take_while(|&n| n != mark).collect();
         let pieces = self.doc.para_pieces(p, &self.doc.para_props(p).1);
         let mut off = 0;
         for pc in pieces {
@@ -1293,11 +1298,35 @@ impl Editor {
                 off += pc.item.len();
             }
         }
+        Some(Pos { para: p, off })
+    }
+
+    pub fn goto_bookmark(&mut self, name: &str) -> bool {
+        let marks = self.bookmarks();
+        let Some(&(start, _)) = marks.get(name) else { return false };
+        let Some(pos) = self.bookmark_marker_pos(start) else { return false };
         if self.story != super::Story::Body {
             self.edit_header_footer(None, false);
         }
-        self.caret = Pos { para: p, off };
+        self.caret = pos;
         self.anchor = self.caret;
+        true
+    }
+
+    /// Select what a bookmark marks (master documents' subdocuments use this).
+    pub fn select_bookmark(&mut self, name: &str) -> bool {
+        let marks = self.bookmarks();
+        let Some(&(start, end)) = marks.get(name) else { return false };
+        let Some(a) = self.bookmark_marker_pos(start) else { return false };
+        let b = match end.and_then(|e| self.bookmark_marker_pos(e)) {
+            Some(b) => b,
+            None => a,
+        };
+        if self.story != super::Story::Body {
+            self.edit_header_footer(None, false);
+        }
+        self.anchor = a;
+        self.caret = b;
         true
     }
 }

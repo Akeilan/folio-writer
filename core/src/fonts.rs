@@ -171,6 +171,14 @@ impl FontCache {
                 db.load_fonts_dir(d);
             }
         }
+        // fonts a document carries (embedded fonts, extracted for this session)
+        if let Ok(dirs) = std::env::var("FOLIO_FONT_DIRS") {
+            for d in dirs.split(':').filter(|d| !d.is_empty()) {
+                if std::path::Path::new(d).is_dir() {
+                    db.load_fonts_dir(d);
+                }
+            }
+        }
         db.set_sans_serif_family("Liberation Sans");
         db.set_serif_family("Liberation Serif");
         db.set_monospace_family("Liberation Mono");

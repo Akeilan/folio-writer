@@ -207,7 +207,24 @@ class NativeEngine(GObject.GObject):
             from . import importers
             if not importers.handles(path) and (
                     os.path.splitext(path)[1].lower() in (".docx", ".docm", ".dotx", ".dotm", "") or _is_zip(path)):
-                ed = core().Editor.open(path)
+                try:
+                    from . import embedfonts
+                    embedfonts.extract(path)        # fonts the file carries, for this session
+                except Exception as e:
+                    print("embedded fonts:", e)
+                from . import masterdoc
+                if masterdoc.has_subdocs(path):
+                    # a master document: its subdocuments shown collapsed (W3-07)
+                    tmpd = tempfile.mkdtemp(prefix="folio-master-")
+                    try:
+                        src = os.path.join(tmpd, "master.docx")
+                        found = masterdoc.prepare(path, src)
+                        ed = core().Editor.open(src)
+                        masterdoc.opened(ed, found)
+                    finally:
+                        shutil.rmtree(tmpd, ignore_errors=True)
+                else:
+                    ed = core().Editor.open(path)
             else:
                 ed = self._import(path)
         except Exception as e:
@@ -314,7 +331,19 @@ class NativeEngine(GObject.GObject):
                 if not self._save_converted(path, ext):
                     return False
             else:
+                from . import masterdoc
+                master = ext in ("docx", "docm") and masterdoc.is_master(self.ed)
+                if master:
+                    masterdoc.before_save(self.ed, path)
                 self.ed.save(path)
+                if master:
+                    masterdoc.after_save(path)
+                # the fonts the document carries, when its options say so (W3-08)
+                try:
+                    from . import embedfonts
+                    embedfonts.apply(path)
+                except Exception as e:
+                    print("embed fonts:", e)
         except Exception as e:
             print("save:", e)
             return False

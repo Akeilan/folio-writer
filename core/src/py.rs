@@ -1702,6 +1702,10 @@ impl PyEditor {
         self.ed.bookmark_names()
     }
 
+    fn all_bookmark_names(&self) -> Vec<String> {
+        self.ed.all_bookmark_names()
+    }
+
     /// Shift+F9: the field at the cursor shows its code, or its result again.
     fn toggle_field_code_here(&mut self) -> bool {
         let r = self.ed.toggle_field_code_here();
@@ -1739,6 +1743,10 @@ impl PyEditor {
 
     fn goto_bookmark(&mut self, name: &str) -> bool {
         self.ed.goto_bookmark(name)
+    }
+
+    fn select_bookmark(&mut self, name: &str) -> bool {
+        self.ed.select_bookmark(name)
     }
 
     fn link_at_caret(&self) -> String {
