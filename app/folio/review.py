@@ -40,6 +40,19 @@ class ChangeBars:
         ed = self.win.engine.ed
         return list(ed.change_authors()) if ed is not None else []
 
+    @property
+    def redlines(self):
+        """The document's tracked changes: [{type, author, date, text}]."""
+        ed = self.win.engine.ed
+        if ed is None:
+            return []
+        return [{"type": k, "author": a, "date": d, "text": t} for k, a, d, _p, _s, _e, t in ed.changes()]
+
+    def bars(self):
+        """The changes shown (the reviewers not hidden)."""
+        return [r for r in self.redlines if r["author"] not in self.hidden_authors and
+                (self.show_formatting or r["type"] in ("insert", "delete", "Insert", "Delete"))]
+
 
 # ------------------------------------------------------------ compare / combine
 def compare_dialog(win, combine=False):
