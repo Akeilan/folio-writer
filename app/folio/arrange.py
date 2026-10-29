@@ -4,6 +4,7 @@ from gi.repository import Gdk, GLib, Gtk, Pango
 
 from . import bridge, docapi, icons
 from .panes import Pane
+from . import modelapi
 
 MATH_CLSID = "078B7ABA-54FC-457F-8551-6147E776A997"
 
@@ -52,7 +53,7 @@ def display_name(o, i=0):
 
 
 def select(m, objs):
-    ctl = docapi.controller(m)
+    ctl = modelapi.controller(m)
     if not objs:
         return
     if len(objs) == 1:

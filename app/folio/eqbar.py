@@ -230,8 +230,7 @@ class EquationBar(Gtk.Revealer):
             self.win.dialogs.message("Click in an equation first.")
             return
         if not self.ed.active:
-            m = self.win.engine.model
-            obj = docapi.selected_formula_object(m) if m else None
+            obj = None
             if obj is None:
                 self.win.dialogs.message("Click in an equation first.")
                 return
@@ -327,8 +326,7 @@ class EquationBar(Gtk.Revealer):
         if self.ed.active and self.ed.mode == "professional":
             lin = M.to_linear(self.ed.root)
         if not lin:
-            m = self.win.engine.model
-            obj = docapi.selected_formula_object(m) if m else None
+            obj = None
             if obj is None:
                 self.win.dialogs.message("Select an equation first.")
                 return

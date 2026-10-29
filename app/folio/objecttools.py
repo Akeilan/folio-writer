@@ -5,6 +5,8 @@ import math
 from gi.repository import Gdk, GLib, Gtk
 
 from . import docapi, drawing, icons
+from .native import values
+from . import modelapi
 
 MM100_TO_TWIP = 1440.0 / 2540.0
 
@@ -32,7 +34,7 @@ def anchor_info(win, obj):
     m = win.engine.model
     try:
         anchor = obj.getAnchor()
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         vc.gotoRange(anchor.getStart(), False)
         p = vc.getPosition()
         cur = anchor.getText().createTextCursorByRange(anchor.getStart())
@@ -61,7 +63,7 @@ def anchor_info(win, obj):
     except Exception:
         info = None
     try:
-        docapi.controller(m).select(obj)
+        modelapi.controller(m).select(obj)
     except Exception:
         pass
     _ANCHOR.clear()
@@ -104,7 +106,7 @@ def object_rect(win):
         info = anchor_info(win, obj) if obj is not None else None
         if info is None:
             try:
-                page = docapi.read_cursor(m).getPage() - 1
+                page = modelapi.read_cursor(m).getPage() - 1
             except Exception:
                 page = 0
             rx, ry = rects[max(0, min(page, len(rects) - 1))][:2]
@@ -478,7 +480,7 @@ class LayoutOptions:
         resizes or moves the object exactly as its own handles would."""
         forget_anchor()         # a move can give it a new anchor
         m = self.win.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
+        obj = None
         if obj is None:
             return
         eng = self.win.engine
@@ -551,7 +553,7 @@ class LayoutOptions:
             um = m.getUndoManager()
             um.enterUndoContext("Move Picture")
             try:
-                vc = docapi.view_cursor(m)
+                vc = modelapi.view_cursor(m)
                 new = m.createInstance("com.sun.star.text.TextGraphicObject")
                 new.AnchorType = obj.AnchorType
                 vc.getText().insertTextContent(vc.getStart(), new, False)
@@ -570,7 +572,7 @@ class LayoutOptions:
                     new.Name = name
                 except Exception:
                     pass
-                docapi.controller(m).select(new)
+                modelapi.controller(m).select(new)
             except Exception as e:
                 print("move inline:", e)
             finally:
@@ -837,7 +839,7 @@ class EditPoints:
     def begin(self):
         from . import drawing
         m = self.win.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
+        obj = None
         if obj is None:
             return
         try:
@@ -927,14 +929,14 @@ class EditPoints:
     def _apply(self):
         from . import bridge
         import uno
-        Pt = lambda p: bridge.struct("com.sun.star.awt.Point", X=p[0], Y=p[1])  # noqa: E731
+        Pt = lambda p: values.struct("com.sun.star.awt.Point", X=p[0], Y=p[1])  # noqa: E731
         pts = tuple(tuple(Pt(p) for p in poly) for poly in self.coords)
         m = self.win.engine.model
         um = m.getUndoManager()
         um.enterUndoContext("Edit Points")
         try:
             if self.prop == "PolyPolygonBezier":
-                coords = bridge.struct("com.sun.star.drawing.PolyPolygonBezierCoords")
+                coords = values.struct("com.sun.star.drawing.PolyPolygonBezierCoords")
                 coords.Coordinates = pts
                 coords.Flags = tuple(tuple(f) for f in self.flags)
                 uno.invoke(self.shape, "setPropertyValue", ("PolyPolygonBezier", uno.Any(
@@ -988,7 +990,7 @@ def _editable(m, obj):
         return None
     import uno
     eng = bridge.create("com.sun.star.drawing.EnhancedCustomShapeEngine",
-                        bridge.prop("CustomShape", obj))
+                        values.prop("CustomShape", obj))
     rendered = uno.invoke(eng, "render", ())
     coords, flags = [], []
 
@@ -1008,7 +1010,7 @@ def _editable(m, obj):
     collect(rendered)
     if not coords:
         return None
-    geo = bridge.struct("com.sun.star.drawing.PolyPolygonBezierCoords")
+    geo = values.struct("com.sun.star.drawing.PolyPolygonBezierCoords")
     geo.Coordinates = tuple(coords)
     geo.Flags = tuple(flags)
     um = m.getUndoManager()
@@ -1032,7 +1034,7 @@ def _editable(m, obj):
             m.getDrawPage().remove(obj)
         except Exception:
             pass
-        docapi.controller(m).select(new)
+        modelapi.controller(m).select(new)
     finally:
         um.leaveUndoContext()
     return new, "PolyPolygonBezier"

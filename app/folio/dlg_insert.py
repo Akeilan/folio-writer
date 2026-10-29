@@ -9,6 +9,8 @@ from gi.repository import Gdk, GLib, Gtk, Pango
 
 from . import bridge, docapi, icons
 from .widgets import FDialog, combo, combo_text, grid, heading, list_select, list_selected, listbox
+from .native import values
+from . import modelapi
 
 SPECIAL_CHARS = [
     ("—", "Em Dash", "Alt+Ctrl+Num -"), ("–", "En Dash", "Ctrl+Num -"),
@@ -70,24 +72,6 @@ FIELDS = [("Author", "author", "The name of the document's author"),
 
 
 class InsertDialogs:
-    # ============================================================ pictures
-    def insert_picture(self):
-        path = self.pick_file("Insert Picture", ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp",
-                                                 "*.svg", "*.tif", "*.tiff", "*.webp", "*.emf",
-                                                 "*.wmf"], "All Pictures")
-        if path:
-            m = self._model_or_warn()
-            if m is None:
-                return
-            try:
-                docapi.insert_picture(m, path)
-                from . import captions
-                captions.after_insert(self.win, "picture")
-                self.win.update_object_tabs()
-                self.win.select_tab("Picture Format")
-            except Exception as e:
-                self.message("This picture couldn't be inserted. (%s)" % e, kind="error")
-
     # ============================================================ links
     def hyperlink(self):
         m = self._model_or_warn()
@@ -358,17 +342,21 @@ class InsertDialogs:
 
     def _create_blank(self, path):
         """An empty document in the format the name asks for."""
-        from .engine import file_url
-        desktop = bridge.create("com.sun.star.frame.Desktop")
-        doc = desktop.loadComponentFromURL("private:factory/swriter", "_blank", 0,
-                                           (bridge.prop("Hidden", True),))
-        filt = {".odt": "writer8", ".rtf": "Rich Text Format",
-                ".doc": "MS Word 97"}.get(os.path.splitext(path)[1].lower(),
-                                          "MS Word 2007 XML")
-        try:
-            doc.storeToURL(file_url(path), (bridge.prop("FilterName", filt),))
-        finally:
-            doc.close(True)
+        import shutil
+        from .native import normal_docx
+        src = normal_docx(self.win.app)[0]
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".odt":
+            from .native import odfwrite
+            odfwrite.docx_to_odt(src, path)
+        elif ext == ".rtf":
+            from .native import rtfwrite
+            rtfwrite.docx_to_rtf_file(src, path)
+        elif ext in (".doc", ".dot"):
+            from .native import docwrite
+            docwrite.docx_to_doc_file(src, path, template=(ext == ".dot"))
+        else:
+            shutil.copyfile(src, path)
 
     # ============================================================ bookmarks
     def bookmark(self):
@@ -516,44 +504,10 @@ class InsertDialogs:
         from . import captions
         captions.dialog(self.win)
 
-    # ============================================================ TOC
-    def insert_toc(self, title="Contents"):
-        m = self._model_or_warn()
-        if m is None:
-            return
-        if docapi.tocs(m):
-            if not self.confirm("Do you want to replace the selected table of contents?",
-                                yes="Yes", no="No"):
-                return
-            docapi.remove_toc(m)
-        if not docapi.headings(m, 3):
-            self.message("No table of contents entries found.\n\nApply heading styles "
-                         "(Heading 1, Heading 2, ...) to the text you want in the table of "
-                         "contents.")
-        docapi.insert_toc(m, title=title)
-
-    def insert_toc_2(self):
-        self.insert_toc("Table of Contents")
-
-    def remove_toc(self):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.remove_toc(m)
-
-    def update_toc(self):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.update_indexes(m)
-
     def toc_dialog(self):
         if self._model_or_warn() is not None:
             from . import tocdlg
             tocdlg.toc_dialog(self.win)
-
-    def add_text(self, level):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.add_text_to_toc(m, int(level))
 
     # ============================================================ comments, notes
     def comment(self):
@@ -615,85 +569,6 @@ class InsertDialogs:
         self.eng.command(".uno:DeleteAllNotes")
         return
 
-    def next_footnote(self):
-        m = self.model
-        if m is not None and not docapi.goto_next(m, "footnote", True):
-            docapi.goto_next(m, "endnote", True)
-
-    def prev_footnote(self):
-        m = self.model
-        if m is not None and not docapi.goto_next(m, "footnote", False):
-            docapi.goto_next(m, "endnote", False)
-
-    def next_endnote(self):
-        m = self.model
-        if m is not None:
-            docapi.goto_next(m, "endnote", True)
-
-    def prev_endnote(self):
-        m = self.model
-        if m is not None:
-            docapi.goto_next(m, "endnote", False)
-
-    # ============================================================ header / footer
-    def header(self, kind="blank"):
-        m = self._model_or_warn()
-        if m is None:
-            return
-        docapi.enable_header_footer(m, "header")
-        self.eng.command(".uno:JumpToHeader")
-        self.eng.sync(self.win.refresh_hf)
-
-    def footer(self, kind="blank"):
-        m = self._model_or_warn()
-        if m is None:
-            return
-        docapi.enable_header_footer(m, "footer")
-        self.eng.command(".uno:JumpToFooter")
-        self.eng.sync(self.win.refresh_hf)
-
-
-
-    def hf_option(self, key):
-        m = self.model
-        if m is None:
-            return
-        cb = self.win.hf_checks.get(key)
-        if key == "show_text":
-            ov = getattr(self.win, "hf_overlay", None)
-            if ov is not None:
-                ov.show_body = cb.get_active() if cb is not None else not ov.show_body
-                self.win.engine.view.queue_draw()
-            return
-        docapi.set_hf_option(m, key, cb.get_active() if cb is not None else True)
-
-    def hf_position(self, spec):
-        m = self.model
-        if m is not None:
-            key, value = spec
-            docapi.set_hf_option(m, key, value)
-
-    def close_header_footer(self):
-        self.eng.command(".uno:JumpToEndOfDoc") if False else None
-        m = self.model
-        if m is not None:
-            vc = docapi.view_cursor(m)
-            try:
-                vc.gotoRange(m.getText().getStart(), False)
-            except Exception:
-                pass
-        self.eng.sync(self.win.refresh_hf)
-        self.win.focus_document()
-
-
-
-
-
-    def remove_page_numbers(self):
-        m = self._model_or_warn()
-        if m is not None:
-            docapi.remove_page_numbers(m)
-
     # ============================================================ date, fields
     def date_time(self):
         m = self._model_or_warn()
@@ -748,11 +623,6 @@ class InsertDialogs:
         if self._model_or_warn() is not None:
             from . import fielddlg
             fielddlg.dialog(self.win)
-
-    def update_fields(self):
-        m = self.model
-        if m is not None:
-            docapi.update_indexes(m)
 
     # ============================================================ pages
     def blank_page(self):
@@ -907,25 +777,6 @@ class InsertDialogs:
                     ed.set_grid_widths([tw] * nc, "Insert Table")
             self.eng.view.after_edit()
         d.done()
-
-    def table_style2(self, spec):
-        m = self.model
-        if m is None:
-            return
-        from . import tablestyles
-        kind, accent = spec
-        tablestyles.apply(m, kind, accent)
-        self.win.refresh_table_design()
-
-    def table_option(self, key):
-        m = self.model
-        if m is None:
-            return
-        from . import tablestyles
-        cb = self.win.table_opt_checks.get(key)
-        tablestyles.set_option(m, key, cb.get_active() if cb is not None else True)
-        self.win.refresh_table_design()
-
 
     # ============================================================ symbols
     def symbol_popover(self):
@@ -1200,10 +1051,6 @@ class InsertDialogs:
         from .panes import ClipboardPane
         self.win.show_pane(ClipboardPane, "left")
 
-    def comments_pane(self):
-        from .panes import CommentsPane
-        self.win.show_pane(CommentsPane, "right")
-
     # ============================================================ misc
     def draft_view(self):
         self.win.act_web_layout()
@@ -1213,21 +1060,6 @@ class InsertDialogs:
 
     def extend_selection(self):
         self.win.extend_selection()
-
-    # ============================================================ sections / files
-    def section_break(self, kind):
-        m = self._model_or_warn()
-        if m is not None:
-            before = docapi.read_cursor(m).PageStyleName or "Standard"
-            docapi.insert_section_break(m, kind)
-            if kind != "continuous":
-                # the new section's header and footer start linked to these
-                from . import hfedit
-                for part in ("header", "footer"):
-                    try:
-                        hfedit.propagate(self.win, before, part)
-                    except Exception as e:
-                        print("section header:", e)
 
     def text_from_file(self):
         path = self.pick_file("Insert File", ["*.docx", "*.doc", "*.odt", "*.rtf", "*.txt",
@@ -1251,106 +1083,6 @@ class InsertDialogs:
             self.win.app.settings.get("caption_labels", [])
         tocdlg.figures_dialog(self.win, labels)
 
-    def mark_entry(self):
-        """Mark Index Entry: modeless, like the original, so several entries
-        can be marked in a row."""
-        m = self._model_or_warn()
-        if m is None:
-            return
-        if getattr(self, "_mark_dlg", None) is not None:
-            self._mark_dlg.present()
-            self._mark_fill()
-            return
-        win = Gtk.Window(title="Mark Index Entry", transient_for=self.win)
-        win.set_type_hint(1)
-        win.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-        win.get_style_context().add_class("folio-dialog")
-        win.set_resizable(False)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.set_border_width(12)
-        win.add(box)
-        main = Gtk.Entry()
-        main.set_width_chars(36)
-        sub = Gtk.Entry()
-        box.pack_start(heading("Index"), False, False, 0)
-        box.pack_start(grid([["_Main entry:", main], ["_Subentry:", sub]]), False, False, 0)
-        box.pack_start(heading("Page number format"), False, False, 0)
-        bold = Gtk.CheckButton.new_with_mnemonic("_Bold")
-        box.pack_start(bold, False, False, 0)
-        note = Gtk.Label(label="This dialog box stays open so that you can mark multiple "
-                               "index entries.", xalign=0)
-        note.set_line_wrap(True)
-        note.set_max_width_chars(44)
-        box.pack_start(note, False, False, 0)
-        btns = Gtk.Box(spacing=6)
-        btns.set_halign(Gtk.Align.END)
-        mark = Gtk.Button(label="_Mark", use_underline=True)
-        mark_all = Gtk.Button(label="Mark _All", use_underline=True)
-        close = Gtk.Button(label="Close")
-        for b in (mark, mark_all, close):
-            btns.pack_start(b, False, False, 0)
-        box.pack_start(btns, False, False, 0)
-
-        def entry_text():
-            t = main.get_text().strip()
-            if sub.get_text().strip():
-                t = t + ":" + sub.get_text().strip()
-            return t
-
-        def do_mark(*_):
-            mm = self.eng.model
-            if mm is None or not main.get_text().strip():
-                return
-            mk = docapi.mark_index_entry(mm, entry_text(), bold.get_active())
-            if sub.get_text().strip():
-                try:
-                    mk.AlternativeText = main.get_text().strip()
-                    mk.PrimaryKey = ""
-                    mk.AlternativeText = sub.get_text().strip()
-                    mk.PrimaryKey = main.get_text().strip()
-                except Exception:
-                    pass
-            self.win.focus_document()
-
-        def do_mark_all(*_):
-            mm = self.eng.model
-            word = docapi.view_cursor(mm).getString() if mm is not None else ""
-            if not word:
-                return
-            sd = mm.createSearchDescriptor()
-            sd.SearchString = word
-            sd.SearchCaseSensitive = True
-            found = mm.findAll(sd)
-            for i in range(found.getCount()):
-                r = found.getByIndex(i)
-                mk = mm.createInstance("com.sun.star.text.DocumentIndexMark")
-                if entry_text() != word:
-                    mk.AlternativeText = entry_text()
-                try:
-                    mk.IsMainEntry = bold.get_active()
-                except Exception:
-                    pass
-                r.getText().insertTextContent(r, mk, True)
-
-        def fill():
-            mm = self.eng.model
-            if mm is not None:
-                main.set_text(docapi.view_cursor(mm).getString()[:200])
-                sub.set_text("")
-        self._mark_fill = fill
-        mark.connect("clicked", do_mark)
-        mark_all.connect("clicked", do_mark_all)
-
-        def on_close(*_):
-            self._mark_dlg = None
-            win.destroy()
-            return True
-        close.connect("clicked", on_close)
-        win.connect("delete-event", on_close)
-        self._mark_dlg = win
-        fill()
-        win.show_all()
-
     def insert_index(self):
         if self._model_or_warn() is not None:
             from . import tocdlg
@@ -1369,8 +1101,8 @@ class InsertDialogs:
         d.add(Gtk.Label(label="Mark selected text as:", xalign=0))
         store = Gtk.ListStore(str, str, str, str)
         sel_row = 0
-        for i, (name, l, c) in enumerate(docapi.LANGUAGES):
-            store.append(["ABC" if docapi.has_dictionary(l, c) else "", name, l, c])
+        for i, (name, l, c) in enumerate(modelapi.LANGUAGES):
+            store.append(["ABC" if modelapi.has_dictionary(l, c) else "", name, l, c])
             if (l, c) == (cur_l, cur_c):
                 sel_row = i
         tv = Gtk.TreeView(model=store)

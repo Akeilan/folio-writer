@@ -3442,13 +3442,33 @@ impl Editor {
         self.begin();
         if let Some(ppr) = self.style_part(id, "w:pPr") {
             let sd = self.doc.styles_dom.as_mut().unwrap();
-            let el = match sd.child(ppr, name) {
+            // "w:pBdr/w:bottom": an element inside a property element (borders)
+            let (outer, inner) = match name.split_once('/') {
+                Some((a, b)) => (a, Some(b)),
+                None => (name, None),
+            };
+            let mut el = match sd.child(ppr, outer) {
                 Some(n) => n,
                 None => {
-                    set_prop_child(sd, ppr, &PropEdit::set(name, &[]), PPR_ORDER);
-                    sd.child(ppr, name).unwrap()
+                    set_prop_child(sd, ppr, &PropEdit::set(outer, &[]), PPR_ORDER);
+                    sd.child(ppr, outer).unwrap()
                 }
             };
+            if let Some(inner) = inner {
+                el = match sd.child(el, inner) {
+                    Some(n) => n,
+                    None => {
+                        let order: &[&str] = &["w:top", "w:left", "w:bottom", "w:right", "w:between", "w:bar"];
+                        let at = order.iter().position(|n| *n == inner).unwrap_or(order.len());
+                        let idx = sd.children(el).iter()
+                            .filter(|&&c| order.iter().position(|n| *n == sd.name(c)).map_or(false, |r| r < at))
+                            .count();
+                        let n = sd.new_element(inner, &[]);
+                        sd.insert(el, idx, n);
+                        n
+                    }
+                };
+            }
             for (k, v) in attrs {
                 match v {
                     Some(v) => sd.set_attr(el, k, v),
@@ -3547,6 +3567,63 @@ impl Editor {
             sd.append(root, n);
         }
         self.commit("New Style", false);
+        true
+    }
+
+    /// Delete a style (Manage Styles, the Styles pane): what used it takes the style it was
+    /// based on (paragraphs with no base go back to the default), and styles based on it
+    /// or followed by it point past it.
+    pub fn delete_style(&mut self, id: &str) -> bool {
+        self.ensure_styles();
+        let Some(node) = self.style_node(id) else { return false };
+        let (base, kind) = {
+            let sd = self.doc.styles_dom.as_ref().unwrap();
+            let b = sd.child(node, "w:basedOn").and_then(|n| sd.attr(n, "w:val")).map(|s| s.to_string());
+            (b, sd.attr(node, "w:type").unwrap_or("paragraph").to_string())
+        };
+        self.begin();
+        // the document's uses
+        let tag = match kind.as_str() {
+            "character" => "w:rStyle",
+            "table" => "w:tblStyle",
+            _ => "w:pStyle",
+        };
+        let mut stack = vec![self.doc.dom.root];
+        let mut hits = Vec::new();
+        while let Some(n) = stack.pop() {
+            let dom = &self.doc.dom;
+            if dom.is(n, tag) && dom.attr(n, "w:val") == Some(id) {
+                hits.push(n);
+            }
+            stack.extend(dom.elements(n));
+        }
+        for n in hits {
+            match &base {
+                Some(b) if kind != "character" => self.doc.dom.set_attr(n, "w:val", b),
+                _ => {
+                    self.doc.dom.detach(n);
+                }
+            }
+        }
+        // other styles
+        let sd = self.doc.styles_dom.as_mut().unwrap();
+        let styles: Vec<NodeId> = sd.children_named(sd.root, "w:style").collect();
+        for st in styles {
+            for t in ["w:basedOn", "w:next", "w:link"] {
+                if let Some(c) = sd.child(st, t) {
+                    if sd.attr(c, "w:val") == Some(id) {
+                        match (&base, t) {
+                            (Some(b), "w:basedOn") => sd.set_attr(c, "w:val", b),
+                            _ => {
+                                sd.detach(c);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        sd.detach(node);
+        self.commit("Delete Style", false);
         true
     }
 

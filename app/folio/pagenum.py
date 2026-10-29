@@ -146,14 +146,6 @@ def menu(win):
     def remove():
         pop.popdown()
         win.run("remove-page-numbers")
-        m = win.engine.model
-        if m is not None:
-            try:
-                for name in list(m.getTextFrames().getElementNames()):
-                    if name.startswith("PageNumberFrame"):
-                        m.getTextFrames().getByName(name).dispose()
-            except Exception:
-                pass
     entry("Format Page Numbers...", fmt)
     entry("Remove Page Numbers", remove)
     stack.add_named(main, "main")

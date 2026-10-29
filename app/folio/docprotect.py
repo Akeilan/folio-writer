@@ -8,6 +8,7 @@ import time
 from gi.repository import Gtk
 
 from . import docapi
+from . import modelapi
 
 
 # ------------------------------------------------------------ message bar
@@ -58,10 +59,10 @@ class MessageBar(Gtk.Box):
 # ------------------------------------------------------------ mark as final
 def is_final(m):
     # Word's _MarkAsFinal custom property (older Folio files: MarkedFinal)
-    v = docapi._doc_setting(m, "_MarkAsFinal", None)
+    v = modelapi._doc_setting(m, "_MarkAsFinal", None)
     if v is not None:
         return v is True or str(v).lower() in ("true", "1")
-    return docapi._doc_setting(m, "MarkedFinal", "") == "1"
+    return modelapi._doc_setting(m, "MarkedFinal", "") == "1"
 
 
 def _set_final(m, on):
@@ -70,11 +71,11 @@ def _set_final(m, on):
         if ud.getPropertySetInfo().hasPropertyByName("MarkedFinal"):
             ud.removeProperty("MarkedFinal")
         if on:
-            docapi._set_doc_setting(m, "_MarkAsFinal", True)
+            modelapi._set_doc_setting(m, "_MarkAsFinal", True)
         elif ud.getPropertySetInfo().hasPropertyByName("_MarkAsFinal"):
             ud.removeProperty("_MarkAsFinal")
     except Exception:
-        docapi._set_doc_setting(m, "MarkedFinal", "1" if on else "")
+        modelapi._set_doc_setting(m, "MarkedFinal", "1" if on else "")
     try:
         p = m.getDocumentProperties()
         if on:

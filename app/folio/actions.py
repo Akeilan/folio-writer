@@ -3,6 +3,7 @@ import json
 import re
 
 from gi.repository import Gdk, GLib, Gtk
+from . import modelapi
 
 SIZE_STEPS = [8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 MM100_PER_INCH = 2540
@@ -254,7 +255,7 @@ class Actions:
         if m is None or not clip or not clip[1] or clip[1][:1].isspace():
             return None
         try:
-            vc = docapi.view_cursor(m)
+            vc = modelapi.view_cursor(m)
             if not vc.isCollapsed():
                 return None
             c = vc.getText().createTextCursorByRange(vc.getStart())
@@ -379,7 +380,7 @@ class Actions:
         m = self.eng.model
         if m is None:
             return None
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         text = vc.getText()
         c = text.createTextCursorByRange(vc.getStart())
         if vc.isCollapsed():
@@ -425,7 +426,7 @@ class Actions:
         um = m.getUndoManager()
         um.enterUndoContext("Paste Formatting")
         try:
-            vc = docapi.view_cursor(m)
+            vc = modelapi.view_cursor(m)
             text = vc.getText()
             if f.get("with_para"):
                 c = text.createTextCursorByRange(vc.getStart())

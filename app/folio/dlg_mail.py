@@ -22,6 +22,7 @@ def _m(win):
         return win if win.engine.ed is not None else None
     return win.engine.model
 from .widgets import FDialog, Preview, combo, grid, heading
+from . import modelapi
 
 NEW_LIST_COLUMNS = ["Title", "First Name", "Last Name", "Company Name", "Address Line 1",
                     "Address Line 2", "City", "State", "ZIP Code", "Country or Region",
@@ -52,7 +53,7 @@ def _selected_text(win):
         return ""
     try:
         from . import docapi
-        return docapi.read_cursor(m).getString()
+        return modelapi.read_cursor(m).getString()
     except Exception:
         return ""
 

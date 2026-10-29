@@ -2,6 +2,7 @@
 import re
 
 from gi.repository import GLib, Gtk
+from . import modelapi
 
 
 def _num(s):
@@ -32,7 +33,7 @@ def cursor_metrics(m, want_line):
     """{'section', 'vpos' (mm100 from page top), 'line', 'column', 'page_label'}."""
     from . import docapi
     out = {}
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     try:
         y = vc.getPosition().Y
         out["y"] = y
@@ -306,46 +307,6 @@ class StatusBar(Gtk.Box):
 
     def _metrics(self):
         self._metric_timer = None
-        m = self.win.engine.model
-        if m is None:
-            return False
-        eqb = getattr(self.win, "eqbar", None)
-        if eqb is not None and eqb.ed.active:
-            return False
-        on = self.enabled()
-        try:
-            r = cursor_metrics(m, on.get("line") or on.get("column"))
-        except Exception as e:
-            print("status metrics:", e)
-            return False
-        if "section" in r:
-            self.section.set_text("Section: %d" % r["section"])
-        if "line" in r:
-            self.line.set_text("Line: %d" % r["line"])
-            self.column.set_text("Column: %d" % r["column"])
-        if "y" in r:
-            try:
-                eng = self.win.engine
-                from . import docapi
-                rects = eng.page_rects()
-                top = docapi.page_setup(m)["top"]
-                ty = rects[0][1] + (top + r["y"]) * 1440.0 / 2540.0
-                for rx, ry, rw, rh in rects:
-                    if ry <= ty < ry + rh:
-                        from .widgets import fmt_len
-                        self.vpos.set_text("At: %s" % fmt_len(int((ty - ry) * 2540 / 1440)))
-                        break
-            except Exception:
-                pass
-        if on.get("chars"):
-            try:
-                from . import docapi
-                st = docapi.statistics(m)
-                self.chars.set_text("{:,} characters".format(st.get("CharacterCount", 0)))
-            except Exception:
-                pass
-        if on.get("formatted_page"):
-            self.formatted_page.set_text(self.page.get_label().split(" of ")[0])
         return False
 
     def set_recording(self, on):

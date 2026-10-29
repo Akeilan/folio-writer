@@ -8,6 +8,8 @@ import subprocess
 import tempfile
 
 from . import bridge, docapi
+from .native import values
+from . import modelapi
 
 PALETTE = [0x4472C4, 0xED7D31, 0xA5A5A5, 0xFFC000, 0x5B9BD5, 0x70AD47, 0x264478, 0x9E480E,
            0x636363, 0x997300]
@@ -252,7 +254,7 @@ def _key(name):
 
 def info(m, obj):
     try:
-        return json.loads(docapi._doc_setting(m, _key(obj.Name), "") or "null")
+        return json.loads(modelapi._doc_setting(m, _key(obj.Name), "") or "null")
     except Exception:
         return None
 
@@ -266,7 +268,7 @@ def is_image_chart(m, obj):
 
 
 def _save(m, obj, data):
-    docapi._set_doc_setting(m, _key(obj.Name), json.dumps(data))
+    modelapi._set_doc_setting(m, _key(obj.Name), json.dumps(data))
 
 
 def redraw(m, obj):
@@ -285,15 +287,15 @@ def insert(m, kind, data=None, title="Chart Title"):
     from .pictools import load_graphic
     data = data or DEFAULT
     path = render(kind, data, title)
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     um = m.getUndoManager()
     um.enterUndoContext("Insert Chart")
     try:
         g = m.createInstance("com.sun.star.text.TextGraphicObject")
-        g.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AS_CHARACTER")
+        g.AnchorType = values.enum("com.sun.star.text.TextContentAnchorType", "AS_CHARACTER")
         vc.getText().insertTextContent(vc, g, False)
         g.Graphic = load_graphic(path)
-        g.Size = bridge.struct("com.sun.star.awt.Size", Width=15240, Height=8890)
+        g.Size = values.struct("com.sun.star.awt.Size", Width=15240, Height=8890)
         n = 1
         names = set(m.getGraphicObjects().getElementNames())
         while PREFIX + str(n) in names:
@@ -301,7 +303,7 @@ def insert(m, kind, data=None, title="Chart Title"):
         g.Name = PREFIX + str(n)
         g.Description = "%s chart" % kind.capitalize()
         _save(m, g, {"kind": kind, "data": data, "title": title})
-        docapi.controller(m).select(g)
+        modelapi.controller(m).select(g)
         return g
     finally:
         um.leaveUndoContext()

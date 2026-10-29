@@ -7,6 +7,7 @@ import tempfile
 from gi.repository import GdkPixbuf, GLib, Gtk
 
 from ._lazy import Lazy, bridge, docapi
+from .native import values
 drawing = Lazy("folio.drawing")
 
 ORIGINALS = {}     # picture name -> original image file (for Reset / Discard)
@@ -26,15 +27,15 @@ def export_graphic(obj, path=None):
     path = path or tempfile.mktemp(prefix="folio-pic-", suffix=".png")
     gp = bridge.create("com.sun.star.graphic.GraphicProvider")
     import uno
-    gp.storeGraphic(obj.Graphic, (bridge.prop("URL", uno.systemPathToFileUrl(path)),
-                                  bridge.prop("MimeType", "image/png")))
+    gp.storeGraphic(obj.Graphic, (values.prop("URL", uno.systemPathToFileUrl(path)),
+                                  values.prop("MimeType", "image/png")))
     return path
 
 
 def load_graphic(path):
     gp = bridge.create("com.sun.star.graphic.GraphicProvider")
     import uno
-    return gp.queryGraphic((bridge.prop("URL", uno.systemPathToFileUrl(path)),))
+    return gp.queryGraphic((values.prop("URL", uno.systemPathToFileUrl(path)),))
 
 
 def set_image(obj, img, fmt="PNG", quality=90):
@@ -246,7 +247,7 @@ def _polys(obj):
     out = []
     if t.endswith("CustomShape"):
         eng = bridge.create("com.sun.star.drawing.EnhancedCustomShapeEngine",
-                            bridge.prop("CustomShape", obj))
+                            values.prop("CustomShape", obj))
         import uno
         shapes = [uno.invoke(eng, "render", ())]
         while shapes:
@@ -445,7 +446,7 @@ def merge_shapes(m, objs, op):
             coords = []
             for loop in loops:
                 pts = _simplify(loop, 0.6)
-                coords.append(tuple(bridge.struct(
+                coords.append(tuple(values.struct(
                     "com.sun.star.awt.Point", X=int(box[0] + (x - 1) * res),
                     Y=int(box[1] + (y - 1) * res)) for x, y in pts))
             sh = m.createInstance("com.sun.star.drawing.PolyPolygonShape")

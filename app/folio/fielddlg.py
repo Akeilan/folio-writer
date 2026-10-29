@@ -4,6 +4,8 @@ from gi.repository import Gtk
 
 from . import bridge, docapi
 from .widgets import FDialog, combo, heading, list_selected, listbox
+from .native import values
+from . import modelapi
 
 DATE_FORMATS = ["M/d/yyyy", "dddd, MMMM d, yyyy", "MMMM d, yyyy", "M/d/yy", "yyyy-MM-dd",
                 "d-MMM-yy", "M.d.yyyy", "MMM. d, yy", "d MMMM yyyy", "MMMM yy", "MMM-yy",
@@ -127,7 +129,7 @@ def parse_code(code):
 
 
 def insert(m, kind, opts):
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     text = vc.getText()
     f = None
     if kind in ("date", "time"):
@@ -148,7 +150,7 @@ def insert(m, kind, opts):
         f = m.createInstance("com.sun.star.text.textfield." + svc)
         f.NumberingType = opts.get("numtype", 4)
         if kind == "page":
-            f.SubType = bridge.enum("com.sun.star.text.PageNumberType", "CURRENT")
+            f.SubType = values.enum("com.sun.star.text.PageNumberType", "CURRENT")
     elif kind == "author":
         if opts.get("new"):
             m.getDocumentProperties().Author = opts["new"]
@@ -214,8 +216,6 @@ def insert(m, kind, opts):
 def dialog(win):
     native = getattr(win, "native", False)
     m = win.engine.model
-    if m is None and False:
-        return
     d = FDialog(win, "Field")
     outer = Gtk.Box(spacing=14)
     # ---- left: categories + names

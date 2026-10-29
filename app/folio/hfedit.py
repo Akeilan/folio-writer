@@ -13,6 +13,7 @@ from gi.repository import Gtk
 
 from . import docapi
 from .widgets import FDialog, combo, grid
+from . import modelapi
 
 MM = 1440.0 / 2540.0       # mm100 -> twips
 
@@ -27,25 +28,7 @@ def _page_at(win, tx, ty):
 
 def zone(win, x_px, y_px):
     """'header', 'footer', 'body' or None for a point on the view."""
-    m = win.engine.model
-    if m is None:
-        return None, None
-    tx, ty = win.engine.px_to_twips(x_px, y_px)
-    i, r = _page_at(win, tx, ty)
-    if r is None:
-        return None, None
-    try:
-        ps = docapi.page_style(m)
-        top = ps.TopMargin + (ps.HeaderHeight if ps.HeaderIsOn else 0)
-        bottom = ps.BottomMargin + (ps.FooterHeight if ps.FooterIsOn else 0)
-    except Exception:
-        return None, None
-    rx, ry, rw, rh = r
-    if ty < ry + top * MM:
-        return "header", (i, r, tx, ty)
-    if ty > ry + rh - bottom * MM:
-        return "footer", (i, r, tx, ty)
-    return "body", (i, r, tx, ty)
+    return None, None
 
 
 def press(win, event):
@@ -86,34 +69,7 @@ def press(win, event):
 
 def enter(win, which, info=None):
     """Into the header or footer of the page at info (or the current one)."""
-    m = win.engine.model
-    if m is None:
-        return
-    ps = docapi.page_style(m)
-    key = "Header" if which == "header" else "Footer"
-    created = not getattr(ps, key + "IsOn")
-    if created:
-        um = m.getUndoManager()
-        um.enterUndoContext("Insert " + key)
-        try:
-            docapi.enable_header_footer(m, which, ps)
-        finally:
-            um.leaveUndoContext()
-    if info is None:
-        win.engine.command(".uno:JumpToHeader" if which == "header" else ".uno:JumpToFooter")
-        return
-    _i, (rx, ry, rw, rh), tx, _ty = info
-    if which == "header":
-        y = ry + (ps.TopMargin + 60) * MM
-    else:
-        y = ry + rh - (ps.BottomMargin + ps.FooterHeight - 60) * MM
-    x = min(max(tx, rx + ps.LeftMargin * MM + 20), rx + rw - ps.RightMargin * MM - 20)
-
-    def go():
-        win.engine.click_at(x, y)
-        return False
-    from gi.repository import GLib
-    GLib.timeout_add(80 if created else 0, go)
+    return
 
 
 # ------------------------------------------------------------ sections
@@ -144,7 +100,7 @@ def _style(m, name):
 
 def _linked(m):
     try:
-        v = json.loads(docapi._doc_setting(m, "HFLinks", "") or "{}")
+        v = json.loads(modelapi._doc_setting(m, "HFLinks", "") or "{}")
         return v if isinstance(v, dict) else {}
     except ValueError:
         return {}
@@ -153,7 +109,7 @@ def _linked(m):
 def which_part(win):
     m = win.engine.model
     try:
-        impl = docapi.read_cursor(m).getText()
+        impl = modelapi.read_cursor(m).getText()
         ps = docapi.page_style(m)
         for k in ("Header", "Footer"):
             for suffix in ("Text", "TextFirst", "TextLeft", "TextRight"):
@@ -169,15 +125,7 @@ def which_part(win):
 
 
 def is_linked(win):
-    m = win.engine.model
-    if m is None:
-        return False
-    name = docapi.read_cursor(m).PageStyleName or "Standard"
-    styles = section_styles(m)
-    if name not in styles or styles.index(name) == 0:
-        return False
-    part, _s = which_part(win)
-    return bool(_linked(m).get("%s|%s" % (name, part), True))
+    return False
 
 
 def _copy_part(win, src, dst, part):
@@ -189,8 +137,8 @@ def _copy_part(win, src, dst, part):
     if not getattr(dst, key + "IsOn"):
         docapi.enable_header_footer(m, part, dst)
     st, dt = getattr(src, key + "Text"), getattr(dst, key + "Text")
-    ctrl = docapi.controller(m)
-    vc = docapi.view_cursor(m)
+    ctrl = modelapi.controller(m)
+    vc = modelapi.view_cursor(m)
     keep = vc.getText().createTextCursorByRange(vc.getStart())
     # in a header/footer, going back by position would land on another page's
     # copy of it: go back to where the caret was on screen instead
@@ -220,69 +168,17 @@ def _copy_part(win, src, dst, part):
 def set_link(win, on):
     """Link to Previous: this section's header (or footer) is the previous
     section's; turning it on copies it over, and edits are carried along."""
-    m = win.engine.model
-    if m is None:
-        return
-    name = docapi.read_cursor(m).PageStyleName or "Standard"
-    styles = section_styles(m)
-    if name not in styles or styles.index(name) == 0:
-        win.status.flash("The first section has nothing before it to link to.")
-        return
-    part, _s = which_part(win)
-    links = _linked(m)
-    links["%s|%s" % (name, part)] = bool(on)
-    docapi._set_doc_setting(m, "HFLinks", json.dumps(links))
-    if on:
-        if win.dialogs.confirm("Do you want to delete this header/footer and connect to the "
-                               "header/footer in the previous section?", yes="Yes", no="No"):
-            prev = _style(m, styles[styles.index(name) - 1])
-            _copy_part(win, prev, _style(m, name), part)
-        else:
-            links["%s|%s" % (name, part)] = False
-            docapi._set_doc_setting(m, "HFLinks", json.dumps(links))
-    win.ribbon.update("folio:hf-link", "true" if is_linked(win) else "false")
+    return
 
 
 def propagate(win, style_name, part):
     """After editing a header/footer: copy it into the sections linked to it."""
-    m = win.engine.model
-    if m is None:
-        return
-    styles = section_styles(m)
-    if style_name not in styles:
-        return
-    links = _linked(m)
-    i = styles.index(style_name)
-    src = _style(m, style_name)
-    for nxt in styles[i + 1:]:
-        if not links.get("%s|%s" % (nxt, part), True):
-            break
-        _copy_part(win, src, _style(m, nxt), part)
+    return
 
 
 def goto_section(win, d):
     """Previous / Next: the header (or footer) of the neighbouring section."""
-    m = win.engine.model
-    if m is None:
-        return
-    name = docapi.read_cursor(m).PageStyleName or "Standard"
-    styles = section_styles(m)
-    if name not in styles:
-        return
-    k = styles.index(name) + d
-    if not 0 <= k < len(styles):
-        win.status.flash("There is no %s section." % ("previous" if d < 0 else "next"))
-        return
-    part, _s = which_part(win)
-    ps = _style(m, styles[k])
-    key = "Header" if part == "header" else "Footer"
-    if not getattr(ps, key + "IsOn"):
-        docapi.enable_header_footer(m, part, ps)
-    try:
-        vc = docapi.view_cursor(m)
-        vc.gotoRange(getattr(ps, key + "Text").getStart(), False)
-    except Exception as e:
-        print("section:", e)
+    return
 
 
 # ------------------------------------------------------------ page numbers
@@ -338,64 +234,7 @@ def _section_first_para(m, name):
 
 
 def format_dialog(win):
-    m = win.engine.model
-    if m is None:
-        return
-    ps = docapi.page_style(m)
-    name = docapi.read_cursor(m).PageStyleName or "Standard"
-    d = FDialog(win, "Page Number Format")
-    cur_fmt = getattr(ps, "NumberingType", 4)
-    fmt = combo([f for f, _v in FORMATS], next((i for i, (_f, v) in enumerate(FORMATS)
-                                                 if v == cur_fmt), 0))
-    d.add(grid([["Number _format:", fmt]]))
-    chap = Gtk.CheckButton.new_with_mnemonic("Include chapter _number")
-    heads = combo(["Heading %d" % i for i in range(1, 10)], 0)
-    sep = combo([s for s, _v in SEPARATORS], 0)
-    cg = grid([["Chapter starts with style:", heads], ["Use separator:", sep]])
-    cg.set_margin_start(20)
-    cg.set_sensitive(False)
-    chap.connect("toggled", lambda b: cg.set_sensitive(b.get_active()))
-    d.add(chap)
-    d.add(cg)
-    first = _section_first_para(m, name)
-    try:
-        off = first.PageNumberOffset
-    except Exception:
-        off = None
-    d.add(Gtk.Label(label="Page numbering", xalign=0))
-    cont = Gtk.RadioButton.new_with_mnemonic(None, "_Continue from previous section")
-    start = Gtk.RadioButton.new_with_mnemonic_from_widget(cont, "Start _at:")
-    spin = Gtk.SpinButton.new_with_range(0, 9999, 1)
-    spin.set_value(off if isinstance(off, int) and off > 0 else 1)
-    if isinstance(off, int) and off > 0:
-        start.set_active(True)
-    row = Gtk.Box(spacing=6)
-    row.pack_start(start, False, False, 0)
-    row.pack_start(spin, False, False, 0)
-    d.add(cont)
-    d.add(row)
-    if d.ask() == Gtk.ResponseType.OK:
-        um = m.getUndoManager()
-        um.enterUndoContext("Page Number Format")
-        try:
-            ps.NumberingType = FORMATS[fmt.get_active()][1]
-            for _t, _r, f in _page_fields(m, ps):
-                f.NumberingType = 7          # follow the page style
-            if first is not None:
-                try:
-                    if start.get_active():
-                        if not first.PageDescName:
-                            first.PageDescName = name
-                        first.PageNumberOffset = int(spin.get_value())
-                    else:
-                        first.setPropertyToDefault("PageNumberOffset")
-                except Exception as e:
-                    print("page offset:", e)
-            _chapter(m, ps, chap.get_active(), heads.get_active() + 1,
-                     SEPARATORS[sep.get_active()][1])
-        finally:
-            um.leaveUndoContext()
-    d.done()
+    return
 
 
 def _chapter(m, ps, on, level, separator):

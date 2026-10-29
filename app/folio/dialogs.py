@@ -10,6 +10,7 @@ from .dlg_text import TextDialogs
 from .dlg_doc import DocDialogs
 from .dlg_insert import InsertDialogs
 from .dlg_table import TableDialogs
+from . import modelapi
 
 SAVE_TYPES = [
     ("docx", "Document (*.docx)"),
@@ -369,7 +370,7 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
         has_sel = self.eng.get(".uno:StateWordCount").startswith("Selected")
         in_table = bool(self.eng.get(".uno:StateTableCell"))
         m = self.model
-        link = docapi.selected_link(m) if m is not None else ""
+        link = modelapi.selected_link(m) if m is not None else ""
         word = ""
         misspelled = None
         ned = getattr(self.eng, "ed", None)
@@ -381,7 +382,7 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
         if m is not None and ned is None:
             # the engine's table state can lag behind a click; ask the cursor
             try:
-                vc = docapi.view_cursor(m)
+                vc = modelapi.view_cursor(m)
                 in_table = vc.TextTable is not None
                 if has_sel:
                     word = " ".join(vc.getString().split())
@@ -389,12 +390,12 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
                 pass
         if m is not None and not has_sel:
             try:
-                vc = docapi.view_cursor(m)
+                vc = modelapi.view_cursor(m)
                 cur = vc.getText().createTextCursorByRange(vc)
                 cur.gotoStartOfWord(False)
                 cur.gotoEndOfWord(True)
                 word = cur.getString().strip()
-                if word and docapi.WORD_RE.fullmatch(word):
+                if word and modelapi.WORD_RE.fullmatch(word):
                     loc = docapi.doc_locale(m)
                     if not docapi.spell_ok(word, loc):
                         misspelled = (cur, docapi.suggestions(word, loc, 6))
@@ -506,7 +507,7 @@ class Dialogs(TextDialogs, DocDialogs, InsertDialogs, TableDialogs):
             sep()
         lvl, par = 0, None
         try:
-            vc = docapi.read_cursor(m)
+            vc = modelapi.read_cursor(m)
             cur = vc.getText().createTextCursorByRange(vc.getStart())
             cur.gotoStartOfParagraph(False)
             cur.gotoEndOfParagraph(True)

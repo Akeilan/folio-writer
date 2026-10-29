@@ -9,6 +9,8 @@ import tempfile
 from gi.repository import GdkPixbuf, GLib, Gtk, Pango
 
 from . import APP_NAME, SHARE, docapi, icons
+from .native import values
+from . import modelapi
 
 NAV = [("back", None), ("home", "Home"), ("new", "New"), ("open", "Open"), None,
        ("info", "Info"), ("save", "Save"), ("saveas", "Save As"), ("print", "Print"),
@@ -482,8 +484,8 @@ class Backstage(Gtk.Box):
         pt = Gtk.Label(label="Properties", xalign=0)
         pt.get_style_context().add_class("folio-bs-cardtitle")
         right.pack_start(pt, False, False, 0)
-        props = docapi.doc_properties(m) if m is not None else {}
-        stats = docapi.statistics(m) if m is not None else {}
+        props = modelapi.doc_properties(m) if m is not None else {}
+        stats = modelapi.statistics(m) if m is not None else {}
         g = Gtk.Grid(column_spacing=24, row_spacing=6)
         rows = []
         if eng.path and not eng.is_new and os.path.exists(eng.path):
@@ -505,7 +507,7 @@ class Backstage(Gtk.Box):
                                    else "Add a " + label.lower())
             e.get_style_context().add_class("folio-bs-propentry")
             e.connect("changed", lambda w, k=key: m is not None and
-                      docapi.set_doc_property(m, k, w.get_text()))
+                      modelapi.set_doc_property(m, k, w.get_text()))
             g.attach(e, 1, r, 1, 1)
             r += 1
         right.pack_start(g, False, False, 0)
@@ -844,7 +846,7 @@ class Backstage(Gtk.Box):
         r_pg = Gtk.RadioButton(label="Page(s)", group=r_all)
         n = 1
         try:
-            n = docapi.statistics(self.win.docmodel).get("PageCount", 1)
+            n = modelapi.statistics(self.win.docmodel).get("PageCount", 1)
         except Exception:
             pass
         fr = Gtk.SpinButton.new_with_range(1, max(1, n), 1)
@@ -966,8 +968,7 @@ class Backstage(Gtk.Box):
         coll.append("false", "Uncollated   1,1,1  2,2,2  3,3,3")
         coll.set_active_id("true")
         left.pack_start(coll, False, False, 0)
-        m = self.win.engine.model
-        ps = docapi.page_setup(m) if m is not None else None
+        ps = None
         orient = Gtk.ComboBoxText()
         orient.append("p", "Portrait Orientation")
         orient.append("l", "Landscape Orientation")
@@ -1035,15 +1036,7 @@ class Backstage(Gtk.Box):
                                                                if e.get_text().isdigit() else 0))
 
         def apply_layout(*_):
-            mm = self.win.engine.model
-            if mm is None:
-                return
-            name = paper.get_active_id()
-            for n, w, h in PAPER:
-                if n == name:
-                    docapi.set_page(mm, width=w, height=h)
-            docapi.set_page(mm, landscape=orient.get_active_id() == "l")
-            self._render_preview()
+            return
         orient.connect("changed", apply_layout)
         paper.connect("changed", apply_layout)
 
@@ -1126,7 +1119,6 @@ class Backstage(Gtk.Box):
         if scale and scale != "none":
             args += ["-o", "media=" + self.CUPS_MEDIA.get(scale, scale), "-o", "fit-to-page"]
         if rng == "current":
-            m = self.win.engine.model
             cur = self.win.engine.ed.caret_page() + 1
             args += ["-P", str(cur)]
         elif rng == "custom" and pages.strip():
@@ -1144,17 +1136,6 @@ class Backstage(Gtk.Box):
         from .native import docprops
         docprops.set_core(self.win.engine.ed, lastPrinted=datetime.datetime.now(
             datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
-        m = self.win.engine.model
-        if m is not None:
-            try:
-                import time
-                from . import bridge
-                now = time.localtime()
-                dt = bridge.struct("com.sun.star.util.DateTime", Year=now.tm_year, Month=now.tm_mon,
-                                   Day=now.tm_mday, Hours=now.tm_hour, Minutes=now.tm_min)
-                m.getDocumentProperties().PrintDate = dt
-            except Exception:
-                pass
         self.close()
 
 

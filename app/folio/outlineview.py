@@ -7,6 +7,7 @@ from gi.repository import Gdk, GLib, Gtk, Pango
 
 from . import docapi
 from .actions import engine_style, word_style
+from . import modelapi
 
 BODY = 10     # level used for body text
 
@@ -57,45 +58,7 @@ class OutlineView(Gtk.Box):
 
     # ------------------------------------------------------------ build
     def load(self, keep_selection=True):
-        m = self.win.engine.model
-        if m is None:
-            return
-        sel_para = self._selected_para() if keep_selection else None
-        self.store.clear()
-        stack = [(0, None)]            # (level, iter)
-        en = m.getText().createEnumeration()
-        target = None
-        while en.hasMoreElements():
-            p = en.nextElement()
-            if not p.supportsService("com.sun.star.text.Paragraph"):
-                continue
-            try:
-                lvl = p.OutlineLevel or 0
-            except Exception:
-                lvl = 0
-            level = lvl if lvl else BODY
-            if level > self.max_level and level != BODY:
-                continue
-            if level == BODY and self.max_level < 9:
-                continue
-            while stack and stack[-1][0] >= level:
-                stack.pop()
-            parent = stack[-1][1] if stack else None
-            it = self.store.append(parent, [self._markup(p, level), "", level, p])
-            if level != BODY:
-                stack.append((level, it))
-            if sel_para is not None and self._same(p, sel_para):
-                target = it
-        self._symbols(None)
-        self.tv.expand_all()
-        for path in sorted(self.collapsed, key=len, reverse=True):
-            try:
-                self.tv.collapse_row(Gtk.TreePath.new_from_string(path))
-            except Exception:
-                pass
-        self._symbols(None)
-        if target is not None:
-            self.tv.get_selection().select_iter(target)
+        return
 
     def _same(self, a, b):
         try:
@@ -155,7 +118,7 @@ class OutlineView(Gtk.Box):
 
     def _goto(self, p):
         try:
-            docapi.view_cursor(self.win.engine.model).gotoRange(p.getStart(), False)
+            modelapi.view_cursor(self.win.engine.model).gotoRange(p.getStart(), False)
         except Exception:
             pass
 

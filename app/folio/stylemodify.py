@@ -9,6 +9,8 @@ from gi.repository import Gtk, Pango, PangoCairo
 from . import bridge, docapi, icons
 from .actions import CHAR_STYLES, engine_style, word_style
 from .widgets import FDialog, color_button, combo, combo_text, grid, heading
+from .native import values
+from . import modelapi
 
 SIZES = ["8", "9", "10", "10.5", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28",
          "36", "48", "72"]
@@ -75,14 +77,14 @@ def gallery_names(m):
     if m is None:
         return default
     try:
-        v = json.loads(docapi._doc_setting(m, "StyleGallery", "") or "null")
+        v = json.loads(modelapi._doc_setting(m, "StyleGallery", "") or "null")
     except ValueError:
         v = None
     return v if isinstance(v, list) and v else default
 
 
 def set_gallery(m, names):
-    docapi._set_doc_setting(m, "StyleGallery", json.dumps(names))
+    modelapi._set_doc_setting(m, "StyleGallery", json.dumps(names))
 
 
 def in_gallery(m, name):
@@ -142,11 +144,11 @@ def update_to_match(win, name):
     st, fam = style_obj(m, name)
     if st is None:
         return
-    vc = docapi.read_cursor(m)
+    vc = modelapi.read_cursor(m)
     um = m.getUndoManager()
     um.enterUndoContext("Update Style")
     try:
-        for p in docapi.STYLE_PROPS:
+        for p in modelapi.STYLE_PROPS:
             if fam == "CharacterStyles" and p.startswith("Para"):
                 continue
             try:
@@ -277,9 +279,9 @@ def describe(p, fam, based, follow, gallery, auto):
             else:
                 parts.append("Line spacing: %s %g pt" % ("Exactly" if ls.Mode == 3 else
                                                          "At least",
-                                                         round(docapi.to_pt(ls.Height), 1)))
-            parts.append("Space Before: %g pt" % round(docapi.to_pt(p.ParaTopMargin), 1))
-            parts.append("After: %g pt" % round(docapi.to_pt(p.ParaBottomMargin), 1))
+                                                         round(modelapi.to_pt(ls.Height), 1)))
+            parts.append("Space Before: %g pt" % round(modelapi.to_pt(p.ParaTopMargin), 1))
+            parts.append("After: %g pt" % round(modelapi.to_pt(p.ParaBottomMargin), 1))
             if p.ParaLeftMargin:
                 parts.append("Indent: Left: %.2f cm" % (p.ParaLeftMargin / 1000.0))
             if p.ParaKeepTogether:
@@ -334,8 +336,8 @@ def _draw_preview(area, cr, p, fam):
     prev = ("Previous Paragraph " * 14).strip()
     y = para(4, prev, small, grey)
     try:
-        before = docapi.to_pt(p.ParaTopMargin) if fam == "ParagraphStyles" else 0
-        after = docapi.to_pt(p.ParaBottomMargin) if fam == "ParagraphStyles" else 0
+        before = modelapi.to_pt(p.ParaTopMargin) if fam == "ParagraphStyles" else 0
+        after = modelapi.to_pt(p.ParaBottomMargin) if fam == "ParagraphStyles" else 0
         align = p.ParaAdjust if fam == "ParagraphStyles" else 0
         indent = (p.ParaLeftMargin / 2540.0 * 96 * 0.5) if fam == "ParagraphStyles" else 0
     except Exception:
@@ -403,14 +405,14 @@ def modify_dialog(win, name=None):
         auto0 = bool(getattr(st, "IsAutoUpdate", False)) if fam == "ParagraphStyles" else False
     else:
         st, fam = None, "ParagraphStyles"
-        vc = docapi.read_cursor(m)
+        vc = modelapi.read_cursor(m)
         proxy = StyleProxy(vc)
         parent = word_style(vc.ParaStyleName or "Standard")
         follow0 = None
         auto0 = False
-    para_names = sorted({word_style(d) for _n, d in docapi.style_names(m, "ParagraphStyles")},
+    para_names = sorted({word_style(d) for _n, d in modelapi.style_names(m, "ParagraphStyles")},
                         key=str.lower)
-    char_names = sorted({word_style(d) for _n, d in docapi.style_names(m, "CharacterStyles")},
+    char_names = sorted({word_style(d) for _n, d in modelapi.style_names(m, "CharacterStyles")},
                         key=str.lower)
 
     d = FDialog(win, "Modify Style" if name else "Create New Style from Formatting")
@@ -561,7 +563,7 @@ def modify_dialog(win, name=None):
             elif what == "b":
                 proxy.CharWeight = 150.0 if bold.get_active() else 100.0
             elif what == "i":
-                proxy.CharPosture = bridge.enum("com.sun.star.awt.FontSlant",
+                proxy.CharPosture = values.enum("com.sun.star.awt.FontSlant",
                                                 "ITALIC" if ital.get_active() else "NONE")
             elif what == "u":
                 proxy.CharUnderline = 1 if und.get_active() else 0
@@ -571,14 +573,14 @@ def modify_dialog(win, name=None):
                 proxy.ParaAdjust = v
             elif what == "line":
                 ls = proxy.ParaLineSpacing
-                new = bridge.struct("com.sun.star.style.LineSpacing", Mode=0, Height=v)
+                new = values.struct("com.sun.star.style.LineSpacing", Mode=0, Height=v)
                 if not (ls.Mode == 0 and ls.Height == v):
                     proxy.ParaLineSpacing = new
             elif what == "space":
                 for p in ("ParaTopMargin", "ParaBottomMargin"):
-                    pt = docapi.to_pt(getattr(proxy, p)) + v
+                    pt = modelapi.to_pt(getattr(proxy, p)) + v
                     if p == "ParaTopMargin" or v > 0 or pt >= 0:
-                        setattr(proxy, p, docapi.pt(max(0, pt)))
+                        setattr(proxy, p, modelapi.pt(max(0, pt)))
             elif what == "indent":
                 proxy.ParaLeftMargin = max(0, (proxy.ParaLeftMargin or 0) + v)
         except Exception as e:
@@ -650,7 +652,7 @@ def modify_dialog(win, name=None):
             if fams.getByName(target_fam).hasByName(engine_style(new_name)):
                 win.dialogs.message("A style with that name already exists.")
                 return
-            docapi.new_style(m, engine_style(new_name),
+            modelapi.new_style(m, engine_style(new_name),
                              based_on=None if based_v in (None, "(no style)")
                              else engine_style(based_v),
                              follow=engine_style(follow_v or new_name)
@@ -705,7 +707,7 @@ def modify_dialog(win, name=None):
 
 
 def _unique_name(m):
-    fam = docapi.para_styles(m)
+    fam = modelapi.para_styles(m)
     i = 1
     while fam.hasByName("Style%d" % i):
         i += 1
@@ -742,13 +744,13 @@ def border_dialog(parent, p):
                   3: {"top"}, 4: {"top", "bottom"}}[setting.get_active()]
         w = widths[width.get_active()]
         c = col.color if col.color is not None and col.color >= 0 else 0
-        line = bridge.struct("com.sun.star.table.BorderLine2", Color=c,
+        line = values.struct("com.sun.star.table.BorderLine2", Color=c,
                              OuterLineWidth=int(w * 35.28), LineWidth=int(w * 35.28))
-        empty = bridge.struct("com.sun.star.table.BorderLine2")
+        empty = values.struct("com.sun.star.table.BorderLine2")
         for side, prop in (("top", "TopBorder"), ("bottom", "BottomBorder"),
                            ("left", "LeftBorder"), ("right", "RightBorder")):
             setattr(p, prop, line if side in chosen else empty)
-            setattr(p, prop + "Distance", docapi.pt(1) if chosen else 0)
+            setattr(p, prop + "Distance", modelapi.pt(1) if chosen else 0)
         if shade.color is None or shade.color < 0:
             p.ParaBackColor = -1
             p.ParaBackTransparent = True
@@ -760,11 +762,11 @@ def border_dialog(parent, p):
 
 def language_dialog(parent, p):
     d = FDialog(parent, "Language")
-    names = [n for n, _l, _c in docapi.LANGUAGES]
+    names = [n for n, _l, _c in modelapi.LANGUAGES]
     cur = 0
     try:
         loc = p.CharLocale
-        for i, (_n, lang, country) in enumerate(docapi.LANGUAGES):
+        for i, (_n, lang, country) in enumerate(modelapi.LANGUAGES):
             if lang == loc.Language and country == loc.Country:
                 cur = i
     except Exception:
@@ -782,7 +784,7 @@ def language_dialog(parent, p):
         if nocheck.get_active():
             p.CharLocale = docapi.locale("zxx", "")
         else:
-            _n, lang, country = docapi.LANGUAGES[c.get_active()]
+            _n, lang, country = modelapi.LANGUAGES[c.get_active()]
             p.CharLocale = docapi.locale(lang, country)
     d.done()
 

@@ -849,3 +849,73 @@ def scroll_hook(view, handles):
     for adj in (sw.get_vadjustment(), sw.get_hadjustment()):
         adj.connect("value-changed", lambda *_: GLib.idle_add(
             lambda: (handles._place_button(), False)[1]))
+
+
+# ------------------------------------------------------------ artistic effects (W3-04)
+_ORIGINAL = {}       # picture (paragraph, offset) -> (bytes, name) as it was before an effect
+
+
+def _picture_image(win):
+    ed = _ed(win)
+    o = ed.selected_object()
+    if o is None or o.get("kind") != "picture":
+        return None, None
+    got = ed.object_image()
+    if not got:
+        return None, None
+    data, name = got
+    node = (o.get("para"), o.get("off"))
+    orig = _ORIGINAL.get(node)
+    return (orig or (bytes(data), name)), node
+
+
+def effect_thumbnails(win, size=72):
+    """{effect: GdkPixbuf} previews of the selected picture (None when there's none)."""
+    import io
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+    from gi.repository import GdkPixbuf, GLib
+    from .. import pictools
+    (data, _name), _node = _picture_image(win)
+    if not data:
+        return None
+    img = Image.open(io.BytesIO(data)).convert("RGBA")
+    img.thumbnail((size * 2, size * 2))
+    out = {}
+    for name in pictools.EFFECTS:
+        t = pictools.apply_effect_image(img, name) if name != "None" else img
+        t = t.copy()
+        t.thumbnail((size, size))
+        buf = io.BytesIO()
+        t.save(buf, "PNG")
+        loader = GdkPixbuf.PixbufLoader.new_with_type("png")
+        loader.write(buf.getvalue())
+        loader.close()
+        out[name] = loader.get_pixbuf()
+        _ = GLib
+    return out
+
+
+def artistic_effect(win, name):
+    import io
+    from PIL import Image
+    from .. import pictools
+    ed = _ed(win)
+    (data, iname), node = _picture_image(win)
+    if not data:
+        return
+    _ORIGINAL.setdefault(node, (data, iname))
+    if name == "None":
+        out = data
+    else:
+        img = Image.open(io.BytesIO(data)).convert("RGBA")
+        buf = io.BytesIO()
+        pictools.apply_effect_image(img, name).save(buf, "PNG")
+        out = buf.getvalue()
+    if ed.object_set_image(out, "png"):
+        win.engine.view.after_edit()
+
+
+DISPATCH["artistic_effect"] = artistic_effect

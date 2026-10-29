@@ -6,6 +6,7 @@ from gi.repository import Gtk
 
 from . import docapi
 from .widgets import FDialog, combo, heading
+from . import modelapi
 
 TYPES = [("Text", 2), ("Number", 1), ("Date", 0)]
 
@@ -160,7 +161,7 @@ def _options(parent, opts, kind):
     d.add(col)
     d.add(case)
     d.add(heading("Sorting language"))
-    lang = combo([n for n, _l, _c in docapi.LANGUAGES], 0)
+    lang = combo([n for n, _l, _c in modelapi.LANGUAGES], 0)
     d.add(lang)
     d.show_all()
     if d.ask() == Gtk.ResponseType.OK:
@@ -168,7 +169,7 @@ def _options(parent, opts, kind):
             (oe.get_text() or "\t")
         opts["columns_only"] = col.get_active()
         opts["case"] = case.get_active()
-        _n, l, c = docapi.LANGUAGES[max(0, lang.get_active())]
+        _n, l, c = modelapi.LANGUAGES[max(0, lang.get_active())]
         opts["locale"] = (l, c)
     d.destroy()
 

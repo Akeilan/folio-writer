@@ -14,6 +14,8 @@ from gi.repository import GLib, Gtk
 
 from ._lazy import bridge, docapi
 from .widgets import FDialog, LengthSpin, combo, grid, heading
+from .native import values
+from . import modelapi
 
 PREFIX = "com.sun.star.text.fieldmaster.User."
 OPEN, CLOSE = "«", "»"
@@ -48,11 +50,11 @@ LABELS = [  # name, page w, h, label w, h, cols, rows, top, side, hpitch, vpitch
 
 # ------------------------------------------------------------------ recipients
 def _setting(m, key, default=""):
-    return docapi._doc_setting(m, key, default)
+    return modelapi._doc_setting(m, key, default)
 
 
 def _set(m, key, value):
-    docapi._set_doc_setting(m, key, value)
+    modelapi._set_doc_setting(m, key, value)
 
 
 def read_csv(path):
@@ -152,7 +154,7 @@ def merge_masters(m):
 
 
 def insert_field(m, col, text=None, cursor=None):
-    vc = cursor or docapi.view_cursor(m)
+    vc = cursor or modelapi.view_cursor(m)
     text = text or vc.getText()
     f = m.createInstance("com.sun.star.text.textfield.User")
     f.attachTextFieldMaster(_master(m, col))
@@ -210,7 +212,7 @@ def address_columns(cols, m=None):
 
 def insert_greeting(m, salutation="Dear", punct=","):
     cols, _r, _i = recipients(m)
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     text = vc.getText()
     first = _find(cols, "First Name", "FirstName", "Given Name", "First", "Name")
     last = _find(cols, "Last Name", "LastName", "Surname")
@@ -263,13 +265,13 @@ def _desktop():
 
 def _store(doc, path, fmt="writer8"):
     import uno
-    doc.storeToURL(uno.systemPathToFileUrl(path), (bridge.prop("FilterName", fmt),))
+    doc.storeToURL(uno.systemPathToFileUrl(path), (values.prop("FilterName", fmt),))
 
 
 def _load_hidden(path):
     import uno
     return _desktop().loadComponentFromURL(uno.systemPathToFileUrl(path), "_blank", 0,
-                                           (bridge.prop("Hidden", True),))
+                                           (values.prop("Hidden", True),))
 
 
 def _unlink_merge_fields(doc, values, only_in=None):
@@ -361,7 +363,7 @@ def merge(m, which="all", first=1, last=None, answers=None):
                     cur.gotoEnd(False)
                     text.insertControlCharacter(cur, 0, False)
                     if kind != "directory":
-                        cur.BreakType = bridge.enum("com.sun.star.style.BreakType",
+                        cur.BreakType = values.enum("com.sun.star.style.BreakType",
                                                     "PAGE_BEFORE")
                     try:
                         import uno
@@ -393,7 +395,7 @@ def _merge_labels(doc, template, records):
         cur = text.createTextCursor()
         cur.gotoEnd(False)
         text.insertControlCharacter(cur, 0, False)
-        cur.BreakType = bridge.enum("com.sun.star.style.BreakType", "PAGE_BEFORE")
+        cur.BreakType = values.enum("com.sun.star.style.BreakType", "PAGE_BEFORE")
         cur.insertDocumentFromURL(uno.systemPathToFileUrl(template), ())
     k = 0
     tables = doc.getTextTables()
@@ -434,7 +436,7 @@ def envelope(m, delivery, ret, size_index=0, omit_return=False, opts=None):
     ps.TopMargin = ps.LeftMargin = 1000
     ps.BottomMargin = ps.RightMargin = 800
     ps.HeaderIsOn = ps.FooterIsOn = False
-    body_style = docapi.read_cursor(m).PageStyleName or "Standard"
+    body_style = modelapi.read_cursor(m).PageStyleName or "Standard"
     um = m.getUndoManager()
     um.enterUndoContext("Add Envelope")
     try:
@@ -498,13 +500,13 @@ def labels_document(m, address, label_index=0, full_page=True, row=1, col=1):
     ps.TopMargin, ps.BottomMargin = top, 0
     ps.LeftMargin, ps.RightMargin = side, max(0, pw - side - cols * hp + (hp - lw))
     ps.HeaderIsOn = ps.FooterIsOn = False
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     t = m.createInstance("com.sun.star.text.TextTable")
     t.initialize(rows, cols)
     vc.getText().insertTextContent(vc, t, False)
     t.HoriOrient = 3     # LEFT
     t.Width = cols * hp - (hp - lw)
-    empty = bridge.struct("com.sun.star.table.BorderLine2")
+    empty = values.struct("com.sun.star.table.BorderLine2")
     tb = t.TableBorder2
     for s in ("Top", "Bottom", "Left", "Right", "Horizontal", "Vertical"):
         setattr(tb, s + "Line", empty)

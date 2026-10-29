@@ -1757,6 +1757,71 @@ impl Editor {
     }
 
     /// Give the selected picture a new image (Remove Background, Compress).
+    /// The selected object's alternative text and whether it's marked decorative.
+    pub fn object_alt_text(&self) -> Option<(String, bool)> {
+        let node = self.sel_obj?;
+        let dom = &self.doc.dom;
+        let holder = dom.child(node, "wp:inline").or_else(|| dom.child(node, "wp:anchor"))?;
+        let dp = dom.child(holder, "wp:docPr")?;
+        let text = dom.attr(dp, "descr").unwrap_or("").to_string();
+        let dec = crate::pictures::find(dom, dp, "adec:decorative").map_or(false, |e| dom.attr(e, "val") == Some("1"));
+        Some((text, dec))
+    }
+
+    /// Alt Text pane: the description (wp:docPr/@descr) and Mark as decorative
+    /// (the adec:decorative extension Word writes).
+    pub fn set_object_alt_text(&mut self, text: &str, decorative: bool) -> bool {
+        let Some(node) = self.sel_obj else { return false };
+        let holder = {
+            let dom = &self.doc.dom;
+            match dom.child(node, "wp:inline").or_else(|| dom.child(node, "wp:anchor")) {
+                Some(h) => h,
+                None => return false,
+            }
+        };
+        let Some(dp) = self.doc.dom.child(holder, "wp:docPr") else { return false };
+        self.begin();
+        let dom = &mut self.doc.dom;
+        if text.is_empty() {
+            dom.remove_attr(dp, "descr");
+        } else {
+            dom.set_attr(dp, "descr", text);
+        }
+        // the decorative flag lives in a:extLst/a:ext[uri]/adec:decorative
+        const URI: &str = "{C183D7F6-B498-43B3-948B-1728B52AA6E4}";
+        const NS: &str = "http://schemas.microsoft.com/office/drawing/2017/decorative";
+        let old = crate::pictures::find(dom, dp, "adec:decorative");
+        if let Some(e) = old {
+            let ext = dom.parent(e);
+            if decorative {
+                dom.set_attr(e, "val", "1");
+            } else if let Some(x) = ext {
+                let lst = dom.parent(x);
+                dom.detach(x);
+                if let Some(l) = lst {
+                    if dom.children(l).is_empty() {
+                        dom.detach(l);
+                    }
+                }
+            }
+        } else if decorative {
+            let lst = match dom.child(dp, "a:extLst") {
+                Some(l) => l,
+                None => {
+                    let l = dom.new_element("a:extLst", &[("xmlns:a", "http://schemas.openxmlformats.org/drawingml/2006/main")]);
+                    dom.append(dp, l);
+                    l
+                }
+            };
+            let x = dom.new_element("a:ext", &[("uri", URI)]);
+            let d = dom.new_element("adec:decorative", &[("xmlns:adec", NS), ("val", "1")]);
+            dom.append(x, d);
+            dom.append(lst, x);
+        }
+        self.commit("Alt Text", false);
+        true
+    }
+
     pub fn object_set_image(&mut self, bytes: &[u8], ext: &str) -> bool {
         let Some(node) = self.sel_obj else { return false };
         let Some(blip) = crate::pictures::find(&self.doc.dom, node, "a:blip") else { return false };

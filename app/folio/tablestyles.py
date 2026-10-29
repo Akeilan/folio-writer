@@ -5,6 +5,8 @@ thumbnails and the document use the same rules."""
 import json
 
 from . import bridge, docapi
+from .native import values
+from . import modelapi
 
 ACCENTS = [("", 0x000000), ("Accent 1", 0x4472C4), ("Accent 2", 0xED7D31),
            ("Accent 3", 0xA5A5A5), ("Accent 4", 0xFFC000), ("Accent 5", 0x5B9BD5),
@@ -176,7 +178,7 @@ def _key(t):
 
 
 def get_style(m, t):
-    v = docapi._doc_setting(m, _key(t), "")
+    v = modelapi._doc_setting(m, _key(t), "")
     try:
         d = json.loads(v) if v else {}
     except ValueError:
@@ -197,7 +199,7 @@ def apply(m, kind=None, accent=None, opts=None, t=None):
     try:
         rows = t.getRows().getCount()
         cols = t.getColumns().getCount()
-        empty = bridge.struct("com.sun.star.table.BorderLine2")
+        empty = values.struct("com.sun.star.table.BorderLine2")
         try:
             tb = t.TableBorder2
             for side in ("Top", "Bottom", "Left", "Right", "Horizontal", "Vertical"):
@@ -238,7 +240,7 @@ def apply(m, kind=None, accent=None, opts=None, t=None):
             t.RepeatHeadline = bool(o["header"])
         except Exception:
             pass
-        docapi._set_doc_setting(m, _key(t), json.dumps({"kind": kind, "accent": accent,
+        modelapi._set_doc_setting(m, _key(t), json.dumps({"kind": kind, "accent": accent,
                                                          "opts": o}))
     finally:
         um.leaveUndoContext()
@@ -265,7 +267,7 @@ def insert_table(m, rows, cols):
     um = m.getUndoManager()
     um.enterUndoContext("Insert Table")
     try:
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         t = m.createInstance("com.sun.star.text.TextTable")
         t.initialize(int(rows), int(cols))
         vc.getText().insertTextContent(vc, t, False)

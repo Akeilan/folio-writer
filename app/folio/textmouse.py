@@ -8,6 +8,7 @@ on its own, as in the original:
 from gi.repository import Gdk, GLib, Gtk
 
 from . import docapi
+from . import modelapi
 
 DRAG_THRESHOLD = 5
 
@@ -21,14 +22,14 @@ def select_paragraph(win):
     if m is None:
         return False
     try:
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         c = vc.getText().createTextCursorByRange(vc.getStart())
         c.gotoStartOfParagraph(False)
         c.gotoEndOfParagraph(True)
         # the paragraph mark comes with it, unless it's the last paragraph
         if not c.gotoNextParagraph(True):
             pass
-        docapi.controller(m).select(c)
+        modelapi.controller(m).select(c)
     except Exception as e:
         print("select paragraph:", e)
     return False
@@ -39,7 +40,7 @@ def select_sentence(win):
     if m is None:
         return False
     try:
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         if getattr(vc, "HyperLinkURL", ""):
             return False
         c = vc.getText().createTextCursorByRange(vc.getStart())
@@ -50,7 +51,7 @@ def select_sentence(win):
         while end.goRight(1, True) and end.getString().endswith(" "):
             c.gotoRange(end.getEnd(), True)
             end.collapseToEnd()
-        docapi.controller(m).select(c)
+        modelapi.controller(m).select(c)
     except Exception as e:
         print("select sentence:", e)
     return False
@@ -115,7 +116,7 @@ class DragMove:
         if not point_in_selection(win.engine.view, event.x, event.y):
             return False
         try:
-            ctl = docapi.controller(m)
+            ctl = modelapi.controller(m)
             sel = ctl.getSelection()
             if sel.getCount() != 1:
                 return False
@@ -198,7 +199,7 @@ class DragMove:
         if m is None or src is None or data is None:
             return False
         try:
-            vc = docapi.view_cursor(m)
+            vc = modelapi.view_cursor(m)
             dest = vc.getStart()
             text = src.getText()
             inside = False
@@ -209,7 +210,7 @@ class DragMove:
             except Exception:
                 pass
             if inside:
-                docapi.controller(m).select(src)
+                modelapi.controller(m).select(src)
                 return False
             mark = dest.getText().createTextCursorByRange(dest)
             um = m.getUndoManager()
@@ -217,7 +218,7 @@ class DragMove:
             try:
                 if not copy:
                     src.setString("")
-                ctl = docapi.controller(m)
+                ctl = modelapi.controller(m)
                 ctl.select(mark)
                 ctl.insertTransferable(data)
             finally:

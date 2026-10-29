@@ -7,6 +7,7 @@ from gi.repository import Gdk, Gtk
 
 from . import bridge
 from .widgets import FDialog, LengthSpin, color_button, combo, grid, heading, rgb
+from .native import values
 
 STYLES = [("Single", 0), ("Dotted", 1), ("Dashed", 2), ("Dash dot", 16),
           ("Dash dot dot", 17), ("Double", 3), ("Thin thick", 4), ("Thick thin", 7),
@@ -25,15 +26,15 @@ PROP = {"top": "TopBorder", "bottom": "BottomBorder", "left": "LeftBorder",
 def _line(style, width_pt, color):
     w = int(round(width_pt * 2540 / 72))
     if style == 3:          # double: two lines and a gap
-        return bridge.struct("com.sun.star.table.BorderLine2", Color=color, LineWidth=w * 3,
+        return values.struct("com.sun.star.table.BorderLine2", Color=color, LineWidth=w * 3,
                              OuterLineWidth=w, InnerLineWidth=w, LineDistance=w,
                              LineStyle=style)
-    return bridge.struct("com.sun.star.table.BorderLine2", Color=color, LineWidth=w,
+    return values.struct("com.sun.star.table.BorderLine2", Color=color, LineWidth=w,
                          OuterLineWidth=w, LineStyle=style)
 
 
 def _empty():
-    return bridge.struct("com.sun.star.table.BorderLine2")
+    return values.struct("com.sun.star.table.BorderLine2")
 
 
 def blend(fill, pat_color, pct):

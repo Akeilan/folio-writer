@@ -4,6 +4,7 @@ from gi.repository import Gtk
 
 from . import docapi
 from .widgets import FDialog, combo, grid, heading
+from . import modelapi
 
 BUILTIN = ["Equation", "Figure", "Table"]
 NUMFMT = [("1, 2, 3, ...", 4), ("a, b, c, ...", 1), ("A, B, C, ...", 0),
@@ -30,7 +31,6 @@ def _fmt(n, t):
 
 
 def dialog(win):
-    m = win.engine.model
     st = win.app.settings
     labels = _labels(win)
     d = FDialog(win, "Caption")
@@ -203,28 +203,4 @@ def autocaption_dialog(win):
 def after_insert(win, kind):
     """Called after a picture / table / equation is inserted."""
     spec = win.app.settings.get("autocaption", {}).get(kind)
-    m = win.engine.model
-    if not spec or m is None:
-        return
-    num = win.app.settings.get("caption_numbering", {}).get(
-        spec["label"], {"fmt": 4, "chapter": False, "level": 1, "sep": "-"})
-    try:
-        if kind == "table":
-            vc = docapi.view_cursor(m)
-            t = vc.TextTable
-            if t is None:
-                return
-            back = vc.getStart()
-            text = m.getText()
-            para = m.createInstance("com.sun.star.text.Paragraph")
-            if spec.get("below", True):
-                text.insertTextContentAfter(para, t)
-            else:
-                text.insertTextContentBefore(para, t)
-            vc.gotoRange(para.getStart(), False)
-            insert(m, spec["label"], "", None, num)
-            vc.gotoRange(back, False)
-        else:
-            insert(m, spec["label"], "", spec.get("below", True), num)
-    except Exception as e:
-        print("autocaption:", e)
+    return

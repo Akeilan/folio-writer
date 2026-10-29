@@ -1,123 +1,99 @@
-"""Styles pane extras: the Style Inspector and the Manage Styles dialog."""
+"""Styles pane extras: the Style Inspector and the Manage Styles dialog, with Folio's
+engine (W3-04: the document's styles and the formatting at the cursor, read from it)."""
 import html
 
 from gi.repository import GLib, Gtk, Pango
 
-from . import docapi
 from .panes import Pane
 from .widgets import FDialog
 
-# (property, label, formatter) checked for direct formatting
-PARA_PROPS = [
-    ("ParaAdjust", "Alignment", lambda v: {0: "Left", 1: "Right", 2: "Justified", 3: "Centered"}
-     .get(int(v), str(v))),
-    ("ParaLeftMargin", "Indent: Left", lambda v: _len(v)),
-    ("ParaRightMargin", "Indent: Right", lambda v: _len(v)),
-    ("ParaFirstLineIndent", "First line", lambda v: _len(v) if v >= 0 else "Hanging: " +
-     _len(-v)),
-    ("ParaTopMargin", "Space Before", lambda v: "%g pt" % round(docapi.to_pt(v), 1)),
-    ("ParaBottomMargin", "Space After", lambda v: "%g pt" % round(docapi.to_pt(v), 1)),
-    ("ParaLineSpacing", "Line spacing", lambda v: _spacing(v)),
-    ("ParaBackColor", "Shading", lambda v: "#%06X" % v if v >= 0 else "No Color"),
-    ("ParaKeepTogether", "Keep lines together", None),
-    ("ParaSplit", "Don't split", None),
-    ("ParaOrphans", "Widow/Orphan control", None),
-]
-CHAR_PROPS = [
-    ("CharFontName", "Font", lambda v: v),
-    ("CharHeight", "Size", lambda v: "%g pt" % v),
-    ("CharWeight", "Bold", lambda v: "Bold" if v >= 150 else "Not Bold"),
-    ("CharPosture", "Italic", lambda v: "Italic" if str(getattr(v, "value", v)) != "NONE"
-     else "Not Italic"),
-    ("CharUnderline", "Underline", lambda v: "Underline" if v else "No underline"),
-    ("CharStrikeout", "Strikethrough", lambda v: "Strikethrough" if v else "No strikethrough"),
-    ("CharColor", "Font color", lambda v: "#%06X" % v if v >= 0 else "Automatic"),
-    ("CharBackColor", "Highlight", lambda v: "#%06X" % v if v >= 0 else "No Color"),
-    ("CharEscapement", "Position", lambda v: "Superscript" if v > 0 else
-     ("Subscript" if v < 0 else "Normal")),
-    ("CharCaseMap", "Case", lambda v: {1: "All caps", 2: "Lowercase", 3: "Title",
-                                       4: "Small caps"}.get(v, "Normal")),
-    ("CharKerning", "Spacing", lambda v: "Expanded" if v > 0 else "Condensed"),
-]
+ALIGN = {"left": "Left", "start": "Left", "right": "Right", "end": "Right", "center": "Centered",
+         "both": "Justified", "distribute": "Distributed"}
+# paragraph properties Clear Formatting (paragraph) takes back to the style's
+PARA_CLEAR = ["w:jc", "w:ind", "w:spacing", "w:shd", "w:keepLines", "w:keepNext", "w:widowControl",
+              "w:pageBreakBefore", "w:pBdr", "w:tabs", "w:contextualSpacing"]
+RUN_CLEAR = ["w:rFonts", "w:b", "w:bCs", "w:i", "w:iCs", "w:caps", "w:smallCaps", "w:strike", "w:dstrike",
+             "w:color", "w:spacing", "w:sz", "w:szCs", "w:highlight", "w:u", "w:vertAlign", "w:shd"]
 
 
-def _len(v):
+def _pt(tw):
+    return "%g pt" % round((tw or 0) / 20.0, 1)
+
+
+def _len(tw):
     from .widgets import fmt_len
     try:
-        return fmt_len(v)
+        return fmt_len(int(round((tw or 0) * 2540 / 1440.0)))
     except Exception:
-        return "%.2f cm" % (v / 1000.0)
+        return "%.2f\"" % ((tw or 0) / 1440.0)
 
 
-def _spacing(v):
+def _line(rule, v):
+    if rule == "auto":
+        return {240: "Single", 360: "1.5 lines", 480: "Double"}.get(v, "Multiple %g li" % round(v / 240.0, 2))
+    return ("Exactly %s" if rule == "exact" else "At least %s") % _pt(v)
+
+
+def _style_ids(ed):
+    return {s[0]: s for s in ed.style_list()}
+
+
+def direct_formatting(ed):
+    """([paragraph descriptions], [text descriptions]): formatting at the cursor on top of
+    its styles."""
+    st = ed.state() or {}
+    pid = st.get("style_id") or ""
+    cid = st.get("char_style_id") or ""
     try:
-        if v.Mode == 0:
-            return {100: "Single", 150: "1.5 lines", 200: "Double"}.get(
-                v.Height, "Multiple %g li" % (v.Height / 100.0))
-        if v.Mode == 3:
-            return "Exactly %g pt" % round(docapi.to_pt(v.Height), 1)
-        return "At least %g pt" % round(docapi.to_pt(v.Height), 1)
-    except Exception:
-        return ""
-
-
-def _same(a, b):
-    if hasattr(a, "Mode") and hasattr(a, "Height"):
-        return (a.Mode, a.Height) == (b.Mode, b.Height)
-    if isinstance(a, float) or isinstance(b, float):
-        try:
-            return abs(float(a) - float(b)) < 0.01
-        except (TypeError, ValueError):
-            return False
-    return a == b
-
-
-def direct_formatting(m):
-    """([paragraph descriptions], [text descriptions]) for formatting applied
-    on top of the styles at the cursor (values that differ from the styles)."""
-    import uno
-    default = uno.Enum("com.sun.star.beans.PropertyState", "DEFAULT_VALUE")
-    rc = docapi.read_cursor(m)
-    try:
-        vc = rc.getText().createTextCursorByRange(rc.getStart())
-        if not rc.isCollapsed():
-            vc.goRight(1, True)        # the first selected character
-    except Exception:
-        vc = rc
-    try:
-        pst = docapi.para_styles(m).getByName(vc.ParaStyleName)
+        pv = ed.style_para_values(pid) if pid else {}
+        rv = ed.style_run_values(cid) if cid else (ed.style_run_values(pid) if pid else {})
     except Exception:
         return [], []
-    cst = None
-    try:
-        if vc.CharStyleName:
-            cst = docapi.char_styles(m).getByName(vc.CharStyleName)
-    except Exception:
-        cst = None
-    out = ([], [])
-    for k, props in enumerate((PARA_PROPS, CHAR_PROPS)):
-        for prop, label, fmt in props:
-            try:
-                v = getattr(vc, prop)
-                base = getattr(pst, prop)
-                if k == 1 and cst is not None:
-                    try:
-                        if cst.getPropertyState(prop) != default:
-                            base = getattr(cst, prop)
-                    except Exception:
-                        pass
-            except Exception:
-                continue
-            if v is None or _same(v, base):
-                continue
-            plain = label in ("Bold", "Italic", "Underline", "Strikethrough", "Font", "Size",
-                              "Position", "Case")
-            try:
-                out[k].append(label if fmt is None else (fmt(v) if plain else
-                                                         "%s: %s" % (label, fmt(v))))
-            except Exception:
-                pass
-    return out
+    para, text = [], []
+    if ALIGN.get(st.get("align")) != ALIGN.get(pv.get("align", "left")):
+        para.append("Alignment: %s" % ALIGN.get(st.get("align"), st.get("align")))
+    for key, skey, label in (("ind_left", "ind_left", "Indent: Left"), ("ind_right", "ind_right", "Indent: Right")):
+        if (st.get(key) or 0) != (pv.get(skey) or 0):
+            para.append("%s: %s" % (label, _len(st.get(key))))
+    if (st.get("ind_first") or 0) != (pv.get("ind_first") or 0):
+        v = st.get("ind_first") or 0
+        para.append("First line: %s" % _len(v) if v >= 0 else "Hanging: %s" % _len(-v))
+    for key, skey, label in (("space_before", "before", "Space Before"), ("space_after", "after", "Space After")):
+        if (st.get(key) or 0) != (pv.get(skey) or 0):
+            para.append("%s: %s" % (label, _pt(st.get(key))))
+    if (st.get("line"), st.get("line_rule")) != (pv.get("line", 240), pv.get("line_rule", "auto")):
+        para.append("Line spacing: %s" % _line(st.get("line_rule"), st.get("line") or 240))
+    if (st.get("font") or "") != (rv.get("font") or ""):
+        text.append(st.get("font") or "")
+    if abs(float(st.get("size") or 0) - float(rv.get("size") or 0)) > 0.01:
+        text.append("%g pt" % float(st.get("size") or 0))
+    for key, on, off in (("bold", "Bold", "Not Bold"), ("italic", "Italic", "Not Italic"),
+                         ("strike", "Strikethrough", "No strikethrough")):
+        a = st.get(key) is True
+        if a != bool(rv.get(key)):
+            text.append(on if a else off)
+    u = st.get("underline") or "none"
+    if (u != "none") != ((rv.get("underline") or "none") != "none"):
+        text.append("Underline" if u != "none" else "No underline")
+    col = st.get("color") or "auto"
+    scol = rv.get("color", -1)
+    scol = "auto" if scol is None or scol < 0 else "%06X" % scol
+    if col.upper() != scol.upper() and not (col == "auto" and scol == "000000"):
+        text.append("Font color: %s" % ("Automatic" if col == "auto" else "#" + col))
+    if (st.get("highlight") or "none") != "none":
+        text.append("Highlight: %s" % st.get("highlight"))
+    va = st.get("vert_align") or "baseline"
+    if va != (rv.get("vert_align") or "baseline"):
+        text.append({"superscript": "Superscript", "subscript": "Subscript"}.get(va, "Normal"))
+    return para, text
+
+
+def clear_para(ed):
+    ed.apply_para([(n, None) for n in PARA_CLEAR], "Clear Paragraph Formatting")
+
+
+def clear_char(ed):
+    ed.apply_run([(n, None) for n in RUN_CLEAR], "Clear Character Formatting")
 
 
 class StyleInspector(Pane):
@@ -137,7 +113,7 @@ class StyleInspector(Pane):
         box.pack_start(Gtk.Separator(), False, False, 4)
         clear = Gtk.Button(label="Clear All")
         clear.set_halign(Gtk.Align.START)
-        clear.connect("clicked", lambda *_: self.clear_all())
+        clear.connect("clicked", lambda *_: (self.clear_all(), self.schedule(150)))
         box.pack_start(clear, False, False, 0)
         self.pack_start(box, True, True, 0)
         win.engine.connect("state-changed", self._state)
@@ -179,6 +155,10 @@ class StyleInspector(Pane):
         b.connect("clicked", lambda *_: (cb(), self.schedule(150)))
         return b
 
+    @property
+    def ed(self):
+        return getattr(self.win.engine, "ed", None)
+
     def _state(self, eng, key, value):
         if self.get_mapped():
             self.schedule()
@@ -193,75 +173,56 @@ class StyleInspector(Pane):
 
     def refresh(self):
         self._timer = None
-        m = self.model
-        if m is None:
+        ed = self.ed
+        if ed is None:
             return False
-        from .actions import word_style
-        try:
-            vc = docapi.read_cursor(m)
-            ps = word_style(docapi.para_styles(m).getByName(vc.ParaStyleName).DisplayName)
-            cs = vc.CharStyleName or ""
-            cs = word_style(docapi.char_styles(m).getByName(cs).DisplayName) if cs else \
-                "Default Paragraph Font"
-            para, text = direct_formatting(m)
-        except Exception as e:
-            print("inspector:", e)
-            return False
-        self.para_style.set_text(ps)
-        self.char_style.set_text(cs)
+        st = ed.state() or {}
+        styles = _style_ids(ed)
+        cs = st.get("char_style_id") or ""
+        cname = styles[cs][1] if cs in styles else "Default Paragraph Font"
+        para, text = direct_formatting(ed)
+        self.para_style.set_text(st.get("style") or "Normal")
+        self.char_style.set_text(cname)
         self.para_plus.set_markup("Plus: " + html.escape(", ".join(para) if para else "<none>"))
-        self.char_plus.set_markup("Plus: " + html.escape(", ".join(text) if text else "<none>"))
+        self.char_plus.set_markup("Plus: " + html.escape(", ".join(t for t in text if t) if text else "<none>"))
         return False
+
+    def _after(self):
+        self.win.engine.view.after_edit()
 
     def reset_para_style(self):
         self.win.actions.apply_style("Normal")
 
     def clear_para(self):
-        if self.model is not None:
-            reset_para_direct(self.model)
+        clear_para(self.ed)
+        self._after()
 
     def reset_char_style(self):
-        m = self.model
-        if m is not None:
-            vc = docapi.view_cursor(m)
-            try:
-                vc.setPropertyToDefault("CharStyleName")
-            except Exception:
-                pass
+        self.ed.set_char_style("")
+        self._after()
 
     def clear_char(self):
-        m = self.model
-        if m is not None:
-            reset_char_direct(m)
+        clear_char(self.ed)
+        self._after()
 
     def clear_all(self):
-        self.win.engine.command(".uno:ResetAttributes")
-        self.reset_char_style()
-
-
-def reset_para_direct(m):
-    vc = docapi.view_cursor(m)
-    for prop, _l, _f in PARA_PROPS:
+        ed = self.ed
+        ed.begin_group("Clear All")
         try:
-            vc.setPropertyToDefault(prop)
-        except Exception:
-            pass
-
-
-def reset_char_direct(m):
-    vc = docapi.view_cursor(m)
-    for prop, _l, _f in CHAR_PROPS:
-        try:
-            vc.setPropertyToDefault(prop)
-        except Exception:
-            pass
+            clear_char(ed)
+            ed.set_char_style("")
+            clear_para(ed)
+        finally:
+            ed.end_group()
+        self.win.actions.apply_style("Normal")
+        self._after()
 
 
 # ------------------------------------------------------------ manage styles
 def manage_styles(win, page=0):
-    from .actions import word_style, engine_style
-    m = win.engine.model
-    if m is None:
+    from .actions import word_style
+    ed = getattr(win.engine, "ed", None)
+    if ed is None:
         return
     d = FDialog(win, "Manage Styles")
     nb = Gtk.Notebook()
@@ -277,7 +238,7 @@ def manage_styles(win, page=0):
     used = Gtk.CheckButton(label="Show recommended styles only")
     row.pack_start(used, False, False, 12)
     edit.pack_start(row, False, False, 0)
-    store = Gtk.ListStore(str, str, str, str)     # word name, engine name, family, based on
+    store = Gtk.ListStore(str, str, str, str, bool)     # name, id, kind, based on, custom
     tv = Gtk.TreeView(model=store)
     tv.set_headers_visible(False)
     tv.append_column(Gtk.TreeViewColumn("", Gtk.CellRendererText(), text=0))
@@ -288,7 +249,7 @@ def manage_styles(win, page=0):
     preview = Gtk.Label(xalign=0)
     preview.set_line_wrap(True)
     preview.set_max_width_chars(60)
-    pf = Gtk.Frame(label="Preview of " + "")
+    pf = Gtk.Frame(label="Preview")
     pf.add(preview)
     edit.pack_start(pf, False, False, 0)
     bb = Gtk.Box(spacing=6)
@@ -304,20 +265,16 @@ def manage_styles(win, page=0):
     def fill():
         store.clear()
         rows = []
-        for fam in ("ParagraphStyles", "CharacterStyles"):
-            for n, disp in docapi.style_names(m, fam):
-                st = m.getStyleFamilies().getByName(fam).getByName(n)
-                wn = word_style(disp)
-                if used.get_active() and wn not in PREFERRED and not st.isUserDefined():
-                    continue
-                if not (st.isInUse() or st.isUserDefined() or wn in PREFERRED):
-                    continue
-                parent = ""
-                try:
-                    parent = word_style(st.ParentStyle) if st.ParentStyle else ""
-                except Exception:
-                    pass
-                rows.append((wn, n, fam, parent))
+        names = {s[0]: s[1] for s in ed.style_list()}
+        for sid, name, kind, based, _nxt, custom, _auto, gallery in ed.style_list():
+            if kind not in ("paragraph", "character"):
+                continue
+            wn = word_style(name)
+            if used.get_active() and wn not in PREFERRED and not custom:
+                continue
+            if not (custom or gallery or wn in PREFERRED or (kind == "paragraph" and ed.count_style_instances(sid))):
+                continue
+            rows.append((wn, sid, kind, word_style(names.get(based, "")) if based else "", custom))
         mode = sort.get_active()
         order = {n: i for i, n in enumerate(PREFERRED)}
         if mode == 0:
@@ -328,11 +285,7 @@ def manage_styles(win, page=0):
             rows.sort(key=lambda r: (r[3].lower(), r[0].lower()))
         else:
             rows.sort(key=lambda r: (r[2], r[0].lower()))
-        seen = set()
         for r in rows:
-            if (r[0], r[2]) in seen:
-                continue
-            seen.add((r[0], r[2]))
             store.append(list(r))
         if len(store):
             tv.get_selection().select_path(Gtk.TreePath(0))
@@ -345,23 +298,20 @@ def manage_styles(win, page=0):
         cur = current()
         if not cur:
             return
-        wn, n, fam, parent = cur
-        si = docapi.style_info(m, n, fam) or {}
+        wn, sid, kind, parent, custom = cur
+        rv = ed.style_run_values(sid)
         pf.set_label("Preview of %s" % wn)
-        size = si.get("CharHeight") or 11
-        font = si.get("CharFontName") or "Sans"
-        bold = " weight='bold'" if si.get("CharWeight", 100) >= 150 else ""
+        size = float(rv.get("size") or 11)
+        font = rv.get("font") or "Sans"
+        bold = " weight='bold'" if rv.get("bold") else ""
+        italic = " style='italic'" if rv.get("italic") else ""
         desc = ["Font: %s, %g pt" % (font, size)]
         if parent:
             desc.append("Based on: %s" % parent)
-        preview.set_markup("<span font_family='%s' size='%dpt'%s>AaBbCcEeGgHhIiJj</span>\n"
-                           "<small>%s</small>" % (html.escape(font), min(20, size), bold,
+        preview.set_markup("<span font_family='%s' size='%dpt'%s%s>AaBbCcEeGgHhIiJj</span>\n"
+                           "<small>%s</small>" % (html.escape(font), min(20, size), bold, italic,
                                                   html.escape(", ".join(desc))))
-        try:
-            user = m.getStyleFamilies().getByName(fam).getByName(n).isUserDefined()
-        except Exception:
-            user = False
-        b_del.set_sensitive(user)
+        b_del.set_sensitive(custom)
 
     tv.get_selection().connect("changed", show_preview)
     sort.connect("changed", lambda *_: fill())
@@ -379,10 +329,9 @@ def manage_styles(win, page=0):
             return
         if win.dialogs.confirm("Do you want to delete style %s from the document?" % cur[0],
                                yes="Yes", no="No"):
-            try:
-                m.getStyleFamilies().getByName(cur[2]).removeByName(cur[1])
-            except Exception as e:
-                win.dialogs.message("The style couldn't be deleted: %s" % e)
+            if not ed.delete_style(cur[1]):
+                win.dialogs.message("The style couldn't be deleted.")
+            win.engine.view.after_edit()
             fill()
 
     def new(*_):
@@ -395,8 +344,11 @@ def manage_styles(win, page=0):
     fill()
     nb.append_page(edit, Gtk.Label(label="Edit"))
 
-    # --- Set Defaults
-    st = docapi.para_styles(m).getByName("Standard")
+    # --- Set Defaults (the Normal style)
+    ids = {n: i for i, n in ed.paragraph_styles()}
+    nid = ids.get("Normal", "Normal")
+    rv = ed.style_run_values(nid)
+    pv = ed.style_para_values(nid)
     defaults = Gtk.Grid(row_spacing=8, column_spacing=10, margin=10)
     hdr = Gtk.Label(xalign=0)
     hdr.set_markup("<b>Font</b>")
@@ -404,9 +356,9 @@ def manage_styles(win, page=0):
     font = Gtk.ComboBoxText.new_with_entry()
     for f in win.engine.fonts()[:400]:
         font.append_text(f)
-    font.get_child().set_text(st.CharFontName)
+    font.get_child().set_text(rv.get("font") or "")
     size = Gtk.SpinButton.new_with_range(1, 400, 0.5)
-    size.set_value(st.CharHeight)
+    size.set_value(float(rv.get("size") or 11))
     defaults.attach(Gtk.Label(label="Font:", xalign=0), 0, 1, 1, 1)
     defaults.attach(font, 1, 1, 1, 1)
     defaults.attach(Gtk.Label(label="Size:", xalign=0), 2, 1, 1, 1)
@@ -415,15 +367,14 @@ def manage_styles(win, page=0):
     hdr2.set_markup("<b>Paragraph Spacing</b>")
     defaults.attach(hdr2, 0, 2, 4, 1)
     before = Gtk.SpinButton.new_with_range(0, 1584, 1)
-    before.set_value(round(docapi.to_pt(st.ParaTopMargin)))
+    before.set_value(round((pv.get("before") or 0) / 20.0))
     after = Gtk.SpinButton.new_with_range(0, 1584, 1)
-    after.set_value(round(docapi.to_pt(st.ParaBottomMargin)))
+    after.set_value(round((pv.get("after") or 0) / 20.0))
     line = Gtk.ComboBoxText()
-    lines = [("Single", 100), ("1.08", 108), ("1.15", 115), ("1.5 lines", 150),
-             ("Double", 200)]
+    lines = [("Single", 240), ("1.08", 259), ("1.15", 276), ("1.5 lines", 360), ("Double", 480)]
     for t, _v in lines:
         line.append_text(t)
-    cur_h = st.ParaLineSpacing.Height if st.ParaLineSpacing.Mode == 0 else 100
+    cur_h = pv.get("line", 240) if pv.get("line_rule", "auto") == "auto" else 240
     line.set_active(min(range(len(lines)), key=lambda i: abs(lines[i][1] - cur_h)))
     defaults.attach(Gtk.Label(label="Before:", xalign=0), 0, 3, 1, 1)
     defaults.attach(before, 1, 3, 1, 1)
@@ -440,37 +391,35 @@ def manage_styles(win, page=0):
     d.add(nb, expand=True)
     nb.show_all()
     nb.set_current_page(page)
+    first = (rv.get("font") or "", float(rv.get("size") or 11), before.get_value(), after.get_value(),
+             line.get_active())
     r = d.ask()
-    if r == Gtk.ResponseType.OK and nb.get_current_page() == 1 or (
-            r == Gtk.ResponseType.OK and _defaults_changed(st, font, size, before, after,
-                                                           line, lines)):
-        um = m.getUndoManager()
-        um.enterUndoContext("Set Defaults")
+    now = (font.get_child().get_text().strip(), size.get_value(), before.get_value(), after.get_value(),
+           line.get_active())
+    if r == Gtk.ResponseType.OK and (nb.get_current_page() == 1 or now != first):
+
+        def apply(t, sid):
+            run = [("w:sz", [("w:val", str(int(round(now[1] * 2))))]),
+                   ("w:szCs", [("w:val", str(int(round(now[1] * 2))))])]
+            if now[0]:
+                run.append(("w:rFonts", [("w:ascii", now[0]), ("w:hAnsi", now[0]), ("w:cs", now[0])]))
+            t.style_apply_run(sid, run)
+            t.style_apply_para(sid, [("w:spacing", [("w:before", str(int(now[2] * 20))),
+                                                    ("w:after", str(int(now[3] * 20))),
+                                                    ("w:line", str(lines[now[4]][1])),
+                                                    ("w:lineRule", "auto")])])
+        ed.begin_group("Set Defaults")
         try:
-            docapi.set_default_font(m, font.get_child().get_text().strip() or None,
-                                    size.get_value())
-            st.ParaTopMargin = docapi.pt(before.get_value())
-            st.ParaBottomMargin = docapi.pt(after.get_value())
-            ls = st.ParaLineSpacing
-            ls.Mode, ls.Height = 0, lines[line.get_active()][1]
-            st.ParaLineSpacing = ls
+            apply(ed, nid)
         finally:
-            um.leaveUndoContext()
+            ed.end_group()
         if scope_tpl.get_active():
             try:
-                win.app.set_default_font(font.get_child().get_text().strip(), size.get_value())
+                from .native import edit_normal_template
+                edit_normal_template(win.app, lambda t: apply(t, {n: i for i, n in t.paragraph_styles()}
+                                                              .get("Normal", "Normal")))
             except Exception as e:
                 print("defaults:", e)
+        win.engine.view.after_edit()
         win.design_changed()
     d.done()
-
-
-def _defaults_changed(st, font, size, before, after, line, lines):
-    try:
-        return (font.get_child().get_text().strip() != st.CharFontName or
-                abs(size.get_value() - st.CharHeight) > 0.01 or
-                round(docapi.to_pt(st.ParaTopMargin)) != before.get_value() or
-                round(docapi.to_pt(st.ParaBottomMargin)) != after.get_value() or
-                lines[line.get_active()][1] != st.ParaLineSpacing.Height)
-    except Exception:
-        return False

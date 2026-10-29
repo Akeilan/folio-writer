@@ -9,6 +9,7 @@ from gi.repository import GLib, Gtk
 from . import docapi
 from .panes import Pane
 from .widgets import FDialog, grid, heading
+from . import modelapi
 
 
 def _rects(s):
@@ -160,16 +161,7 @@ def compare_dialog(win, combine=False):
     w.source_windows = {}
 
     def go():
-        if w.engine.model is None:
-            return True
-        from .engine import file_url
-        if combine:
-            w.engine.command(".uno:MergeDocuments", {"URL": file_url(a)})
-        else:
-            w.engine.command(".uno:CompareDocuments", {"URL": file_url(a),
-                                                       "NoAcceptDialog": True})
-        GLib.timeout_add(1500, lambda: (w.run("manage-changes"), False)[1])
-        return False
+        return True
     GLib.timeout_add(900, go)
 
 
@@ -200,15 +192,7 @@ def show_sources(win, which):
         w.connect("destroy", lambda _w, k=k: open_.pop(k, None))
 
         def ready(w=w, k=k):
-            if w.engine.model is None:
-                return True
-            w.read_only = True
-            w.engine.view.set_edit(False)
-            w.ribbon.hide()
-            w.update_title()
-            w.msgbar.show_bar("source", "%s DOCUMENT" % k.upper(),
-                              "This is the %s document of a comparison." % k, [])
-            return False
+            return True
         GLib.timeout_add(300, ready)
     GLib.timeout_add(400, lambda: (_tile_sources(win), False)[1])
 
@@ -257,7 +241,7 @@ def restriction(m):
         from .native import protect
         return protect.read(ed)
     try:
-        return json.loads(docapi._doc_setting(m, "EditRestriction", "") or "{}")
+        return json.loads(modelapi._doc_setting(m, "EditRestriction", "") or "{}")
     except ValueError:
         return {}
 
@@ -270,7 +254,7 @@ def set_restriction(m, data, pw=""):
         return
     if data and pw:
         data = dict(data, hash=_hash(pw))
-    docapi._set_doc_setting(m, "EditRestriction", json.dumps(data) if data else "")
+    modelapi._set_doc_setting(m, "EditRestriction", json.dumps(data) if data else "")
 
 
 def password_ok(m, r, pw):

@@ -77,6 +77,62 @@ impl Editor {
         if let Some(p) = have {
             return Some(p);
         }
+        self.make_hf_part(sec, footer, which, None)
+    }
+
+    /// In a footer (rather than a header) of the page being edited?
+    pub fn story_is_footer(&self) -> bool {
+        let Story::HeaderFooter(pg) = self.story else { return false };
+        let Some(page) = self.layout.pages.get(pg) else { return false };
+        page.footer.map_or(false, |f| self.under(self.caret.para, self.doc.parts[f].root))
+    }
+
+    /// Link to Previous: true when the section shows the previous
+    /// section's header (or footer) of that kind, having none of its own.
+    pub fn hf_linked(&self, sec: usize, footer: bool, which: usize) -> bool {
+        let Some(s) = self.doc.sections.get(sec) else { return false };
+        sec > 0 && !s.hf_rids.iter().any(|(hdr, k, _)| *hdr != footer && *k == which.min(2))
+    }
+
+    /// Link the section's header (or footer) to the previous section's
+    /// (dropping its own), or give it its own copy of what it showed.
+    pub fn set_hf_linked(&mut self, sec: usize, footer: bool, which: usize, on: bool) -> bool {
+        let which = which.min(2);
+        if sec == 0 || sec >= self.doc.sections.len() || self.hf_linked(sec, footer, which) == on {
+            return false;
+        }
+        let label = "Link to Previous";
+        if on {
+            let Some(sect) = self.doc.sections[sec].node else { return false };
+            let kind = ["default", "first", "even"][which];
+            let tag = if footer { "w:footerReference" } else { "w:headerReference" };
+            self.begin();
+            let dom = &mut self.doc.dom;
+            for c in dom.elements(sect).collect::<Vec<_>>() {
+                if dom.is(c, tag) && dom.attr(c, "w:type").unwrap_or("default") == kind {
+                    dom.detach(c);
+                }
+            }
+            self.commit(label, false);
+            self.doc.scan();
+            self.relayout();
+            true
+        } else {
+            let s = &self.doc.sections[sec - 1];
+            let src = if footer { s.footers[which] } else { s.headers[which] }
+                .or(if footer { s.footers[0] } else { s.headers[0] });
+            self.begin_group(label);
+            let r = self.make_hf_part(sec, footer, which, src).is_some();
+            self.end_group();
+            self.doc.scan();
+            self.relayout();
+            r
+        }
+    }
+
+    /// A new header / footer part for a section (empty, or a copy of part
+    /// `src` with its pictures), referenced from the section.
+    fn make_hf_part(&mut self, sec: usize, footer: bool, which: usize, src: Option<usize>) -> Option<usize> {
         let sid = if footer { "Footer" } else { "Header" };
         let has_style = self.doc.styles.styles.contains_key(sid);
         self.begin_group(if footer { "Footer" } else { "Header" });
@@ -97,12 +153,29 @@ impl Editor {
             return None;
         };
         let root = self.doc.dom.import_node(&tmp, tmp.root);
+        let mut images = Default::default();
+        if let Some(sp) = src.filter(|&i| i < self.doc.parts.len()) {
+            let sroot = self.doc.parts[sp].root;
+            let dom = &mut self.doc.dom;
+            for c in dom.elements(root).collect::<Vec<_>>() {
+                dom.detach(c);
+            }
+            for c in dom.children(sroot).to_vec() {
+                let k = dom.clone_node(c);
+                dom.append(root, k);
+            }
+            let sname = self.doc.parts[sp].name.clone();
+            if let Some(b) = self.doc.pkg.bytes(&crate::package::Package::rels_name(&sname)) {
+                self.doc.pkg.put_raw(&crate::package::Package::rels_name(&name), b);
+            }
+            images = self.doc.parts[sp].images.clone();
+        }
         let main = self.doc.main.clone();
         let rid = self.doc.pkg.add_rel(&main, if footer { REL_FOOTER } else { REL_HEADER }, &format!("{kind}{n}.xml"));
         self.doc.pkg.set_content_type(&name,
             &format!("application/vnd.openxmlformats-officedocument.wordprocessingml.{kind}+xml"));
         self.doc.parts.push(SubPart { name, kind: if footer { "footer" } else { "header" }, root,
-                                      prolog: tmp.prolog.clone(), images: Default::default() });
+                                      prolog: tmp.prolog.clone(), images });
         let part = self.doc.parts.len() - 1;
         self.doc.hf_by_rid.insert(rid.clone(), part);
         // the reference in the section's properties

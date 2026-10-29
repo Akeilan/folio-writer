@@ -10,6 +10,7 @@ from .keys import KeyMap, PASSTHROUGH
 from .ribbon import Ribbon
 from .statusbar import StatusBar
 from . import icons
+from . import modelapi
 
 
 class DocWindow(Gtk.ApplicationWindow):
@@ -50,7 +51,6 @@ class DocWindow(Gtk.ApplicationWindow):
         self.engine.view.speller = Speller(self)
         self.engine.connect("state-changed", self.on_state)
         self.engine.connect("zoom-changed", lambda e, z: self.status.show_zoom(z))
-        self.engine.connect("model-ready", self.on_model_ready)
         self.engine.connect("engine-dialog", lambda e, t: self.dialogs.engine_dialog(t))
         try:
             self.engine.view.connect("hyperlink-clicked", self.on_link)
@@ -333,12 +333,8 @@ class DocWindow(Gtk.ApplicationWindow):
         pop.popup()
 
     def undo_history(self, btn):
-        m = self.engine.model
-        titles = []
-        try:
-            titles = list(m.getUndoManager().getAllUndoActionTitles())[:20] if m else []
-        except Exception:
-            pass
+        ed = getattr(self.engine, "ed", None)
+        titles = list(reversed(ed.undo_names()))[:20] if ed is not None else []
         pop = Gtk.Popover.new(btn)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         box.set_border_width(4)
@@ -450,125 +446,15 @@ class DocWindow(Gtk.ApplicationWindow):
     def clipboard_owned(self, value):
         pass
 
-    def _fix_imported_math(self):
-        m = self.engine.model
-        if m is None:
-            return False
-        try:
-            from . import mathfix
-            was = m.isModified()
-            n = mathfix.fix_document(m, self.engine.path)
-            if n and not was:
-                # the objects re-render (and flag the document) over the next
-                # few seconds; the repair isn't an edit of the user's
-                import time
-                t0 = time.time()
-
-                def clear():
-                    if getattr(self, "_last_input", 0) > t0:
-                        return False
-                    for o in mathfix.FIXED:
-                        try:
-                            if o.Model.isModified():
-                                o.Model.setModified(False)
-                        except Exception:
-                            pass
-                    if m.isModified():
-                        m.setModified(False)
-                    return time.time() - t0 < 6
-                GLib.timeout_add(300, clear)
-        except Exception as e:
-            print("math fix:", e)
-        return False
-
-    def on_model_ready(self, *_):
-        m = self.engine.model
-        if m is None:
-            return
-        try:
-            settings = m.createInstance("com.sun.star.text.DocumentSettings")
-            was = m.isModified()
-            settings.MathBaselineAlignment = True
-            if self.engine.is_new:
-                docapi.set_author(m, self.app.user_name())
-                docapi.stamp_created(m)
-            if self.engine.is_new or not was:
-                m.setModified(False)
-        except Exception:
-            import traceback
-            traceback.print_exc()
-        for pane in self.panes.values():
-            if pane.get_mapped():
-                pane.on_shown()
-        self.design_changed()
-        GLib.timeout_add(1000, lambda: (self.refresh_mailings(), False)[1])
-        if not self.engine.is_new:
-            from . import editfeatures
-            GLib.timeout_add(1200, lambda: (editfeatures.offer_resume(self), False)[1])
-            GLib.timeout_add(900, lambda: editfeatures.apply_collapsed_defaults(self))
-            GLib.timeout_add(700, self._fix_imported_math)
-        from . import grammar
-        if not getattr(self.app, "_grammar_on", False):
-            self.app._grammar_on = True
-            GLib.timeout_add(1500, lambda: (grammar.enable_online(), False)[1])
-        # equations: keep the grammar checker from flagging the space they leave
-        try:
-            grammar.install_equation_filter()
-            grammar.refresh_gaps(self.engine.model)
-            if grammar.GAPS and self.engine.is_on(".uno:SpellOnline"):
-                # recheck what was already checked while the document loaded
-                self.engine.command(".uno:SpellOnline")
-                self.engine.command(".uno:SpellOnline")
-        except Exception as e:
-            print("grammar filter:", e)
-        try:
-            docapi.user_dictionary()       # the user's added words
-        except Exception as e:
-            print("user dictionary:", e)
-        try:
-            from . import review
-            review.enforce(self)
-        except Exception as e:
-            print("restrict:", e)
-        try:
-            from . import docprotect
-            if docprotect.is_final(m):
-                docprotect.apply_final(self)
-        except Exception as e:
-            print("final:", e)
-        try:
-            from . import citations
-            if citations.has_citations(m):
-                was_mod = m.isModified()
-                citations.refresh(m)
-                if not was_mod:
-                    m.setModified(False)
-        except Exception as e:
-            print("citations:", e)
-        try:
-            from . import citations
-            ch = getattr(self, "cite_style_choice", None)
-            if ch is not None:
-                ch._updating = True
-                ch.set_active(citations.STYLES.index(citations.current_style(m)))
-                ch._updating = False
-        except Exception:
-            pass
-        GLib.timeout_add(800, lambda: (self.apply_view_settings(), False)[1])
-        GLib.timeout_add(900, lambda: (self.on_state(self.engine, ".uno:ULSpacing", ""),
-                                       self.on_state(self.engine, ".uno:LeftRightParaMargin",
-                                                     ""), False)[2])
-
     def design_changed(self):
         """Styles changed: redraw the galleries so they show the document's
         actual style formatting."""
-        m = self.engine.model
-        if m is None:
+        ed = getattr(self.engine, "ed", None)
+        if ed is None:
             return
         from .stylemodify import gallery_names
         try:
-            self.style_gallery.update_previews(
-                docapi.style_previews(m, gallery_names(m)))
+            self.style_gallery.update_previews(style_previews(ed, gallery_names(self.docmodel)))
         except Exception as e:
             print("gallery:", e)
         try:
@@ -576,9 +462,9 @@ class DocWindow(Gtk.ApplicationWindow):
         except Exception:
             pass
         try:
-            ps = docapi.para_styles(m)
-            self.font_combo.set_theme(ps.getByName("Heading 1").CharFontName,
-                                      ps.getByName("Standard").CharFontName)
+            ids = {n: i for i, n in ed.paragraph_styles()}
+            self.font_combo.set_theme(ed.style_run_values(ids.get("Heading 1", "Heading1")).get("font"),
+                                      ed.style_run_values(ids.get("Normal", "Normal")).get("font"))
         except Exception:
             pass
 
@@ -703,10 +589,10 @@ class DocWindow(Gtk.ApplicationWindow):
         except Exception:
             pass
         want = st.get("auto_spell", True)
-        known = ".uno:SpellOnline" in self.engine.state
-        if self.engine.model is not None and known and \
-                self.engine.is_on(".uno:SpellOnline") != want:
-            self.engine.command(".uno:SpellOnline")
+        try:
+            self.engine.view.speller.invalidate()
+        except Exception:
+            pass
         if not want:
             self.status.set_proof(None)
 
@@ -1205,18 +1091,6 @@ class DocWindow(Gtk.ApplicationWindow):
             return None
         return path
 
-    def act_update_fields(self):
-        """F9: update fields, and linked text pasted with Paste link."""
-        self.engine.command(".uno:UpdateFields")
-        if self.engine.ed is not None:
-            # a field typed as its code shows its result once worked out
-            if self.engine.ed.show_results_here():
-                self.engine.view.after_edit()
-        from . import pastelink
-        m = self.engine.model
-        if m is not None and pastelink.links(m):
-            pastelink.update(self)
-
     def act_equation(self):
         self.eqbar.new_equation()
 
@@ -1354,19 +1228,6 @@ class DocWindow(Gtk.ApplicationWindow):
             _arrange.align(self, arg)
         return
 
-    def act_select_similar(self):
-        """Select all text with the same paragraph style as the cursor."""
-        from . import stylemodify
-        m = self.engine.model
-        if m is None:
-            return
-        try:
-            name = docapi.read_cursor(m).ParaStyleName
-            st = docapi.para_styles(m).getByName(name)
-            stylemodify.select_all(self, word_style(st.DisplayName))
-        except Exception as e:
-            print("select similar:", e)
-
     def act_check_accessibility(self):
         from .accessibility import AccessibilityPane
         pane = self.panes.get(AccessibilityPane)
@@ -1378,26 +1239,6 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_footnote_dialog(self):
         from . import notes
         notes.dialog(self)
-
-    def act_show_notes(self):
-        """Jump between a note reference and its text."""
-        from . import notes
-        m = self.engine.model
-        if m is None:
-            return
-        vc = docapi.read_cursor(m)
-        try:
-            fn = vc.getText()
-            if fn.supportsService("com.sun.star.text.Footnote"):
-                docapi.view_cursor(m).gotoRange(fn.getAnchor().getEnd(), False)
-                return
-        except Exception:
-            pass
-        all_notes = notes.notes(m, False) + notes.notes(m, True)
-        if not all_notes:
-            self.dialogs.message("There are no footnotes or endnotes in this document.")
-            return
-        docapi.view_cursor(m).gotoRange(all_notes[0].getText().getEnd(), False)
 
     def act_style_inspector(self):
         from .styletools import StyleInspector
@@ -1416,34 +1257,25 @@ class DocWindow(Gtk.ApplicationWindow):
         self.edit_points.begin()
 
     def refresh_table_design(self):
-        m = self.engine.model
-        if m is None:
+        """Table Design: the style options and the gallery follow the table at the cursor."""
+        ed = getattr(self.engine, "ed", None)
+        info = ed.table_info() if ed is not None else None
+        if info is None:
             return
-        from . import tablestyles
-        try:
-            st = tablestyles.options(m)
-        except Exception:
-            st = None
-        if st is None:
-            return
-        try:
-            from . import tablelayout
-            size = tablelayout.cell_size(m)
-            if size:
-                for key, v in (("height", size[0]), ("width", size[1])):
-                    sb = getattr(self, "cell_spins", {}).get(key)
-                    if sb is not None and not sb.has_focus():
-                        sb._updating = True
-                        sb.set_value(v)
-                        sb._updating = False
-            b = getattr(self, "repeat_header_btn", None)
-            if b is not None:
-                b.apply_state("true" if tablelayout.is_repeat_header(m) else "false")
-        except Exception as e:
-            print("cell size:", e)
-        kind, accent, opts = st
+        opts = {k: bool(info.get(k)) for k in ("header", "total", "first_col", "last_col",
+                                               "banded_rows", "banded_cols")}
         for k, cb in getattr(self, "table_opt_checks", {}).items():
             cb.set_checked(opts.get(k, False))
+        kind, accent = None, None
+        try:
+            from .native import tables as NT
+            from . import tablestyles as TS
+            for _n, k in TS.PLAIN + TS.GRID + TS.LIST:
+                for _an, a in TS.ACCENTS:
+                    if NT._ids(k, a)[1] == info.get("style"):
+                        kind, accent = k, a
+        except Exception:
+            pass
         g = getattr(self, "table_style_gallery", None)
         if g is not None:
             g.update(kind, accent, opts)
@@ -1471,47 +1303,6 @@ class DocWindow(Gtk.ApplicationWindow):
         self.comments.set_visible(mode in ("All Markup", "Simple Markup"))
         self.change_bars.set_mode(mode)
         return
-
-    in_original = False
-
-
-    def _orig_before_save(self):
-        if self.in_original:
-            self.leave_original(wait=True)
-            if getattr(self, "markup_choice", None) is not None:
-                try:
-                    c = self.markup_choice
-                    c._updating = True
-                    c.set_active(0)
-                    c._updating = False
-                except Exception:
-                    pass
-
-    def leave_original(self, wait=False):
-        if not self.in_original:
-            return
-        self.in_original = False
-        m = self.engine.model
-        self.engine.view.set_edit(not self.read_only)
-        try:
-            um = m.getUndoManager()
-            titles = um.getAllUndoActionTitles()
-            if titles and titles[0].startswith(("Reject", "Reject change")):
-                um.undo()
-                try:
-                    um.clearRedo()
-                except Exception:
-                    pass
-        except Exception as e:
-            print("original:", e)
-
-        def restore():
-            if m is not None and not getattr(self, "_orig_modified", True):
-                m.setModified(False)
-        if wait:
-            self.engine.sync(restore)
-        else:
-            self.engine.sync(restore)
 
     def reviewer_filter(self, author, show):
         for target in (self.comments, self.change_bars):
@@ -1653,8 +1444,6 @@ class DocWindow(Gtk.ApplicationWindow):
 
     def refresh_mailings(self):
         """Enable the merge controls once there are recipients; show the record."""
-        from . import mailings
-        m = self.engine.model
         from .native import mailmerge as mailings
         m = self if self.engine.ed is not None else None
         if m is None or not hasattr(self, "mail_controls"):
@@ -1674,8 +1463,6 @@ class DocWindow(Gtk.ApplicationWindow):
             pv.apply_state("true" if self.merge_preview is not None else "false")
 
     def act_merge_preview(self):
-        from . import mailings
-        m = self.engine.model
         from .native import mailmerge as mailings
         m = self
         if m is None:
@@ -1688,8 +1475,6 @@ class DocWindow(Gtk.ApplicationWindow):
         self.refresh_mailings()
 
     def merge_go(self, where):
-        from . import mailings
-        m = self.engine.model
         from .native import mailmerge as mailings
         m = self
         if m is None:
@@ -1708,8 +1493,6 @@ class DocWindow(Gtk.ApplicationWindow):
         self.refresh_mailings()
 
     def act_find_recipient(self):
-        from . import mailings
-        m = self.engine.model
         from .native import mailmerge as mailings
         m = self
         t = self.dialogs.ask_text("Find Entry", "Find:")
@@ -2062,12 +1845,6 @@ class DocWindow(Gtk.ApplicationWindow):
     def act_space_after(self, v):
         self.actions.set_spacing(after=int(round(v * 2540 / 72.0)))
 
-    def act_doc_colors(self, name):
-        self.dialogs.doc_colors(name)
-
-    def act_doc_fonts(self, name):
-        self.dialogs.doc_fonts(name)
-
     def show_backstage(self, page="home"):
         self.keytips.leave()
         self.backstage.open(page)
@@ -2182,13 +1959,7 @@ class DocWindow(Gtk.ApplicationWindow):
         return
 
     def in_header_footer(self):
-        m = self.engine.model
-        if m is None:
-            return False
-        try:
-            return "HeadFoot" in docapi.read_cursor(m).getText().getImplementationName()
-        except Exception:
-            return False
+        return False
 
     def refresh_hf(self):
         """Show the Header & Footer tab while the cursor is in a header or
@@ -2203,7 +1974,7 @@ class DocWindow(Gtk.ApplicationWindow):
         from . import hfedit
         if inside:
             try:
-                self._hf_where = (docapi.read_cursor(self.engine.model).PageStyleName,
+                self._hf_where = (modelapi.read_cursor(self.engine.model).PageStyleName,
                                   hfedit.which_part(self)[0])
             except Exception:
                 pass
@@ -2305,25 +2076,10 @@ class DocWindow(Gtk.ApplicationWindow):
     # ---------------------------------------------------------- navigation
     def go_back(self):
         """Shift+F5: back to the previous editing position."""
-        m = self.engine.model
-        if m is None or not self._last_positions:
-            return
-        rng = self._last_positions.pop()
-        try:
-            docapi.goto(m, rng)
-        except Exception:
-            pass
+        return
 
     def remember_position(self):
-        m = self.engine.model
-        if m is None:
-            return
-        try:
-            vc = docapi.read_cursor(m)
-            self._last_positions.append(vc.getText().createTextCursorByRange(vc.getStart()))
-            self._last_positions = self._last_positions[-4:]
-        except Exception:
-            pass
+        return
 
     def extend_selection(self):
         """F8, as in the original: the first press turns on Extend mode (the
@@ -2484,3 +2240,33 @@ class DocWindow(Gtk.ApplicationWindow):
             self.keytips.start()
             return True
         return False
+
+
+def style_previews(ed, names):
+    """Pango markup attributes showing how each style looks in this document."""
+    ids = {}
+    for sid, name, kind, *_ in ed.style_list():
+        if kind in ("paragraph", "character"):
+            ids.setdefault(name, sid)
+    out = {}
+    for n in names:
+        sid = ids.get(n)
+        if sid is None:
+            continue
+        try:
+            r = ed.style_run_values(sid)
+            size = min(18.0, max(8.0, float(r.get("size") or 11)))
+            a = ["font_family='%s'" % (r.get("font") or "Carlito").replace("'", ""), "size='%gpt'" % size]
+            if r.get("bold"):
+                a.append("weight='bold'")
+            if r.get("italic"):
+                a.append("style='italic'")
+            if r.get("small_caps"):
+                a.append("variant='smallcaps'")
+            c = r.get("color", -1)
+            if isinstance(c, int) and c >= 0:
+                a.append("foreground='#%06x'" % (c & 0xFFFFFF))
+            out[n] = (" ".join(a), bool(r.get("caps")))
+        except Exception:
+            pass
+    return out

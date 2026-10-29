@@ -5,6 +5,7 @@ import math
 from gi.repository import Gdk, GLib
 
 from . import bridge
+from .native import values
 
 TWIP = 2540.0 / 1440.0      # mm100 per twip
 
@@ -128,100 +129,10 @@ class InkMode:
         return None, 0, 0
 
     def _create(self, tool, pts):
-        m = self.win.engine.model
-        if m is None:
-            return
-        page, _x, _y = self._page_coords(*pts[0])
-        if page is None:
-            return
-        coords = []
-        for x, y in pts:
-            pg, px, py = self._page_coords(x, y)
-            if pg == page:
-                coords.append((px, py))
-        if len(coords) < 2:
-            return
-        coords = _simplify(coords, 8)
-        xs = [c[0] for c in coords]
-        ys = [c[1] for c in coords]
-        x0, y0 = min(xs), min(ys)
-        p = PENS[tool]
-        um = m.getUndoManager()
-        um.enterUndoContext("Ink")
-        try:
-            shape = m.createInstance("com.sun.star.drawing.PolyLineShape")
-            shape.AnchorType = bridge.enum("com.sun.star.text.TextContentAnchorType", "AT_PAGE")
-            m.getDrawPage().add(shape)
-            import uno
-            pts_u = tuple(bridge.struct("com.sun.star.awt.Point", X=x, Y=y) for x, y in coords)
-            uno.invoke(shape, "setPropertyValue", ("PolyPolygon", uno.Any(
-                "[][]com.sun.star.awt.Point", (pts_u,))))
-            from .drawing import _anchor_page
-            _anchor_page(shape, page, x0, y0)
-            shape.LineColor = p["color"]
-            shape.LineWidth = p["width"]
-            shape.LineTransparence = p["alpha"]
-            try:
-                shape.LineCap = bridge.enum("com.sun.star.drawing.LineCap", "ROUND")
-                shape.LineJoint = bridge.enum("com.sun.star.drawing.LineJoint", "ROUND")
-            except Exception:
-                pass
-            try:
-                shape.TextWrap = bridge.enum("com.sun.star.text.WrapTextMode", "THROUGH")
-                shape.Opaque = tool != "highlighter"     # highlighter goes behind the text
-            except Exception:
-                pass
-            self._n += 1
-            name = "Ink %d" % self._n
-            while m.getDrawPage() and _has_name(m, name):
-                self._n += 1
-                name = "Ink %d" % self._n
-            shape.Name = name
-            pad = p["width"]
-            self.shapes[name] = (page, (x0 - pad, y0 - pad, max(xs) + pad, max(ys) + pad),
-                                 coords)
-        finally:
-            um.leaveUndoContext()
+        return
 
     def _erase_at(self, x, y):
-        m = self.win.engine.model
-        if m is None:
-            return
-        page, px, py = self._page_coords(x, y)
-        if page is None:
-            return
-        dp = m.getDrawPage()
-        tol = 250
-        for i in range(dp.getCount() - 1, -1, -1):
-            sh = dp.getByIndex(i)
-            try:
-                name = sh.Name
-            except Exception:
-                continue
-            if not name.startswith("Ink "):
-                continue
-            info = self.shapes.get(name)
-            if info is None:
-                info = _shape_info(sh)
-                if info is None:
-                    continue
-                self.shapes[name] = info
-            pg, (a, b, c, d), coords = info
-            if pg != page or not (a - tol <= px <= c + tol and b - tol <= py <= d + tol):
-                continue
-            reach = tol + 250
-            if any(_seg_dist(px, py, coords[k], coords[k + 1]) < reach
-                   for k in range(len(coords) - 1)) or \
-                    (len(coords) == 1 and math.hypot(px - coords[0][0], py - coords[0][1]) < reach):
-                try:
-                    dp.remove(sh)
-                except Exception:
-                    try:
-                        sh.getAnchor().getText().removeTextContent(sh)
-                    except Exception:
-                        pass
-                self.shapes.pop(name, None)
-                return
+        return
 
     def key(self, event):
         if self.active and event.keyval == Gdk.KEY_Escape:

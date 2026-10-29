@@ -5,6 +5,7 @@ from gi.repository import Gtk
 
 from . import bridge, docapi
 from .widgets import FDialog, Preview, color_button, combo, grid, heading, rgb
+from .native import values
 
 STYLES = [("Horizontal", 0), ("Vertical", 90), ("Diagonal up", 45), ("Diagonal down", 135),
           ("From corner", "corner"), ("From center", "center")]
@@ -28,32 +29,32 @@ def _apply(m, spec):
             pass
         kind = spec["kind"]
         if kind == "gradient":
-            g = bridge.struct("com.sun.star.awt.Gradient")
+            g = values.struct("com.sun.star.awt.Gradient")
             c1, c2 = spec["c1"], spec["c2"]
             st = spec["style"]
             if st == "center":
-                g.Style = bridge.enum("com.sun.star.awt.GradientStyle", "RADIAL")
+                g.Style = values.enum("com.sun.star.awt.GradientStyle", "RADIAL")
                 g.XOffset = g.YOffset = 50
             elif st == "corner":
-                g.Style = bridge.enum("com.sun.star.awt.GradientStyle", "RADIAL")
+                g.Style = values.enum("com.sun.star.awt.GradientStyle", "RADIAL")
                 g.XOffset = g.YOffset = 0
             else:
-                g.Style = bridge.enum("com.sun.star.awt.GradientStyle", "LINEAR")
+                g.Style = values.enum("com.sun.star.awt.GradientStyle", "LINEAR")
                 g.Angle = int(st) * 10
             g.StartColor, g.EndColor = c1, c2
             g.StartIntensity = g.EndIntensity = 100
             g.StepCount = 0
-            ps.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "GRADIENT")
+            ps.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "GRADIENT")
             uno.invoke(ps, "setPropertyValue", ("FillGradient", uno.Any("com.sun.star.awt.Gradient", g)))
         elif kind == "pattern":
             _n, style, angle, dist = PATTERNS[spec["pattern"]]
-            h = bridge.struct("com.sun.star.drawing.Hatch")
-            h.Style = bridge.enum("com.sun.star.drawing.HatchStyle",
+            h = values.struct("com.sun.star.drawing.Hatch")
+            h.Style = values.enum("com.sun.star.drawing.HatchStyle",
                                   "DOUBLE" if style else "SINGLE")
             h.Color = spec["fg"]
             h.Distance = dist * 10
             h.Angle = angle
-            ps.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "HATCH")
+            ps.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "HATCH")
             uno.invoke(ps, "setPropertyValue", ("FillHatch", uno.Any("com.sun.star.drawing.Hatch", h)))
             try:
                 ps.FillBackground = True
@@ -62,10 +63,10 @@ def _apply(m, spec):
                 pass
         elif kind == "picture":
             prov = bridge.create("com.sun.star.graphic.GraphicProvider")
-            g = prov.queryGraphic((bridge.prop("URL", docapi.uno_url(spec["path"])),))
-            ps.FillStyle = bridge.enum("com.sun.star.drawing.FillStyle", "BITMAP")
+            g = prov.queryGraphic((values.prop("URL", docapi.uno_url(spec["path"])),))
+            ps.FillStyle = values.enum("com.sun.star.drawing.FillStyle", "BITMAP")
             ps.FillBitmap = g
-            ps.FillBitmapMode = bridge.enum("com.sun.star.drawing.BitmapMode",
+            ps.FillBitmapMode = values.enum("com.sun.star.drawing.BitmapMode",
                                             "STRETCH" if not spec.get("tile") else "REPEAT")
 
 

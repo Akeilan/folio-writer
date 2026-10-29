@@ -4,6 +4,8 @@ Indents) and the Multilevel List gallery."""
 from gi.repository import Gtk
 
 from . import bridge, docapi
+from .native import values
+from . import modelapi
 
 ARABIC, UPPER, LOWER, ROMAN_UP, ROMAN_LOW, BULLET, NONE = 4, 0, 1, 2, 3, 6, 5
 LISTTAB, SPACE, NOTHING = 0, 1, 2
@@ -12,7 +14,7 @@ INDENT = 635          # 0.25" per level (1/100 mm)
 
 # ---------------------------------------------------------------- helpers
 def _para_cursor(m):
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     c = vc.getText().createTextCursorByRange(vc.getStart())
     c.gotoStartOfParagraph(False)
     c.gotoEndOfParagraph(True)
@@ -164,10 +166,10 @@ def _set_level(p, rules, lvl, changes):
     out = []
     for x in rules.getByIndex(lvl):
         if x.Name in changes:
-            x = bridge.prop(x.Name, changes.pop(x.Name))
+            x = values.prop(x.Name, changes.pop(x.Name))
         out.append(x)
     for k, v in changes.items():
-        out.append(bridge.prop(k, v))
+        out.append(values.prop(k, v))
     import uno
     uno.invoke(rules, "replaceByIndex",
                (lvl, uno.Any("[]com.sun.star.beans.PropertyValue", tuple(out))))
@@ -219,7 +221,7 @@ def _rules_for(m, levels, headings=False):
         if spec["kind"] == BULLET:
             ch.update({"BulletChar": spec["char"], "Prefix": "", "Suffix": ""})
             try:
-                f = bridge.struct("com.sun.star.awt.FontDescriptor", Name=spec["font"])
+                f = values.struct("com.sun.star.awt.FontDescriptor", Name=spec["font"])
                 ch["BulletFont"] = f
             except Exception:
                 pass
@@ -243,7 +245,7 @@ def apply_multilevel(m, levels):
 
     def go():
         rules = _rules_for(m, levels)
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         c = vc.getText().createTextCursorByRange(vc.getStart())
         c.gotoRange(vc.getEnd(), True)
         en = c.createEnumeration()
@@ -410,7 +412,7 @@ def multilevel_gallery(win):
 
 def set_level(m, lvl):
     def go():
-        vc = docapi.view_cursor(m)
+        vc = modelapi.view_cursor(m)
         c = vc.getText().createTextCursorByRange(vc.getStart())
         c.gotoRange(vc.getEnd(), True)
         en = c.createEnumeration()
@@ -528,7 +530,7 @@ def define_dialog(win):
                     ch["Suffix"] = x["fmt"].rsplit("%", 1)[-1]
                     ch["ParentNumbering"] = max(1, x["fmt"].count("%") // 2)
                 _set_level(None, rules, i, ch)
-            vc = docapi.view_cursor(m)
+            vc = modelapi.view_cursor(m)
             c = vc.getText().createTextCursorByRange(vc.getStart())
             c.gotoRange(vc.getEnd(), True)
             en = c.createEnumeration()

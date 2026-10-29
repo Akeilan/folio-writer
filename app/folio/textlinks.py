@@ -4,6 +4,7 @@ another, as in the original."""
 from gi.repository import Gdk, GLib
 
 from ._lazy import Lazy, bridge
+from .native import values
 drawing = Lazy("folio.drawing")
 
 DIRECTIONS = [("Horizontal", 0), ("Rotate all text 90°", 2), ("Rotate all text 270°", 5)]
@@ -30,7 +31,7 @@ def set_direction(obj, mode):
         return
     # drawing shapes: vertical text or rotated text
     try:
-        obj.TextWritingMode = bridge.enum("com.sun.star.text.WritingMode",
+        obj.TextWritingMode = values.enum("com.sun.star.text.WritingMode",
                                           "TB_RL" if mode == 2 else "LR_TB")
     except Exception:
         pass
@@ -38,7 +39,7 @@ def set_direction(obj, mode):
         geo = list(obj.CustomShapeGeometry)
         geo = [p for p in geo if p.Name != "TextRotateAngle"]
         if mode == 5:
-            geo.append(bridge.struct("com.sun.star.beans.PropertyValue",
+            geo.append(values.struct("com.sun.star.beans.PropertyValue",
                                       Name="TextRotateAngle", Value=90.0))
         obj.CustomShapeGeometry = tuple(geo)
     except Exception:
@@ -46,7 +47,7 @@ def set_direction(obj, mode):
 
 
 def set_align(obj, where):
-    obj.TextVerticalAdjust = bridge.enum("com.sun.star.drawing.TextVerticalAdjust", where)
+    obj.TextVerticalAdjust = values.enum("com.sun.star.drawing.TextVerticalAdjust", where)
 
 
 class Linker:
@@ -77,8 +78,7 @@ class Linker:
             self._cursor(True)
             self.win.status.flash("Click an empty text box to link to. Press Esc to cancel.")
             return
-        m = self.win.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
+        obj = None
         if not is_text_box(obj):
             self.win.dialogs.message("Select a text box first.")
             return
@@ -135,7 +135,7 @@ class Linker:
             self.win.update_object_tabs()
             return
         m = self.win.engine.model
-        dst = drawing.selected_shape(m) if m is not None else None
+        dst = None
         if not is_text_box(dst):
             self.win.status.flash("")
             return
@@ -184,7 +184,7 @@ class Linker:
                 self.win.update_object_tabs()
             return
         m = self.win.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
+        obj = None
         if not is_text_box(obj) or not getattr(obj, "ChainNextName", ""):
             return
         um = m.getUndoManager()
@@ -201,8 +201,7 @@ class Linker:
         if self._native():
             ed = self.win.engine.ed
             return (ed.textbox_link_state() or None) if ed is not None else None
-        m = self.win.engine.model
-        obj = drawing.selected_shape(m) if m is not None else None
+        obj = None
         if not is_text_box(obj):
             return None
         return "break" if getattr(obj, "ChainNextName", "") else "link"

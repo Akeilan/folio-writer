@@ -4,6 +4,7 @@ from gi.repository import Gtk
 
 from ._lazy import bridge, docapi
 from .widgets import FDialog
+from . import modelapi
 
 FORMATS = [("1, 2, 3, ...", 4), ("a, b, c, ...", 1), ("A, B, C, ...", 0),
            ("i, ii, iii, ...", 3), ("I, II, III, ...", 2)]
@@ -37,7 +38,7 @@ def apply_settings(m, endnote, num_type, start, counting):
 
 
 def insert_note(m, endnote=False, mark=""):
-    vc = docapi.view_cursor(m)
+    vc = modelapi.view_cursor(m)
     note = m.createInstance("com.sun.star.text.Endnote" if endnote else
                             "com.sun.star.text.Footnote")
     if mark:
@@ -62,8 +63,8 @@ def convert(m, to_endnote=None):
         jobs += [(n, False) for n in notes(m, True)]
     if not jobs:
         return 0
-    ctl = docapi.controller(m)
-    vc = docapi.view_cursor(m)
+    ctl = modelapi.controller(m)
+    vc = modelapi.view_cursor(m)
     um = m.getUndoManager()
     um.enterUndoContext("Convert Notes")
     try:
@@ -254,7 +255,7 @@ def dialog(win):
 def _endnotes_at_section(m, on):
     """End of section: collect endnotes at the end of the current section."""
     try:
-        sec = docapi.read_cursor(m).TextSection
+        sec = modelapi.read_cursor(m).TextSection
     except Exception:
         sec = None
     if sec is None:
