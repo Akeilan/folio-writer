@@ -458,6 +458,35 @@ def _series(m, d, kind, idxs, first=0, dark=False):
     return "".join(out)
 
 
+ELEMENTS = ["Chart Area", "Plot Area", "Chart Title", "Legend", "Horizontal (Category) Axis",
+            "Vertical (Value) Axis"]
+
+
+def _fmt(m, el):
+    """Format Pane settings of a chart element: fill, line (colours, -1 none),
+    width (pt), size (pt), color (text)."""
+    return (m.get("fmt") or {}).get(el) or {}
+
+
+def _text_of(m, el, size, color):
+    f = _fmt(m, el)
+    sz = int(round(float(f["size"]) * 100)) if f.get("size") else size
+    c = "%06X" % (int(f["color"]) & 0xFFFFFF) if f.get("color") is not None and int(f["color"]) >= 0 else color
+    return sz, c
+
+
+def _sppr(m, el, fill, line):
+    """spPr for an element: its own fill / border, or the given defaults."""
+    f = _fmt(m, el)
+    if "fill" in f:
+        fill = "<a:noFill/>" if int(f["fill"]) < 0 else _solid(int(f["fill"]))
+    if "line" in f or "width" in f:
+        w = int(round(float(f.get("width") or 0.75) * 12700))
+        lc = f.get("line", 0xD9D9D9)
+        line = '<a:ln w="%d">%s</a:ln>' % (w, "<a:noFill/>" if int(lc) < 0 else _solid(int(lc)))
+    return "<c:spPr>%s%s</c:spPr>" % (fill, line)
+
+
 def _axes(m, kind, horizontal, dark, ids=("111111111", "222222222")):
     text = "D9D9D9" if dark else "595959"
     grid_c = "595959" if dark else "D9D9D9"
@@ -487,7 +516,8 @@ def _axes(m, kind, horizontal, dark, ids=("111111111", "222222222")):
            '<c:crossAx val="%s"/><c:crosses val="autoZero"/>%s</c:%s>'
            % (cat_tag, ids[0], int(cat_del), cat_pos, gl(cat_grid[0]), gl(cat_grid[1], True),
               _title(cat_title, 1000, text, -5400000 if cat_pos == "l" else None) if cat_title else "",
-              _solid(int(grid_c, 16)), _txpr(900, text), ids[1],
+              _solid(int(grid_c, 16)), _txpr(*_text_of(m, "Vertical (Value) Axis" if horizontal else
+                                                     "Horizontal (Category) Axis", 900, text)), ids[1],
               '<c:crossBetween val="midCat"/>' if kind == "scatter" else
               '<c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/>',
               cat_tag))
@@ -499,7 +529,9 @@ def _axes(m, kind, horizontal, dark, ids=("111111111", "222222222")):
            '<c:crossAx val="%s"/><c:crosses val="autoZero"/><c:crossBetween val="%s"/></c:valAx>'
            % (ids[1], int(val_del), val_pos, gl(val_grid[0]), gl(val_grid[1], True),
               _title(val_title, 1000, text, -5400000 if val_pos == "l" else None) if val_title else "",
-              "0%" if m["type"] == 9 else "General", int(m["type"] != 9), _txpr(900, text), ids[0],
+              "0%" if m["type"] == 9 else "General", int(m["type"] != 9),
+              _txpr(*_text_of(m, "Horizontal (Category) Axis" if horizontal else
+                              "Vertical (Value) Axis", 900, text)), ids[0],
               "midCat" if kind == "scatter" else "between"))
     return cat + val
 
@@ -576,25 +608,33 @@ def write(m):
         '<c:legend><c:legendPos val="%s"/>%s<c:overlay val="0"/>%s</c:legend>'
         % ({"right": "r", "top": "t", "left": "l", "bottom": "b"}.get(legend, "b"),
            '<c:legendEntry><c:idx val="0"/><c:delete val="1"/></c:legendEntry>'
-           if SPECIALS.get(t) == "waterfall" else "", _txpr(900, text)))
+           if SPECIALS.get(t) == "waterfall" else "", _txpr(*_text_of(m, "Legend", 900, text))))
     bg = {5: 0x404040, 7: 0x404040, 6: 0xF2F2F2}.get(style, 0xFFFFFF)
     model = json.dumps(m)
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             '<c:chartSpace xmlns:c="%s" xmlns:a="%s" xmlns:r="%s">'
             '<c:date1904 val="0"/><c:lang val="en-US"/><c:roundedCorners val="0"/>'
-            '<c:chart>%s%s<c:plotArea><c:layout/>%s%s%s<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>'
+            '<c:chart>%s%s<c:plotArea><c:layout/>%s%s%s%s'
             '</c:plotArea>%s<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>'
-            '<c:spPr>%s<a:ln w="9525" cap="flat">%s</a:ln></c:spPr>%s'
+            '%s%s'
             '<c:externalData r:id="rId1"><c:autoUpdate val="0"/></c:externalData>'
             '<c:extLst><c:ext uri="%s"><fo:model xmlns:fo="%s">%s</fo:model></c:ext></c:extLst>'
             '</c:chartSpace>'
-            % (C, A, R, _title(title, 1400, text) if title else "",
-               '<c:autoTitleDeleted val="%d"/>' % int(not title), plot, axes, dtable, leg,
-               _solid(bg), _solid(0xD9D9D9) if not dark else "<a:noFill/>", _txpr(1000, text),
+            % (C, A, R, _title(title, *_text_of(m, "Chart Title", 1400, text)) if title else "",
+               '<c:autoTitleDeleted val="%d"/>' % int(not title), plot, axes, dtable,
+               _sppr(m, "Plot Area", "<a:noFill/>", "<a:ln><a:noFill/></a:ln>"), leg,
+               _sppr(m, "Chart Area", _solid(bg), '<a:ln w="9525" cap="flat">%s</a:ln>'
+                     % (_solid(0xD9D9D9) if not dark else "<a:noFill/>")),
+               _txpr(*_text_of(m, "Chart Area", 1000, text)),
                EXT_URI, FO, escape(model)))
 
 
 # ================================================================ treemap, sunburst
+TREE_DEFAULT = {"rows": ["Branch 1/Leaf A", "Branch 1/Leaf B", "Branch 1/Leaf C",
+                    "Branch 2/Leaf D", "Branch 2/Leaf E", "Branch 3/Leaf F",
+                    "Branch 3/Leaf G", "Branch 3/Leaf H"],
+           "cols": ["Value"], "values": [[22], [12], [18], [87], [88], [17], [14], [25]]}
+
 CX = "http://schemas.microsoft.com/office/drawing/2014/chartex"
 TREEMAP, SUNBURST = classic.TREEMAP, classic.SUNBURST
 EX_TYPES = {TREEMAP: "treemap", SUNBURST: "sunburst"}
@@ -770,7 +810,7 @@ def insert(win, type_index=0, data=None):
     if data:
         m["data"] = data
     if type_index in EX_TYPES and not data:
-        m["data"] = json.loads(json.dumps(__import__("folio.imagecharts", fromlist=["x"]).DEFAULT))
+        m["data"] = json.loads(json.dumps(TREE_DEFAULT))
         m["legend"] = "top" if type_index == TREEMAP else "none"
     if type_index in SPECIALS and not data:
         m["data"] = _special_default(type_index, m["data"])
@@ -832,7 +872,7 @@ def set_type(ref, index):
     m["type"] = index
     if (index in EX_TYPES) != (old in EX_TYPES):
         if index in EX_TYPES and not any("/" in str(r) for r in m["data"]["rows"]) and m["data"] == classic.DEFAULT_DATA:
-            m["data"] = json.loads(json.dumps(__import__("folio.imagecharts", fromlist=["x"]).DEFAULT))
+            m["data"] = json.loads(json.dumps(TREE_DEFAULT))
         elif index in EX_TYPES:
             m["data"] = {"rows": m["data"]["rows"], "cols": m["data"]["cols"][:1],
                          "values": [r[:1] for r in m["data"]["values"]]}
@@ -953,6 +993,104 @@ def is_image(ref):
     return False
 
 
+def element_format(ref, el):
+    return dict(_fmt(model_of(ref), el))
+
+
+def set_element_format(ref, el, **kw):
+    """Format Pane: fill / line / width / size / color of a chart element (None: as it was)."""
+    m = model_of(ref)
+    f = m.setdefault("fmt", {}).setdefault(el, {})
+    for k, v in kw.items():
+        if v is None:
+            f.pop(k, None)
+        else:
+            f[k] = v
+    save(ref, m)
+
+
+class FormatPane:
+    """Format Chart Area / Plot Area / Title / Legend / Axes: fill, border
+    and text, for the selected chart."""
+
+    @staticmethod
+    def make(win):
+        from gi.repository import Gtk
+        from ..panes import Pane
+        from ..widgets import color_button, grid, heading
+
+        class P(Pane):
+            TITLE = "Format Chart"
+            WIDTH = 280
+
+            def __init__(self, w):
+                Pane.__init__(self, w)
+                self.combo = Gtk.ComboBoxText()
+                for e in ELEMENTS:
+                    self.combo.append_text(e)
+                self.combo.connect("changed", lambda *_: self.load())
+                self.pack_start(self.combo, False, False, 0)
+                self.pack_start(heading("Fill"), False, False, 0)
+                self.fill = color_button(-1, on_change=lambda c: self.set(fill=c), auto_label="No fill")
+                self.pack_start(grid([["Color:", self.fill]]), False, False, 0)
+                self.pack_start(heading("Border"), False, False, 0)
+                self.line = color_button(-1, on_change=lambda c: self.set(line=c), auto_label="No line")
+                self.width = Gtk.SpinButton.new_with_range(0, 20, 0.25)
+                self.width.set_digits(2)
+                self.width.connect("value-changed", lambda s: self.set(width=s.get_value()))
+                self.pack_start(grid([["Color:", self.line], ["Width (pt):", self.width]]), False, False, 0)
+                self.pack_start(heading("Text"), False, False, 0)
+                self.size = Gtk.SpinButton.new_with_range(4, 72, 1)
+                self.size.connect("value-changed", lambda s: self.set(size=s.get_value()))
+                self.tcolor = color_button(-1, on_change=lambda c: self.set(color=c))
+                self.pack_start(grid([["Size:", self.size], ["Color:", self.tcolor]]), False, False, 0)
+                self._busy = False
+                self.combo.set_active(0)
+
+            def on_shown(self):
+                self.load()
+
+            def ref(self):
+                return selected(self.win)
+
+            def load(self):
+                ref = self.ref()
+                el = self.combo.get_active_text()
+                self.set_sensitive(ref is not None)
+                if ref is None or not el:
+                    return
+                f = element_format(ref, el)
+                self._busy = True
+                try:
+                    self._setc(self.fill, f.get("fill", -1))
+                    self._setc(self.line, f.get("line", -1))
+                    self.width.set_value(float(f.get("width", 0.75)))
+                    self.size.set_value(float(f.get("size", 14 if el == "Chart Title" else 9)))
+                    self._setc(self.tcolor, f.get("color", -1))
+                except Exception:
+                    pass
+                self._busy = False
+
+            @staticmethod
+            def _setc(btn, c):
+                btn.color = c
+                btn.queue_draw()
+                if btn.get_child() is not None:
+                    btn.get_child().queue_draw()
+
+            def set(self, **kw):
+                if self._busy:
+                    return
+                ref = self.ref()
+                el = self.combo.get_active_text()
+                if ref is None or not el:
+                    return
+                kw = {k: (-1 if v is None else v) for k, v in kw.items()}
+                set_element_format(ref, el, **kw)
+                self.win.engine.view.document_changed()
+        return P
+
+
 type_dialog = classic.type_dialog
 QUICK_LAYOUTS = classic.QUICK_LAYOUTS
 
@@ -961,23 +1099,14 @@ QUICK_LAYOUTS = classic.QUICK_LAYOUTS
 class DataSheet(classic.DataSheet):
     """The data sheet, on the chart part."""
 
-    def __init__(self, win, ref):
-        saved = classic.get_data
-        classic.get_data = get_data
-        try:
-            classic.DataSheet.__init__(self, win, ref)
-        finally:
-            classic.get_data = saved
+    def load_data(self, ref):
+        return get_data(ref)
 
     def push(self):
         try:
             set_data(self.obj, self.data)
         except Exception as e:
             print("chart data:", e)
-
-    def _refresh(self):
-        self._rt = None
-        return False
 
 
 def edit_chart(win, ref):

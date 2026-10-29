@@ -6,7 +6,7 @@ import json
 
 from gi.repository import Gtk, Pango, PangoCairo
 
-from . import bridge, docapi, icons
+from . import icons
 from .actions import CHAR_STYLES, engine_style, word_style
 from .widgets import FDialog, color_button, combo, combo_text, grid, heading
 from .native import values

@@ -4,9 +4,7 @@ import re
 
 from gi.repository import GLib, Gtk, Pango
 
-from ._lazy import docapi
 from .panes import Pane
-from . import modelapi
 
 WHY = {
     "Missing alternative text": (
@@ -256,16 +254,10 @@ class AccessibilityPane(Pane):
         return getattr(self.win.engine, "native", False)
 
     def refresh(self):
-        if self._native():
-            ed = self.win.engine.ed
-            if ed is None:
-                return
-            issues = ed.accessibility_issues()
-        else:
-            m = self.model
-            if m is None:
-                return
-            issues = check(m)
+        ed = self.win.engine.ed
+        if ed is None:
+            return
+        issues = ed.accessibility_issues()
         self.store.clear()
         groups = {}
         for kind in ("Errors", "Warnings"):
@@ -299,21 +291,12 @@ class AccessibilityPane(Pane):
                 GLib.markup_escape_text(w[0]), GLib.markup_escape_text(w[1])))
         if target is None:
             return
-        if self._native():
-            ed = self.win.engine.ed
-            v = self.win.engine.view
-            if cat in ("Missing alternative text", "Object not inline") and ed.select_object_node(target):
-                v.objs.refresh()
-                v.after_move()
-            elif ed.goto_node(target):
-                v.after_move()
-            v.scroll_to_caret()
-            return
-        m = self.model
-        try:
-            modelapi.controller(m).select(target)
-        except Exception:
-            try:
-                modelapi.view_cursor(m).gotoRange(target.getStart(), False)
-            except Exception:
-                pass
+        ed = self.win.engine.ed
+        v = self.win.engine.view
+        if cat in ("Missing alternative text", "Object not inline") and ed.select_object_node(target):
+            v.objs.refresh()
+            v.after_move()
+        elif ed.goto_node(target):
+            v.after_move()
+        v.scroll_to_caret()
+        return

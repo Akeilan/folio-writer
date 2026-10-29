@@ -42,6 +42,24 @@ impl Editor {
             .unwrap_or(0)
     }
 
+    /// The status bar's Line and Column: the caret's line on its page (from
+    /// the top of the text, 1-based) and its position in the line (1-based).
+    pub fn caret_line_col(&self) -> Option<(usize, usize)> {
+        let p = self.caret;
+        let pi = *self.pidx(&p.para)?;
+        let pl = &self.layout.paras[pi];
+        let li = Self::line_index(pl, p.off);
+        let &(pg, k) = self.line_loc.get(&(pi, li))?;
+        let y = self.placed(pg, k).y;
+        let page = self.layout.pages.get(pg)?;
+        let mut tops: Vec<f64> = page.lines.iter().map(|l| l.y).filter(|&t| t < y - 0.5).collect();
+        tops.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        tops.dedup_by(|a, b| (*a - *b).abs() < 0.5);
+        let line = pl.lines.get(li)?;
+        let start = pl.units.get(line.start).map(|u| u.pos).unwrap_or(0);
+        Some((tops.len() + 1, p.off.saturating_sub(start) + 1))
+    }
+
     /// The page the caret is on.
     pub fn caret_page(&self) -> usize {
         self.caret_rect(self.caret).map(|r| r.0).unwrap_or(0)

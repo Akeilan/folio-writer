@@ -1,7 +1,6 @@
 """Font, Paragraph, Styles, Borders and Shading, Drop Cap, Sort dialogs."""
 from gi.repository import GLib, Gtk, Pango, PangoCairo
 
-from . import bridge, docapi
 from .actions import CHAR_STYLES, engine_style, word_style
 from .native import values
 from .widgets import (FDialog, LengthSpin, PointSpin, Preview, color_button, combo,
@@ -317,8 +316,8 @@ class TextDialogs:
                                 "documents." % (name, ("%g" % size)), yes="OK"):
                 d.done()
                 return
-            docapi.set_default_font(m, name, size)
-            self.win.app.set_default_font(name, size)
+            self.win.app.set_default_font(name, size, self.eng.ed)
+            self.eng.view.after_edit()
             d.done()
             return
         new_feats = []
@@ -811,24 +810,6 @@ class TextDialogs:
         pageborders.dialog(self.win)
         return
 
-    def border(self, which):
-        """Borders drop-down on the Home tab."""
-        m = self.model
-        if m is None:
-            return
-        sides = {"bottom": {"bottom"}, "top": {"top"}, "left": {"left"}, "right": {"right"},
-                 "none": set(), "all": {"top", "bottom", "left", "right"},
-                 "outside": {"top", "bottom", "left", "right"}}.get(which)
-        if sides is None:
-            return
-        if which in ("bottom", "top", "left", "right"):
-            vc = modelapi.view_cursor(m)
-            now = {s for s, p in (("top", "TopBorder"), ("bottom", "BottomBorder"),
-                                  ("left", "LeftBorder"), ("right", "RightBorder"))
-                   if getattr(vc, p).OuterLineWidth > 0}
-            sides = now ^ sides
-        docapi.para_border(m, sides)
-
     # =============================================================== Drop cap
     def drop_cap(self):
         return self._native_drop_cap()
@@ -878,36 +859,6 @@ def _object_size(self):
     from . import objlayout
     if self._model_or_warn() is not None:
         objlayout.layout_dialog(self.win, 2)
-
-
-def _object_size_old(self):
-    from . import drawing
-    from .widgets import LengthSpin, FDialog, grid
-    m = self._model_or_warn()
-    obj = drawing.selected_shape(m) if m else None
-    if obj is None:
-        return
-    size = obj.Size
-    d = FDialog(self.win, "Layout")
-    w = LengthSpin(size.Width, 10, 300000)
-    h = LengthSpin(size.Height, 10, 300000)
-    lock = Gtk.CheckButton.new_with_mnemonic("Lock _aspect ratio")
-    lock.set_active(drawing.kind_of(obj) == "picture")
-    ratio = size.Width / float(size.Height or 1)
-    busy = [False]
-
-    def keep(src, dst, r):
-        if lock.get_active() and not busy[0]:
-            busy[0] = True
-            dst.set_value(src.get_value() * r)
-            busy[0] = False
-    w.connect("value-changed", lambda *_: keep(w, h, 1 / ratio))
-    h.connect("value-changed", lambda *_: keep(h, w, ratio))
-    d.add(grid([["_Height:", h], ["_Width:", w]]))
-    d.add(lock)
-    if d.ask() == Gtk.ResponseType.OK:
-        drawing.set_size(obj, w.mm100, h.mm100)
-    d.done()
 
 
 TextDialogs.object_size = _object_size

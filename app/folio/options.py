@@ -3,7 +3,6 @@ import os
 
 from gi.repository import GLib, Gtk
 
-from . import docapi
 from .widgets import FDialog, combo, grid, heading
 from . import modelapi
 
@@ -170,15 +169,6 @@ class OptionsDialog:
         adv.pack_start(heading("Compatibility"), False, False, 0)
         adv.pack_start(Gtk.Label(label="Files are saved so they open correctly in other word "
                                        "processors.", xalign=0), False, False, 0)
-        adv.pack_start(heading("Document engine"), False, False, 0)
-        from . import native as _native
-        new_engine = Gtk.CheckButton(
-            label="Use Folio's own document engine (applies to new windows)")
-        new_engine.set_active(s.get("engine", "native") != "classic")
-        new_engine.set_sensitive(_native.available() and _native.classic_available())
-        if not _native.classic_available():
-            new_engine.set_tooltip_text("The old engine isn't installed, so Folio's own engine is always used.")
-        adv.pack_start(new_engine, False, False, 0)
 
         # Language
         lg = page("Language")
@@ -399,7 +389,6 @@ class OptionsDialog:
                     if on != _flag(tag):
                         ed_now.set_settings_xml(tag, "<%s/>" % tag if on else None)
             s["ctrl_click_links"] = ctrl_click.get_active()
-            s["engine"] = "native" if new_engine.get_active() else "classic"
             s["paste_within"] = keys[max(0, within.get_active())]
             s["paste_other"] = keys[max(0, other.get_active())]
             s["units"] = units.get_active_text()
@@ -433,8 +422,6 @@ def remove_autocorrect_entry(win, word):
         return
     entries = [e for e in autocorrect.read_list(path) if e[0] != word]
     autocorrect.save_list(path, entries)
-    from .acwatch import ACWatch
-    ACWatch._repl = None
 
 
 AC_TABS = [
@@ -474,7 +461,6 @@ def autocorrect_options(win, tab=0, with_text=None):
     """AutoCorrect, as in the original: AutoCorrect, Math AutoCorrect and
     AutoFormat As You Type."""
     from . import autocorrect
-    from .app import apply_engine_config
     s = win.app.settings
     lang, path = _ac_lang_path(win)
     d = FDialog(win, "AutoCorrect: %s" % modelapi.language_name(lang))
@@ -646,7 +632,6 @@ def autocorrect_options(win, tab=0, with_text=None):
         except Exception:
             pass
         win.app.save_settings()
-        apply_engine_config(s)
         if changed[0] and path is not None:
             try:
                 autocorrect.save_list(path, [(r[0], r[1]) for r in store] + hidden)
@@ -709,20 +694,12 @@ def exceptions_dialog(win, path):
 
 
 # ------------------------------------------------------------ custom dictionaries
-def _dict_list():
-    from . import bridge
-    return bridge.create("com.sun.star.linguistic2.DictionaryList")
-
-
-def _display(name):
-    return {"FolioWords": "CUSTOM.DIC (Default)", "standard.dic": "CUSTOM.DIC",
-            "IgnoreAllList": None,
-            "List of Ignored Words": None, "technical.dic": None}.get(name, name)
-
-
 def dictionaries_dialog(win):
+    """Custom Dictionaries: the word lists spelling accepts, turned on or off,
+    edited, made and removed."""
+    import os
     from .widgets import FDialog
-    dl = _dict_list()
+    from .native import spell
     d = FDialog(win, "Custom Dictionaries", buttons=(("OK", Gtk.ResponseType.OK),))
     d.add(Gtk.Label(label="Dictionary List", xalign=0))
     store = Gtk.ListStore(bool, str, str)
@@ -747,61 +724,52 @@ def dictionaries_dialog(win):
 
     def fill():
         store.clear()
-        from . import docapi
-        docapi.user_dictionary()
-        for dic in dl.getDictionaries():
-            name = dic.getName()
-            shown = _display(name)
-            if shown is None or name.endswith(".dic") is False and name != "standard.dic" \
-                    and not name.endswith(".dic"):
-                if shown is None:
-                    continue
-            store.append([dic.isActive(), shown, name])
+        for name, path, on in spell.custom_dictionaries():
+            store.append([on, name, path])
 
     def toggled(cell, path):
         row = store[path]
-        dic = dl.getDictionaryByName(row[2])
-        if dic is not None:
-            dic.setActive(not row[0])
-            row[0] = not row[0]
+        if row[2] == spell.user_words_path():
+            return                      # the default list is always used
+        row[0] = not row[0]
+        spell.set_active(win.app.settings, row[1], row[0])
+        win.app.save_settings()
     tog.connect("toggled", toggled)
 
     def current():
         model, it = tv.get_selection().get_selected()
-        return dl.getDictionaryByName(model[it][2]) if it else None
+        return (model[it][1], model[it][2]) if it else None
 
     def do_edit(*_):
-        dic = current()
-        if dic is not None:
-            word_list_dialog(d, dic)
+        c = current()
+        if c is not None:
+            word_list_dialog(d, c[0], c[1])
 
     def do_new(*_):
         name = win.dialogs.ask_text("Create Custom Dictionary", "File name:", "CUSTOM2.dic")
         if not name:
             return
+        name = os.path.basename(name.strip())
         if not name.lower().endswith(".dic"):
             name += ".dic"
-        from . import docapi
-        import uno
-        import os
-        path = os.path.join(os.path.expanduser("~/.config/folio-writer/dictionaries"), name)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        try:
-            dic = dl.createDictionary(name, docapi.locale("", ""),
-                                      uno.Enum("com.sun.star.linguistic2.DictionaryType",
-                                               "POSITIVE"), uno.systemPathToFileUrl(path))
-            dl.addDictionary(dic)
-            dic.setActive(True)
-        except Exception as e:
-            win.dialogs.message("The dictionary couldn't be created: %s" % e)
+        path = os.path.join(os.path.expanduser(spell.DICT_DIR), name)
+        if os.path.exists(path):
+            win.dialogs.message("There is already a dictionary called %s." % name)
+            return
+        spell.write_words(path, [])
         fill()
 
     def do_remove(*_):
-        dic = current()
-        if dic is None or dic.getName() == "standard.dic":
+        c = current()
+        if c is None or c[1] == spell.user_words_path():
             return
-        dl.removeDictionary(dic)
-        fill()
+        if win.dialogs.confirm("Remove the dictionary %s and its words?" % c[0], yes="Remove", no="Cancel"):
+            try:
+                os.remove(c[1])
+            except OSError:
+                pass
+            spell.reload_user_words()
+            fill()
     edit.connect("clicked", do_edit)
     new.connect("clicked", do_new)
     rem.connect("clicked", do_remove)
@@ -811,12 +779,17 @@ def dictionaries_dialog(win):
         tv.get_selection().select_path(Gtk.TreePath(0))
     d.ask()
     d.done()
+    for w in win.app.windows:
+        sp = getattr(w.engine.view, "speller", None)
+        if sp is not None:
+            sp.cache.clear()
+            sp.invalidate()
 
 
-def word_list_dialog(parent, dic):
+def word_list_dialog(parent, name, path):
     from .widgets import FDialog
-    d = FDialog(parent, _display(dic.getName()) or dic.getName(),
-                buttons=(("OK", Gtk.ResponseType.OK),))
+    from .native import spell
+    d = FDialog(parent, name, buttons=(("OK", Gtk.ResponseType.OK),))
     entry = Gtk.Entry()
     entry.set_placeholder_text("Word(s):")
     store = Gtk.ListStore(str)
@@ -836,38 +809,42 @@ def word_list_dialog(parent, dic):
     d.add(Gtk.Label(label="Dictionary:", xalign=0))
     d.add(sw, expand=True)
     d.add(bb)
+    words = spell.read_words(path)
 
     def fill():
         store.clear()
-        for e in sorted(dic.getEntries(), key=lambda e: e.getDictionaryWord().lower()):
-            store.append([e.getDictionaryWord()])
+        for w in sorted(set(words), key=str.lower):
+            store.append([w])
 
-    from . import docapi
-    own = dic.getName() == "FolioWords"
+    def save():
+        spell.write_words(path, words)
+        fill()
 
     def do_add(*_):
         w = entry.get_text().strip()
         if w:
-            if own:
-                docapi.add_to_dictionary(w)
-            else:
-                dic.add(w, False, "")
+            for x in w.split():
+                if x not in words:
+                    words.append(x)
             entry.set_text("")
-            fill()
+            save()
 
     def do_del(*_):
         model, it = tv.get_selection().get_selected()
         if it:
-            if own:
-                docapi.remove_from_dictionary(model[it][0])
-            else:
-                dic.remove(model[it][0])
-            fill()
+            w = model[it][0]
+            while w in words:
+                words.remove(w)
+            save()
+
+    def do_clear(*_):
+        del words[:]
+        save()
     add.connect("clicked", do_add)
     entry.connect("activate", do_add)
     dele.connect("clicked", do_del)
-    clear.connect("clicked", lambda *_: (dic.clear(), own and docapi.save_user_words([]),
-                                         fill()))
+    clear.connect("clicked", do_clear)
     fill()
     d.ask()
     d.done()
+

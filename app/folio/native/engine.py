@@ -108,7 +108,6 @@ class NativeEngine(GObject.GObject):
         super().__init__()
         self.author = author
         self.view = NativeView()
-        self._model = None         # no UNO model: features that need it stay off
         self.ed = None
         self.state = {}
         self.path = None
@@ -124,22 +123,6 @@ class NativeEngine(GObject.GObject):
         self.view.get_command_values = lambda cmd: review.command_values(self, cmd)
         self._cm_id = 0
         self.view.connect("changed", lambda *_: self._schedule_comments())
-
-    # which features asked for the old engine's document model (they do nothing here)
-    model_wanted = {}
-
-    @property
-    def model(self):
-        if self._model is None:
-            import sys as _sys
-            f = _sys._getframe(1)
-            key = "%s:%s" % (os.path.basename(f.f_code.co_filename), f.f_code.co_name)
-            NativeEngine.model_wanted[key] = NativeEngine.model_wanted.get(key, 0) + 1
-        return self._model
-
-    @model.setter
-    def model(self, v):
-        self._model = v
 
     def _schedule_comments(self):
         """Comment balloons follow the text they mark after edits."""
@@ -952,7 +935,7 @@ class NativeEngine(GObject.GObject):
         return self.view.to_widget(pg, x / 20.0, (y - top) / 20.0)
 
     def fonts(self, all_fonts=False):
-        from ..engine import _FONT_JUNK, latin_font_families
+        from .fontlist import _FONT_JUNK, latin_font_families
         try:
             names = latin_font_families() or set()
         except Exception:

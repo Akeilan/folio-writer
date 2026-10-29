@@ -1,10 +1,8 @@
 """Sort, as in the original: Sort by / Then by / Then by, each with a type,
 a 'Using' part and a direction; a header row; options for the field
 separator, column-only sorting, case and language."""
-from ._lazy import uno
 from gi.repository import Gtk
 
-from . import docapi
 from .widgets import FDialog, combo, heading
 from . import modelapi
 
@@ -29,7 +27,6 @@ class _NativeTable:
 
 
 def dialog(win):
-    native = getattr(win.engine, "native", False)
     ed = win.engine.ed
     got = ed.sort_items(False) if ed is not None else None
     if not got:

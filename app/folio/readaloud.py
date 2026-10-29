@@ -9,8 +9,6 @@ import threading
 from gi.repository import GLib, Gtk, Pango
 
 from . import icons
-from ._lazy import docapi
-from . import modelapi
 
 WORD_RE = re.compile(r"[\w’'\-]+[.,;:!?]?", re.U)
 
@@ -154,65 +152,6 @@ class Speaker:
         self.proc = None
 
 
-# ------------------------------------------------------------ sources
-class DocSource:
-    """Paragraphs of the document body from the cursor on."""
-
-    def __init__(self, win):
-        self.win = win
-        m = win.engine.model
-        self.paras = []
-        body = m.getText()
-        here = modelapi.read_cursor(m).getStart()
-        en = body.createEnumeration()
-        started = False
-        while en.hasMoreElements():
-            p = en.nextElement()
-            if not p.supportsService("com.sun.star.text.Paragraph"):
-                continue
-            if not started:
-                try:
-                    if body.compareRegionEnds(p, here) > 0:
-                        continue
-                except Exception:
-                    pass
-                started = True
-            if p.getString().strip():
-                self.paras.append(p)
-        self.first_offset = 0
-        if self.paras:
-            try:
-                c = body.createTextCursorByRange(self.paras[0].getStart())
-                c.gotoRange(here, True)
-                self.first_offset = len(c.getString())
-            except Exception:
-                pass
-
-    def __len__(self):
-        return len(self.paras)
-
-    def words(self, i):
-        text = self.paras[i].getString()
-        start = self.first_offset if i == 0 else 0
-        out = [(mm.start(), mm.end() - mm.start(), mm.group())
-               for mm in WORD_RE.finditer(text) if mm.start() >= start]
-        return out
-
-    def highlight(self, i, start, length):
-        m = self.win.engine.model
-        p = self.paras[i]
-        try:
-            c = p.getText().createTextCursorByRange(p.getStart())
-            c.goRight(start, False)
-            c.goRight(length, True)
-            modelapi.controller(m).select(c)
-        except Exception:
-            pass
-
-    def clear(self):
-        pass
-
-
 class ReadAloud:
     def __init__(self, win):
         self.win = win
@@ -239,10 +178,10 @@ class ReadAloud:
             self.win.dialogs.message("Read Aloud needs a speech engine. Install the "
                                      "speech-dispatcher or espeak-ng package.")
             return
-        if source is None and getattr(self.win.engine, "native", False):
-            from .native.views import DocSource as _NativeSource
-            source = _NativeSource(self.win)
-        self.source = source or DocSource(self.win)
+        if source is None:
+            from .native.views import DocSource
+            source = DocSource(self.win)
+        self.source = source
         if not len(self.source):
             self.win.status.flash("There's no text to read from here.")
             return

@@ -2,132 +2,12 @@
 numbering, conversion between footnotes and endnotes."""
 from gi.repository import Gtk
 
-from ._lazy import bridge, docapi
 from .widgets import FDialog
-from . import modelapi
 
 FORMATS = [("1, 2, 3, ...", 4), ("a, b, c, ...", 1), ("A, B, C, ...", 0),
            ("i, ii, iii, ...", 3), ("I, II, III, ...", 2)]
 SYMBOLS = ["*", "†", "‡", "§"]
 NUMBERING = [("Continuous", 2), ("Restart each section", 1), ("Restart each page", 0)]
-
-
-def _settings(m, endnote):
-    return m.getEndnoteSettings() if endnote else m.getFootnoteSettings()
-
-
-def current(m, endnote=False):
-    s = _settings(m, endnote)
-    out = {"type": s.NumberingType, "start": s.StartAt + 1}
-    try:
-        out["counting"] = s.FootnoteCounting if not endnote else 2
-    except Exception:
-        out["counting"] = 2
-    return out
-
-
-def apply_settings(m, endnote, num_type, start, counting):
-    s = _settings(m, endnote)
-    s.NumberingType = num_type
-    s.StartAt = max(0, start - 1)
-    if not endnote:
-        try:
-            s.FootnoteCounting = counting
-        except Exception:
-            pass
-
-
-def insert_note(m, endnote=False, mark=""):
-    vc = modelapi.view_cursor(m)
-    note = m.createInstance("com.sun.star.text.Endnote" if endnote else
-                            "com.sun.star.text.Footnote")
-    if mark:
-        note.setLabel(mark)
-    vc.getText().insertTextContent(vc, note, False)
-    vc.gotoRange(note.getText().getEnd(), False)
-    return note
-
-
-def notes(m, endnote):
-    c = m.getEndnotes() if endnote else m.getFootnotes()
-    return [c.getByIndex(i) for i in range(c.getCount())]
-
-
-def convert(m, to_endnote=None):
-    """to_endnote True: footnotes -> endnotes; False: endnotes -> footnotes;
-    None: swap both."""
-    jobs = []
-    if to_endnote in (True, None):
-        jobs += [(n, True) for n in notes(m, False)]
-    if to_endnote in (False, None):
-        jobs += [(n, False) for n in notes(m, True)]
-    if not jobs:
-        return 0
-    ctl = modelapi.controller(m)
-    vc = modelapi.view_cursor(m)
-    um = m.getUndoManager()
-    um.enterUndoContext("Convert Notes")
-    try:
-        for old, endnote in jobs:
-            anchor = old.getAnchor()
-            text = anchor.getText()
-            cur = text.createTextCursorByRange(anchor.getStart())
-            label = old.getLabel()
-            # copy the note's content with its formatting
-            body = old.getText()
-            vc.gotoRange(body.getStart(), False)
-            vc.gotoRange(body.getEnd(), True)
-            data = ctl.getTransferable() if body.getString() else None
-            new = m.createInstance("com.sun.star.text.Endnote" if endnote else
-                                   "com.sun.star.text.Footnote")
-            if label:
-                new.setLabel(label)
-            text.insertTextContent(cur, new, False)
-            if data is not None:
-                vc.gotoRange(new.getText().getStart(), False)
-                ctl.insertTransferable(data)
-            text.removeTextContent(old)
-    finally:
-        um.leaveUndoContext()
-    return len(jobs)
-
-
-class _Classic:
-    """The dialog's operations with the old engine."""
-
-    def __init__(self, win, m):
-        self.win, self.m = win, m
-
-    def current(self, endnote):
-        c = current(self.m, endnote)
-        c["pos"] = "docEnd" if endnote else "pageBottom"
-        return c
-
-    def apply(self, endnote, num_type, start, counting, pos):
-        apply_settings(self.m, endnote, num_type, start, counting)
-        if endnote:
-            _endnotes_at_section(self.m, pos == "sectEnd")
-
-    def insert(self, endnote, mark):
-        insert_note(self.m, endnote, mark)
-
-    def count(self, endnote):
-        return len(notes(self.m, endnote))
-
-    def convert(self, which):
-        return convert(self.m, which)
-
-    def sync(self, fn):
-        m = self.m
-
-        def go():
-            um = m.getUndoManager()
-            um.enterUndoContext("Footnote and Endnote")
-            try:
-                fn()
-            finally:
-                um.leaveUndoContext()
-        self.win.engine.sync(go)
 
 
 def dialog(win):
@@ -252,15 +132,3 @@ def dialog(win):
     B.sync(go)
 
 
-def _endnotes_at_section(m, on):
-    """End of section: collect endnotes at the end of the current section."""
-    try:
-        sec = modelapi.read_cursor(m).TextSection
-    except Exception:
-        sec = None
-    if sec is None:
-        return
-    try:
-        sec.EndnoteIsCollectAtTextEnd = on
-    except Exception:
-        pass

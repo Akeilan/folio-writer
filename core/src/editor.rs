@@ -216,6 +216,7 @@ pub enum Story {
 mod objects;
 mod hf;
 mod inspect;
+mod formula;
 mod fields;
 mod fieldcodes;
 mod refs;
@@ -3080,6 +3081,50 @@ impl Editor {
         self.begin();
         self.apply_to_child(tbl, "w:tblPr", edits, TBLPR_ORDER, true);
         self.commit(label, false);
+        true
+    }
+
+    /// Table Options: the default cell margins (twips: top, bottom, left, right).
+    pub fn table_cell_margins(&self) -> Option<(i32, i32, i32, i32)> {
+        let (tbl, _, _) = self.cell_of(self.caret.para)?;
+        let dom = &self.doc.dom;
+        let mar = dom.child(tbl, "w:tblPr").and_then(|p| dom.child(p, "w:tblCellMar"));
+        let get = |names: &[&str], d: i32| -> i32 {
+            mar.and_then(|m| names.iter().find_map(|n| dom.child(m, n)))
+                .and_then(|e| dom.attr(e, "w:w")).and_then(|v| v.parse().ok()).unwrap_or(d)
+        };
+        Some((get(&["w:top"], 0), get(&["w:bottom"], 0), get(&["w:left", "w:start"], 108), get(&["w:right", "w:end"], 108)))
+    }
+
+    pub fn set_table_cell_margins(&mut self, top: i32, bottom: i32, left: i32, right: i32) -> bool {
+        let Some((tbl, _, _)) = self.cell_of(self.caret.para) else { return false };
+        self.begin();
+        let xml = format!(
+            "<w:tblCellMar xmlns:w=\"{}\"><w:top w:w=\"{}\" w:type=\"dxa\"/><w:left w:w=\"{}\" w:type=\"dxa\"/>\
+             <w:bottom w:w=\"{}\" w:type=\"dxa\"/><w:right w:w=\"{}\" w:type=\"dxa\"/></w:tblCellMar>",
+            crate::document::W_NS, top.max(0), left.max(0), bottom.max(0), right.max(0));
+        let Ok(tmp) = crate::xml::XmlDoc::parse(xml.as_bytes()) else { self.commit("Cell Margins", false); return false };
+        let dom = &mut self.doc.dom;
+        let pr = match dom.child(tbl, "w:tblPr") {
+            Some(p) => p,
+            None => {
+                let p = dom.new_element("w:tblPr", &[]);
+                dom.insert(tbl, 0, p);
+                p
+            }
+        };
+        if let Some(old) = dom.child(pr, "w:tblCellMar") {
+            dom.detach(old);
+        }
+        let n = dom.import_node(&tmp, tmp.root);
+        dom.remove_attr(n, "xmlns:w");
+        set_prop_child(dom, pr, &PropEdit { name: "w:tblCellMar".into(), attrs: Some(vec![]) }, TBLPR_ORDER);
+        if let Some(placeholder) = dom.child(pr, "w:tblCellMar") {
+            let idx = dom.index_in_parent(placeholder).unwrap_or(0);
+            dom.detach(placeholder);
+            dom.insert(pr, idx, n);
+        }
+        self.commit("Cell Margins", false);
         true
     }
 

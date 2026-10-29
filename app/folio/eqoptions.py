@@ -4,7 +4,6 @@ import re
 
 from gi.repository import Gtk
 
-from . import docapi
 from .eqn import render as R
 from .eqn import symbols as S
 from .widgets import FDialog, combo, grid

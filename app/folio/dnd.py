@@ -95,8 +95,7 @@ class DropHandler:
             return False
         self._last_motion = now
         on_page, vx, vy = self._to_view(widget, x, y)
-        if on_page and getattr(self.win, "drag_move", None) is not None and \
-                self.win.drag_move.state is None:
+        if on_page:
             self._move(vx, vy)
         return False
 

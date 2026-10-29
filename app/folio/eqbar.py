@@ -10,7 +10,7 @@ import os
 
 from gi.repository import Gdk, GLib, Gtk, Pango
 
-from . import SHARE, docapi, icons
+from . import SHARE, icons
 from .eqn import galleries as G
 from .eqn import latex, starmath, unicodemath
 from .eqn import model as M

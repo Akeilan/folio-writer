@@ -5,10 +5,8 @@ import re
 
 from gi.repository import GLib, Gtk
 
-from . import docapi
 from .widgets import (FDialog, LengthSpin, Preview, color_button, combo, combo_text,
                       fmt_len, grid, heading, list_selected, listbox)
-from . import modelapi
 
 PAPER = [("Letter", 21590, 27940), ("Legal", 21590, 35560), ("Executive", 18415, 26670),
          ("A3", 29700, 42000), ("A4", 21000, 29700), ("A5", 14800, 21000),

@@ -9,14 +9,12 @@ def _native(win):
 
 
 def _C(win):
-    if _native(win):
-        from .native import refs
-        return refs.cites()
-    return _citations
+    from .native import refs
+    return refs.cites()
 
 
 def _M(win):
-    return win if _native(win) else win.engine.model
+    return win
 from .widgets import FDialog, combo, grid, heading
 
 

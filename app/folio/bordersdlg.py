@@ -5,7 +5,6 @@ whole document, this section), Options (distance from text) and shading
 with a fill colour and a pattern."""
 from gi.repository import Gdk, Gtk
 
-from . import bridge
 from .widgets import FDialog, LengthSpin, color_button, combo, grid, heading, rgb
 from .native import values
 

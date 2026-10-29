@@ -4,7 +4,7 @@ import html
 
 from gi.repository import Gdk, GLib, Gtk, Pango
 
-from . import docapi, icons
+from . import icons
 from .actions import word_style, engine_style, CHAR_STYLES
 from .ribbon import menu_popover
 from . import modelapi
@@ -298,8 +298,6 @@ class NavigationPane(Pane):
         path = res[0]
         tv.get_selection().select_path(path)
         par = self.hstore[path][1]
-        if self._native() is None:
-            return False
         return self._native_heading_menu(ev, par)
 
     def _native_heading_menu(self, ev, node):
@@ -418,9 +416,8 @@ class NavigationPane(Pane):
 
     def search(self, quiet=False):
         text = self.entry.get_text()
-        if self._native() is not None:
-            from .native import find
-            find.nav_search(self, text, quiet)
+        from .native import find
+        find.nav_search(self, text, quiet)
 
     def step(self, d):
         if not self._ranges:
@@ -798,7 +795,6 @@ class ThesaurusPane(Pane):
     def lookup(self, word):
         self.entry.set_text(word or "")
         self.store.clear()
-        native = getattr(self.win.engine, "native", False)
         if not word or (self.model is None and False):
             return
         from .native import docops
@@ -915,7 +911,6 @@ class ReviewingPane(Pane):
             self.list.remove(c)
         m = self.model
         eng = self.win.engine
-        native = getattr(eng, "native", False)
         if m is None and False:
             return
         from .native import review as NR

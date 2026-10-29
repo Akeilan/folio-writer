@@ -3,7 +3,6 @@ Changes Options (how insertions, deletions and changed lines are marked,
 colours by author, balloons)."""
 from gi.repository import Gtk
 
-from . import bridge
 from .widgets import FDialog, color_button, combo, grid
 
 INSERT_MARKS = [("(none)", 0), ("Bold", 1), ("Italic", 2), ("Underline", 3),
@@ -25,36 +24,13 @@ def options(app):
 
 
 def apply(win):
-    """Write the marks into the engine's settings and redraw."""
+    """The marks for the document's changes, and redraw."""
     o = options(win.app)
-    try:
-        import uno
-        prov = bridge.create("com.sun.star.configuration.ConfigurationProvider")
-
-        def acc(path):
-            arg = uno.createUnoStruct("com.sun.star.beans.PropertyValue")
-            arg.Name, arg.Value = "nodepath", path
-            return prov.createInstanceWithArguments(
-                "com.sun.star.configuration.ConfigurationUpdateAccess", (arg,))
-        base = "/org.openoffice.Office.Writer/Revision/"
-        for node, mark, color in (("TextDisplay/Insert", o["ins_mark"], o["ins_color"]),
-                                  ("TextDisplay/Delete", o["del_mark"], o["del_color"]),
-                                  ("TextDisplay/ChangedAttribute", 1, o["attr_color"])):
-            a = acc(base + node)
-            a.setPropertyValue("Attribute", int(mark))
-            a.setPropertyValue("Color", int(color))
-            a.commitChanges()
-        a = acc(base + "LinesChanged")
-        a.setPropertyValue("Mark", int(o["line_mark"]))
-        a.setPropertyValue("Color", int(o["line_color"]))
-        a.commitChanges()
-    except Exception as e:
-        print("track options:", e)
-    # redraw with the new marks
-    eng = win.engine
-    if eng.model is not None:
-        eng.command(".uno:ShowTrackedChanges")
-        eng.command(".uno:ShowTrackedChanges")
+    ed = win.engine.ed
+    if ed is not None:
+        ed.set_revision_marks(int(o["ins_mark"]), int(o["ins_color"]), int(o["del_mark"]),
+                              int(o["del_color"]), int(o["line_mark"]), int(o["line_color"]))
+        win.engine.view.document_changed()
     try:
         win.comments.set_width(int(o["balloon_width"]))
     except Exception:

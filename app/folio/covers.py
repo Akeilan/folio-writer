@@ -2,7 +2,6 @@
 galleries, plus saving the selection to those galleries."""
 import datetime
 
-from . import bridge, docapi
 from .native import values
 from . import modelapi
 
@@ -105,17 +104,13 @@ def _native(win):
 
 def remove_current(win):
     """Remove Current Cover Page."""
-    if _native(win):
-        from .native import covers as nc
-        return nc.remove_cover(win)
-    return False
+    from .native import covers as nc
+    return nc.remove_cover(win)
 
 
 def insert_cover(win, name):
-    if _native(win):
-        from .native import covers as nc
-        return nc.insert_cover(win, name)
-    return
+    from .native import covers as nc
+    return nc.insert_cover(win, name)
 
 
 # ---------------------------------------------------------------- headers / footers
@@ -149,10 +144,8 @@ def _field(m, kind):
 def hf_design(win, which, name):
     """Put a built-in design in the header or footer of the current
     section."""
-    if _native(win):
-        from .native import covers as nc
-        return nc.hf_design(win, which, name)
-    return
+    from .native import covers as nc
+    return nc.hf_design(win, which, name)
 
 
 # ---------------------------------------------------------------- galleries

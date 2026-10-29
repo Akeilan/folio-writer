@@ -43,10 +43,6 @@ class ACWatch:
     def settings(self):
         return self.win.app.settings
 
-    # ------------------------------------------------------------ indents
-    def native(self):
-        return getattr(self.win.engine, "native", False)
-
     def tab_indent(self, keyname, mods):
         """Tab at the start of a paragraph sets its first-line indent;
         Backspace there takes it away (AutoFormat As You Type)."""
@@ -132,32 +128,6 @@ class ACWatch:
 
 
 
-    _repl = None
-
-    def _replacements(self):
-        if ACWatch._repl is None:
-            try:
-                from . import autocorrect, options
-                _lang, path = options._ac_lang_path(self.win)
-                ACWatch._repl = dict(autocorrect.read_list(path)) if path else {}
-            except Exception:
-                ACWatch._repl = {}
-        return ACWatch._repl
-
-    def _remember(self, rng, old, new, kind, mark=None):
-        self.last = {"range": rng, "old": old, "new": new, "kind": kind}
-        if not self.settings().get("ac_buttons", True):
-            return
-        self.keys_since = 0
-        # typing has moved on (another line, more words): the button would
-        # land in the wrong place, so it isn't shown
-        if mark is not None and getattr(self, "_cur_trig", "") == "\n":
-            if self.enters != mark or self.typed:
-                return
-        elif mark is not None and len(self.typed) > mark + 1:
-            return
-        GLib.timeout_add(60, self._place, len(new))
-
     # ------------------------------------------------------------ button
     def _text_px(self, text):
         import cairo
@@ -173,29 +143,6 @@ class ACWatch:
         layout.set_text(text, -1)
         w, _h = layout.get_pixel_size()
         return w * (eng.view.get_zoom() or 1.0)
-
-    def _place(self, nchars):
-        cur = getattr(self.win, "_follow_rect", None)
-        if cur is None or self.last is None:
-            return False
-        x, y, w, h = cur
-        eng = self.win.engine
-        px, py = eng.twips_to_px(x, y + h)
-        try:
-            back = self._text_px(self.last["new"] + " ")
-        except Exception:
-            back = nchars * 7
-        res = eng.view.translate_coordinates(self.overlay, int(px - back), int(py) + 1)
-        if not res:
-            return False
-        ox, oy = res
-        if oy < 0 or oy > self.overlay.get_allocated_height() - 10:
-            return False
-        self.btn.set_margin_start(max(0, ox))
-        self.btn.set_margin_top(max(0, oy))
-        self.btn.get_child().show_all()
-        self.btn.show()
-        return False
 
     def hide(self):
         self.btn.hide()
@@ -227,28 +174,15 @@ class ACWatch:
         self.hide()
         if last is None:
             return
-        if last.get("native"):
-            ac = getattr(self.win.engine.view, "autocorrect", None)
-            if ac is not None and ac.undo_last():
-                self.win.engine.view.after_edit()
-            self.win.focus_document()
-            return
-        m = self.win.engine.model
-        um = m.getUndoManager()
-        um.enterUndoContext("Undo AutoCorrect")
-        try:
-            if last["range"].getString() == last["new"]:
-                last["range"].setString(last["old"])
-        finally:
-            um.leaveUndoContext()
+        ac = getattr(self.win.engine.view, "autocorrect", None)
+        if ac is not None and ac.undo_last():
+            self.win.engine.view.after_edit()
         self.win.focus_document()
 
     def stop(self, key):
         self.change_back()
         self.settings()[key] = False
         self.win.app.save_settings()
-        from .app import apply_engine_config
-        apply_engine_config(self.settings())
 
     def stop_word(self):
         last = self.last

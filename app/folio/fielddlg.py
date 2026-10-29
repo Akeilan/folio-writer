@@ -2,10 +2,7 @@
 properties (formats, new values), field options, and the field codes."""
 from gi.repository import Gtk
 
-from . import bridge, docapi
 from .widgets import FDialog, combo, heading, list_selected, listbox
-from .native import values
-from . import modelapi
 
 DATE_FORMATS = ["M/d/yyyy", "dddd, MMMM d, yyyy", "MMMM d, yyyy", "M/d/yy", "yyyy-MM-dd",
                 "d-MMM-yy", "M.d.yyyy", "MMM. d, yy", "d MMMM yyyy", "MMMM yy", "MMM-yy",
@@ -52,26 +49,6 @@ TEXT_KINDS = ("author", "title", "subject", "comments", "keywords", "lastsavedby
               "username", "userinitials", "useraddress", "filename", "ref")
 DOCINFO = {"title": "Title", "subject": "Subject", "comments": "Description",
            "keywords": "Keywords"}
-
-
-def lo_date_format(fmt):
-    """The original's date picture to the engine's number format code."""
-    out, i = [], 0
-    toks = [("dddd", "NNNN"), ("ddd", "NNN"), ("dd", "DD"), ("d", "D"), ("MMMM", "MMMM"),
-            ("MMM", "MMM"), ("MM", "MM"), ("M", "M"), ("yyyy", "YYYY"), ("yy", "YY"),
-            ("HH", "HH"), ("H", "H"), ("hh", "HH"), ("h", "H"), ("mm", "MM"), ("m", "M"),
-            ("ss", "SS"), ("s", "S"), ("am/pm", "AM/PM"), ("AM/PM", "AM/PM")]
-    while i < len(fmt):
-        for a, b in toks:
-            if fmt.startswith(a, i):
-                out.append(b)
-                i += len(a)
-                break
-        else:
-            ch = fmt[i]
-            out.append('"%s"' % ch if ch.isalpha() else ch)
-            i += 1
-    return "".join(out)
 
 
 def field_code(name, kind, opts):
@@ -128,94 +105,7 @@ def parse_code(code):
     return f, o
 
 
-def insert(m, kind, opts):
-    vc = modelapi.view_cursor(m)
-    text = vc.getText()
-    f = None
-    if kind in ("date", "time"):
-        f = m.createInstance("com.sun.star.text.textfield.DateTime")
-        f.IsDate = kind == "date" and not any(c in (opts.get("date") or "") for c in "hHm")
-        f.IsFixed = False
-    elif kind in ("created", "saved", "printed"):
-        svc = {"created": "CreateDateTime", "saved": "ChangeDateTime",
-               "printed": "PrintDateTime"}[kind]
-        f = m.createInstance("com.sun.star.text.textfield.docinfo." + svc)
-        try:
-            f.IsDate = True
-        except Exception:
-            pass
-    elif kind in ("page", "pages", "words", "chars"):
-        svc = {"page": "PageNumber", "pages": "PageCount", "words": "WordCount",
-               "chars": "CharacterCount"}[kind]
-        f = m.createInstance("com.sun.star.text.textfield." + svc)
-        f.NumberingType = opts.get("numtype", 4)
-        if kind == "page":
-            f.SubType = values.enum("com.sun.star.text.PageNumberType", "CURRENT")
-    elif kind == "author":
-        if opts.get("new"):
-            m.getDocumentProperties().Author = opts["new"]
-        f = m.createInstance("com.sun.star.text.textfield.docinfo.CreateAuthor")
-    elif kind == "lastsavedby":
-        f = m.createInstance("com.sun.star.text.textfield.docinfo.ChangeAuthor")
-    elif kind in DOCINFO:
-        if opts.get("new"):
-            setattr(m.getDocumentProperties(), DOCINFO[kind], opts["new"])
-        f = m.createInstance("com.sun.star.text.textfield.docinfo." + DOCINFO[kind])
-    elif kind == "filename":
-        f = m.createInstance("com.sun.star.text.textfield.FileName")
-        f.FileFormat = 2 if opts.get("path") else 1      # FULL / NAME_AND_EXT
-    elif kind in ("username", "userinitials", "useraddress"):
-        if kind == "username":
-            f = m.createInstance("com.sun.star.text.textfield.Author")
-            f.FullName = True
-            if opts.get("new"):
-                f.IsFixed = True
-                f.Content = opts["new"]
-        else:
-            f = m.createInstance("com.sun.star.text.textfield.ExtendedUser")
-            f.UserDataType = 3 if kind == "userinitials" else 4
-            if opts.get("new"):
-                f.IsFixed = True
-                f.Content = opts["new"]
-    elif kind in ("ref", "pageref"):
-        f = m.createInstance("com.sun.star.text.textfield.GetReference")
-        f.ReferenceFieldSource = 2          # bookmark
-        f.SourceName = opts.get("bookmark") or ""
-        f.ReferenceFieldPart = 0 if kind == "pageref" else 2   # PAGE / TEXT
-    elif kind == "fillin":
-        f = m.createInstance("com.sun.star.text.textfield.Input")
-        f.Hint = opts.get("prompt") or ""
-        f.Content = opts.get("new") or ""
-    elif kind == "seq":
-        name = opts.get("seq") or "Figure"
-        f = m.createInstance("com.sun.star.text.textfield.SetExpression")
-        f.attachTextFieldMaster(docapi._seq_master(m, name))
-        f.Content = name + "+1"
-        f.NumberingType = opts.get("numtype", 4)
-    if f is None:
-        return None
-    if kind in DATE_KINDS and opts.get("date"):
-        try:
-            f.NumberFormat = docapi._number_format(m, lo_date_format(opts["date"]))
-        except Exception as e:
-            print("field format:", e)
-    text.insertTextContent(vc, f, not vc.isCollapsed())
-    if opts.get("casemap"):
-        try:
-            a = f.getAnchor()
-            a.CharCaseMap = opts["casemap"]
-        except Exception:
-            pass
-    try:
-        docapi.update_indexes(m)
-    except Exception:
-        pass
-    return f
-
-
 def dialog(win):
-    native = getattr(win, "native", False)
-    m = win.engine.model
     d = FDialog(win, "Field")
     outer = Gtk.Box(spacing=14)
     # ---- left: categories + names
@@ -351,7 +241,7 @@ def dialog(win):
             e.connect("changed", update_code)
         if kind in ("ref", "pageref"):
             props_box.pack_start(Gtk.Label(label="Bookmark name:", xalign=0), False, False, 0)
-            marks = win.engine.ed.bookmark_names() if native else docapi.bookmarks(m)
+            marks = win.engine.ed.bookmark_names()
             _sw, btv, _st = listbox(marks, height=170, width=200)
             w["bookmark"] = btv
             props_box.pack_start(_sw, True, True, 0)
@@ -405,26 +295,17 @@ def dialog(win):
             continue
         break
     if r == Gtk.ResponseType.OK:
-        f, o = current(), None
+        f = current()
         if codes_box.get_visible() and code.get_text().strip():
-            pf, po = parse_code(code.get_text().strip())
+            pf, _po = parse_code(code.get_text().strip())
             if pf is not None:
-                f, o = pf, po
-        if f is not None and native:
+                f = pf
+        if f is not None:
             if codes_box.get_visible() and code.get_text().strip():
                 instr = code.get_text().strip()
             else:
                 instr = field_code(f[0], f[2], opts())
             win.engine.ed.insert_field_now(instr)
             win.engine.view.after_edit()
-        elif f is not None:
-            um = m.getUndoManager()
-            um.enterUndoContext("Insert Field")
-            try:
-                insert(m, f[2], o if o is not None else opts())
-            except Exception as e:
-                win.dialogs.message("Error! %s" % e)
-            finally:
-                um.leaveUndoContext()
     d.destroy()
     win.focus_document()

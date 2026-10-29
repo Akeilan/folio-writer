@@ -6,8 +6,6 @@ import tempfile
 
 from gi.repository import GdkPixbuf, GLib, Gtk
 
-from ._lazy import Lazy, bridge, docapi
-from .native import values
 
 
 def _pil():
@@ -131,3 +129,14 @@ RESOLUTIONS = [("High fidelity: preserves quality of the original picture", 0),
                ("E-mail (96 ppi): minimize document size for sharing", 96)]
 
 
+TRANSFORMS = [("#", "Follow Path"), ("Arch", "fontwork-arch-up-curve"),
+              ("Arch: Down", "fontwork-arch-down-curve"), ("Circle", "fontwork-circle-curve"),
+              ("#", "Warp"), ("Square", "fontwork-plain-text"),
+              ("Triangle: Up", "fontwork-triangle-up"),
+              ("Triangle: Down", "fontwork-triangle-down"),
+              ("Chevron: Up", "fontwork-chevron-up"), ("Chevron: Down", "fontwork-chevron-down"),
+              ("Wave: Up", "fontwork-wave"), ("Inflate", "fontwork-inflate"),
+              ("Deflate", "fontwork-curve-down"),
+              ("Slant Up", "fontwork-slant-up"), ("Slant Down", "fontwork-slant-down"),
+              ("Fade: Right", "fontwork-fade-right"), ("Fade: Left", "fontwork-fade-left"),
+              ("Fade: Up", "fontwork-fade-up"), ("Fade: Down", "fontwork-fade-down")]
