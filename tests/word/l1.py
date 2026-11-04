@@ -42,12 +42,15 @@ def fonts():
     items = [c for c in menus[0].get_children() if isinstance(c, Gtk.MenuItem)] if menus else []
     note("font menu items", len(items))
     target = None
+    names = [r[0] for r in fc.get_model()]
+    pick = "Liberation Serif" if "Liberation Serif" in names else "DejaVu Serif"
     for i, mi in enumerate(items):
-        if fc.get_model()[i][0] == "Liberation Serif":
+        if fc.get_model()[i][0] == pick:
             target = mi
+    check("the font list has fonts beyond the theme fonts", target is not None, len(items))
     if target:
         menus[0].select_item(target); yield 1.0
-        check("highlighting a font previews it", find("word").run()["font"] == "Liberation Serif", find("word").run()["font"])
+        check("highlighting a font previews it", find("word").run()["font"] == pick, find("word").run()["font"])
         shot("l1_font")
     fc.popdown(); yield 0.8
     check("closing the list restores", find("word").run()["font"] != "Liberation Serif", find("word").run()["font"])
