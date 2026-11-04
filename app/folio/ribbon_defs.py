@@ -2639,10 +2639,11 @@ def _painter(b, win):
     return b
 
 
-def _load_fonts(win):
+def _load_fonts(win, tries=0):
     fonts = win.engine.fonts()
     if not fonts:
-        GLib.timeout_add(500, _load_fonts, win)
+        if tries < 20:
+            GLib.timeout_add(500, _load_fonts, win, tries + 1)
         return False
     win.font_combo.set_fonts(fonts)
     return False

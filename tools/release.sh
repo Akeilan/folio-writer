@@ -37,7 +37,7 @@ machine() {  # root display
     cp $NEW $TRANS $PREV $m/tmp/
     echo "-- upgrade from $(basename $PREV)"
     flock /home/claude/.dpkg.lock chroot $m bash -c "export DEBIAN_FRONTEND=noninteractive
-      dpkg --purge --force-depends folio-page folio-writer >/dev/null 2>&1
+      dpkg --purge --force-depends folio-suite folio-studio folio-page folio-writer >/dev/null 2>&1
       dpkg -i /tmp/$(basename $PREV) >/dev/null 2>&1 || apt-get -y -f install >/dev/null 2>&1
       echo \"before: \$(dpkg-query -W -f='\${Package} \${Version}' folio-writer 2>/dev/null)\"
       cd /tmp && apt-get install -y ./$(basename $NEW) ./$(basename $TRANS) >/tmp/up.log 2>&1 || { echo 'UPGRADE FAILED'; tail -5 /tmp/up.log; }
@@ -53,7 +53,7 @@ machine() {  # root display
       cp /home/claude/folio-suite/tests/wl.sh $m/tmp/wl.sh; chmod +x $m/tmp/wl.sh
       echo "-- Wayland"
       chroot $m bash -c "export DISPLAY=:$d; APP=installed /tmp/wl.sh bash /tmp/fw/tools/run_theme_audit.sh"
-      chroot $m bash -c "export DISPLAY=:$d XTEST_DISPLAY=:$d; TESTS='tests/native/n1.py tests/native/n31.py tests/native/n37.py' /tmp/wl.sh bash /tmp/fw/tools/run_installed_tests.sh" 2>&1 | quiet
+      chroot $m bash -c "export DISPLAY=:$d XTEST_DISPLAY=:$d; TESTS='tests/native/n1.py tests/native/n31.py tests/native/n37.py tests/native/n44.py' /tmp/wl.sh bash /tmp/fw/tools/run_installed_tests.sh" 2>&1 | quiet
     fi
   } > $log 2>&1
 }
