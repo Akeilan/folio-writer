@@ -8,7 +8,7 @@ W=/home/claude/folio-writer
 LOGS=${LOGS:-/home/claude/out/page_release_logs}; mkdir -p $LOGS
 PREV=${PREV:-/home/claude/out/folio-writer_2.32.0_amd64.deb}
 /home/claude/mounts.sh
-for d in 99 93 92; do pgrep -f "^Xvfb :$d " >/dev/null || { rm -f /tmp/.X$d-lock /tmp/.X11-unix/X$d; setsid -f Xvfb :$d -screen 0 1600x1000x24 -nolisten tcp </dev/null >/dev/null 2>&1; }; done
+for d in ${XD:-99} 93 92; do pgrep -f "^Xvfb :$d " >/dev/null || { rm -f /tmp/.X$d-lock /tmp/.X11-unix/X$d; setsid -f Xvfb :$d -screen 0 1600x1000x24 -nolisten tcp </dev/null >/dev/null 2>&1; }; done
 sleep 1
 quiet() {  # keep lines that aren't a clean result; count the clean ones
   awk '/ rc=0 pass=[1-9][0-9]* fail=0 err=0( done=1)?$/ || / rc=0 pass=0 fail=0 err=0 done=1$/ || /^theme [a-z]+ rc=0 0 problems/ {ok++; next} / rc=/ {bad++} {print} END {printf "  (%d clean, %d not)\n", ok, bad}'
@@ -18,12 +18,12 @@ bash $W/tools/sync_chroot.sh build || exit 1
 mkdir -p $W/core/target/release; cp /srv/jammy/src/fwc/target/release/libfolio_core.so $W/core/target/release/libfolio_core.so
 if [ -z "${SKIP_SOURCE:-}" ]; then
 bash $W/tools/sync_chroot.sh; cp -r $W/tools /srv/jammy/tmp/fw/; mkdir -p /srv/jammy/home/claude; ln -sfn /tmp/fw /srv/jammy/home/claude/folio2
-echo "== native (source)"; chroot /srv/jammy bash -c "DISPLAY=:99 bash /tmp/fw/tools/run_native_tests.sh" 2>&1 | quiet
-echo "== word parity (source)"; chroot /srv/jammy bash -c "DISPLAY=:99 bash /tmp/fw/tools/run_word_tests.sh" 2>&1 | quiet
+echo "== native (source)"; chroot /srv/jammy bash -c "DISPLAY=:${XD:-99} bash /tmp/fw/tools/run_native_tests.sh" 2>&1 | quiet
+echo "== word parity (source)"; chroot /srv/jammy bash -c "DISPLAY=:${XD:-99} bash /tmp/fw/tools/run_word_tests.sh" 2>&1 | quiet
 echo "== command walk"
-chroot /srv/jammy bash -c "cd /tmp/fw; DISPLAY=:99 FOLIO_ENGINE=native FOLIO_SHARE=/tmp/fw/share FOLIO_TEST_SCRIPT=/tmp/fw/tests/native_command_walk.py PYTHONPATH=app timeout 1500 python3 -m folio > /tmp/walk.out 2>&1; echo \"walk rc=\$? done=\$(grep -c '^DONE' /tmp/walk.out) tracebacks=\$(grep -c Traceback /tmp/walk.out)\""
+chroot /srv/jammy bash -c "cd /tmp/fw; DISPLAY=:${XD:-99} FOLIO_ENGINE=native FOLIO_SHARE=/tmp/fw/share FOLIO_TEST_SCRIPT=/tmp/fw/tests/native_command_walk.py PYTHONPATH=app timeout 1500 python3 -m folio > /tmp/walk.out 2>&1; echo \"walk rc=\$? done=\$(grep -c '^DONE' /tmp/walk.out) tracebacks=\$(grep -c Traceback /tmp/walk.out)\""
 echo "== rename (X3-08)"; chroot /srv/jammy bash -c "cd /tmp/fw; PYTHONPATH=app python3 tests/rename_test.py | tail -1"
-echo "== themes (source)"; chroot /srv/jammy bash -c "DISPLAY=:99 bash /tmp/fw/tools/run_theme_audit.sh"
+echo "== themes (source)"; chroot /srv/jammy bash -c "DISPLAY=:${XD:-99} bash /tmp/fw/tools/run_theme_audit.sh"
 fi
 echo "== debs"
 NO_CORE=1 bash $W/build-deb.sh /home/claude/out > $LOGS/build.log 2>&1
@@ -57,6 +57,6 @@ machine() {  # root display
     fi
   } > $log 2>&1
 }
-machine /srv/jammy 99 & machine /srv/nolo 93 & machine /srv/noble 92 &
+machine /srv/jammy ${XD:-99} & machine /srv/nolo 93 & machine /srv/noble 92 &
 wait
 for m in jammy nolo noble; do echo "== $m"; cat $LOGS/$m.log; done
