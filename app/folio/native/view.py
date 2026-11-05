@@ -667,6 +667,13 @@ class NativeView(Gtk.DrawingArea):
                 self.after_move()
                 self.objs.press(event.x, event.y, shift)
                 return True
+        if event.type == Gdk.EventType._2BUTTON_PRESS and self.objs.active() and self.ed.object_at(pg, x, y):
+            # K3-08: a Cork diagram opens in Cork
+            from . import diagrams
+            top = self.get_toplevel()
+            msg = getattr(getattr(top, "dialogs", None), "message", None) or (lambda t, *a, **k: print(t))
+            if diagrams.edit_selected(self, msg) is not None:
+                return True
         if self.objs.active():
             self.ed.deselect_object()
             self.objs.refresh()

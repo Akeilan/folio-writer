@@ -269,6 +269,34 @@ class DocumentProperties:
             object.__setattr__(self, k, v)
 
 
+def field_result(ed, name):
+    """The shown result of the first field with this name in the body (simple or complex)."""
+    root = _parse(ed, "word/document.xml")
+    if root is None:
+        return None
+    w = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    stack = []   # complex fields: [instr, phase, result]
+    for e in root.iter():
+        if e.tag == w + "fldSimple":
+            if (e.get(w + "instr", "").split() or [""])[0].upper() == name:
+                return "".join(t.text or "" for t in e.iter(w + "t")).strip() or None
+        elif e.tag == w + "fldChar":
+            k = e.get(w + "fldCharType")
+            if k == "begin":
+                stack.append(["", 0, ""])
+            elif k == "separate" and stack:
+                stack[-1][1] = 1
+            elif k == "end" and stack:
+                instr, _ph, res = stack.pop()
+                if (instr.split() or [""])[0].upper() == name and res.strip():
+                    return res.strip()
+        elif e.tag == w + "instrText" and stack and stack[-1][1] == 0:
+            stack[-1][0] += e.text or ""
+        elif e.tag == w + "t" and stack and stack[-1][1] == 1:
+            stack[-1][2] += e.text or ""
+    return None
+
+
 def stamp_saved(ed, author=""):
     """On save: modified time, revision, last modified by (as Word does)."""
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -283,5 +311,7 @@ def stamp_saved(ed, author=""):
     if author:
         vals["lastModifiedBy"] = author
         if not c.get("creator"):
-            vals["creator"] = author
+            # an AUTHOR field already names the author: keep the property in step with it,
+            # since other programs show AUTHOR from the property (W3-11)
+            vals["creator"] = field_result(ed, "AUTHOR") or author
     set_core(ed, **vals)

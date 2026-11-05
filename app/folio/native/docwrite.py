@@ -842,7 +842,14 @@ class Writer:
         streams = {"WordDocument": bytes(wd), "1Table": bytes(tb)}
         if self.data:
             streams["Data"] = bytes(self.data)
-        streams["\x05SummaryInformation"] = _summary(d.meta or {})
+        meta = dict(d.meta or {})
+        if not meta.get("creator"):
+            # Word keeps AUTHOR fields and the author property in step; readers that refresh
+            # AUTHOR from the property would show nothing (W3-11)
+            who = _field_result(main.text(), "AUTHOR")
+            if who:
+                meta["creator"] = who
+        streams["\x05SummaryInformation"] = _summary(meta)
         return cfb(streams)
 
     def sepx(self, s):
@@ -1148,6 +1155,32 @@ def _plcfld(fields, _base, end):
             depth -= 1
             flds.append(struct.pack("<BB", 0x15, 0x80 | (0x40 if depth > 0 else 0)))
     return b"".join(struct.pack("<I", c) for c in cps) + b"".join(flds)
+
+
+def _field_result(text, name):
+    """The result text of the first field with this name in a story's text, or None."""
+    i = 0
+    while True:
+        i = text.find("\x13", i)
+        if i < 0:
+            return None
+        depth, j, sep = 0, i, None
+        while j < len(text):
+            c = text[j]
+            if c == "\x13":
+                depth += 1
+            elif c == "\x14" and depth == 1 and sep is None:
+                sep = j
+            elif c == "\x15":
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        instr = text[i + 1:sep if sep is not None else j]
+        if (instr.split() or [""])[0].upper() == name and sep is not None:
+            res = "".join(c for c in text[sep + 1:j] if ord(c) >= 32).strip()
+            return res or None
+        i += 1
 
 
 def _summary(meta):

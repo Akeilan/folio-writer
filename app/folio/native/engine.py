@@ -819,7 +819,13 @@ class NativeEngine(GObject.GObject):
             fd, path = tempfile.mkstemp(suffix=".png", prefix="folio-paste-")
             _os.close(fd)
             try:
-                img.savev(path, "png", [], [])
+                from .. import corkembed
+                diagram = corkembed.clipboard_diagram(img)   # K3-08: copied in Cork, stays editable
+                if diagram:
+                    with open(path, "wb") as fh:
+                        fh.write(diagram)
+                else:
+                    img.savev(path, "png", [], [])
                 self._edit(self.ed.insert_picture, path)
             finally:
                 _os.unlink(path)
