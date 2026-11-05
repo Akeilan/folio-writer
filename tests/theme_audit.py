@@ -180,4 +180,5 @@ try:
     win.engine.ed.mark_saved()
 except Exception:
     pass
+sys.stdout.flush()
 os._exit(1 if FAILS else 0)
