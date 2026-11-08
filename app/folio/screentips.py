@@ -14,6 +14,10 @@ TIPS = {
     "Limit and Log": "Insert limits and logarithms.",
     "Operator": "Insert operators such as arrows with text and definitions.",
     "Matrix": "Insert a matrix.",
+    "3D Models": "Put a 3D model in the document, then turn it to the view you want. It is kept "
+                 "in the file with a picture of that view.",
+    "Version History": "See the versions of this document kept on this computer, open one, "
+                       "compare it with what is here now, or restore it.",
     "Check Accessibility": "Make sure your document is easy for people with disabilities to "
                            "read and edit.",
     "Edit Shape": "Change the shape of this drawing, convert it to a freeform, or edit the "

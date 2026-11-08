@@ -224,6 +224,7 @@ mod views;
 mod mail;
 mod controls;
 mod charts;
+mod model3d;
 pub use refs::{BIB_NS, TOA_CATEGORIES};
 mod review;
 mod comments;
