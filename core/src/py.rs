@@ -1691,6 +1691,30 @@ impl PyEditor {
         r
     }
 
+    // ---- 3-D models (W4-01)
+    #[pyo3(signature = (glb, png, w, h, rx=0.0, ry=0.0, rz=0.0, name=""))]
+    #[allow(clippy::too_many_arguments)]
+    fn insert_model3d(&mut self, glb: Vec<u8>, png: Vec<u8>, w: f64, h: f64, rx: f64, ry: f64, rz: f64, name: &str) -> Option<String> {
+        let r = self.ed.insert_model3d(&glb, &png, w, h, (rx, ry, rz), name);
+        self.touched();
+        r
+    }
+
+    fn selected_model3d(&mut self) -> Option<(String, (f64, f64, f64))> {
+        self.ed.selected_model3d()
+    }
+
+    fn model3d_glb(&mut self) -> Option<Vec<u8>> {
+        self.ed.model3d_glb()
+    }
+
+    #[pyo3(signature = (png, rx=0.0, ry=0.0, rz=0.0))]
+    fn set_model3d(&mut self, png: Vec<u8>, rx: f64, ry: f64, rz: f64) -> bool {
+        let ok = self.ed.set_model3d(&png, (rx, ry, rz));
+        self.touched();
+        ok
+    }
+
     fn selected_chart(&mut self) -> Option<String> {
         self.ed.selected_chart()
     }

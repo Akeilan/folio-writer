@@ -238,6 +238,14 @@ impl Editor {
         let dom = &self.doc.dom;
         let mut out: Vec<(NodeId, String, String, bool, i64)> = Vec::new();
         fn walk(dom: &XmlDoc, n: NodeId, out: &mut Vec<NodeId>) {
+            // mc:AlternateContent holds the same object twice: the branch the document means is
+            // the Choice, so the Fallback's copy is not another object
+            if dom.is(n, "mc:AlternateContent") {
+                if let Some(b) = dom.child(n, "mc:Choice").or_else(|| dom.child(n, "mc:Fallback")) {
+                    walk(dom, b, out);
+                }
+                return;
+            }
             for c in dom.elements(n) {
                 if dom.is(c, "w:drawing") {
                     out.push(c);
@@ -257,6 +265,7 @@ impl Editor {
             let uri = crate::pictures::find(dom, h, "a:graphicData").and_then(|g| dom.attr(g, "uri")).unwrap_or("");
             let kind = if uri.ends_with("/picture") { "Picture" } else if uri.ends_with("/chart") { "Chart" }
                 else if uri.contains("wordprocessingGroup") { "Group" } else if uri.contains("diagram") { "SmartArt" }
+                else if uri.contains("model3d") { "3D Model" }
                 else { "Shape" };
             let z = dom.attr(h, "relativeHeight").and_then(|v| v.parse::<i64>().ok()).unwrap_or(0)
                 + if dom.attr(h, "behindDoc") == Some("1") { -1 << 40 } else { 0 };
@@ -1750,7 +1759,9 @@ impl Editor {
     pub fn object_image(&self) -> Option<(Vec<u8>, String)> {
         let node = self.sel_obj?;
         let dom = &self.doc.dom;
-        let blip = crate::pictures::find(dom, node, "a:blip")?;
+        // a 3-D model keeps its picture in am3d:raster rather than a picture's own blip (W4-01)
+        let blip = crate::pictures::find(dom, node, "a:blip")
+            .or_else(|| crate::pictures::find(dom, node, "am3d:blip"))?;
         let rid = dom.attr(blip, "r:embed")?;
         let img = self.doc.images.get(rid)?;
         Some((img.bytes.to_vec(), img.part.clone()))

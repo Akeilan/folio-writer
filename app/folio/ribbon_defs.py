@@ -1160,6 +1160,22 @@ def build_ribbon(win):
         btn("Icons", "insert-icons",
             lambda: __import__("folio.insertmore", fromlist=["x"]).icons_dialog(win),
             size="large", keytip="Y1"),
+        MenuButton(r, "3D Models", "model3d", [
+                       ("#", "3D Models"),
+                       ("This Device...", lambda: run("insert-3d-model")),
+                       None,
+                       ("#", "3D Model Views"),
+                   ] + [(lbl, (lambda k=lbl: run(("model-view", k.lower().replace(" ", "-")))))
+                        for lbl, _rot in __import__("folio.model3dui", fromlist=["VIEWS"]).VIEWS] + [
+                       None,
+                       ("Turn...", lambda: run("model-turn")),
+                       ("Turn Left", lambda: run(("model-nudge", "left"))),
+                       ("Turn Right", lambda: run(("model-nudge", "right"))),
+                       ("Tip Up", lambda: run(("model-nudge", "up"))),
+                       ("Tip Down", lambda: run(("model-nudge", "down"))),
+                       ("Reset 3D Model", lambda: run("model-reset")),
+                   ],
+                   keytip="3D"),
         btn("SmartArt", "cmd/lc_diagramdata" if not icons.exists("cmd/lc_insertdiagram")
             else "cmd/lc_insertdiagram",
             lambda: __import__("folio.insertmore", fromlist=["x"]).smartart_dialog(win),

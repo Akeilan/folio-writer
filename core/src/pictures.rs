@@ -180,12 +180,24 @@ pub fn drawingml(dom: &XmlDoc, holder: NodeId, w: f64, h: f64, images: &HashMap<
         "shape"
     } else if uri.contains("diagram") {
         "diagram"
+    } else if uri.contains("model3d") {
+        "model3d"
     } else if uri.contains("wordprocessingGroup") || uri.contains("wordprocessingCanvas") {
         "group"
     } else {
         "object"
     };
     let Some(obj) = dom.elements(gd).next() else { return pic };
+    if pic.kind == "model3d" {
+        // a 3-D model (W4-01): Word keeps a picture of the view it is turned to, and that is what
+        // every reader draws. Beyond this point it behaves as the picture it is.
+        pic.kind = "picture";
+        if let Some(b) = find(dom, obj, "am3d:blip").or_else(|| find(dom, obj, "a:blip")) {
+            let rid = dom.attr(b, "r:embed").or_else(|| dom.attr(b, "r:link")).unwrap_or("");
+            pic.image = images.get(rid).cloned();
+        }
+        return pic;
+    }
     if pic.kind == "chart" || pic.kind == "chartex" {
         let rid = dom.attr(obj, "r:id").unwrap_or("");
         pic.image = images.get(rid).cloned();

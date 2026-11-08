@@ -541,6 +541,27 @@ class DocWindow(Gtk.ApplicationWindow):
             self.dialogs.message("The document couldn't be saved.", kind="error")
         return ok
 
+    # 3-D models (W4-01)
+    def act_insert_3d_model(self, path=None):
+        from . import model3dui
+        return model3dui.insert(self, path)
+
+    def act_model_view(self, name="front"):
+        from . import model3dui
+        return model3dui.view(self, name)
+
+    def act_model_reset(self):
+        from . import model3dui
+        return model3dui.reset(self)
+
+    def act_model_turn(self):
+        from . import model3dui
+        return model3dui.turn_dialog(self)
+
+    def act_model_nudge(self, way="right"):
+        from . import model3dui
+        return model3dui.nudge(self, way)
+
     def act_version_history(self):
         """File \u203a Info \u203a Version History (W4-02)."""
         from . import docprotect

@@ -16,9 +16,16 @@ go through another office suite. It also reads and writes `.doc` (Word 97-2003),
   contents, hyphenation, line numbers, a watermark, drop caps.
 - **Pictures and drawings**: pictures with wrapping, crop and background removal, shapes,
   text boxes, WordArt, SmartArt, charts, icons, screenshots and screen clippings, ink.
+- **3D models**: a glTF model (`.glb`, `.gltf`) read and drawn here, turned from the views
+  gallery or to exact angles. It travels in the `.docx` as Word keeps one — the model itself as
+  its own part, with a picture of the view it is turned to — so Word opens it as a model again
+  and every other reader sees the picture.
 - **Equations**: typed in linear format (`a^2+b^2=c^2`) and shown professionally, as Word does.
 - **Reviewing**: track changes, comments, compare two documents, spelling and grammar as you
   type, a thesaurus, read aloud, Immersive Reader, protection and restricted editing.
+- **Version history**: every save keeps how the document stood before it, on this computer.
+  File ▸ Info lists them with their dates; open one read-only, compare it with what is there
+  now, or restore it. Options ▸ Save says how many to keep, or turns it off.
 - **Mail merge**: letters, labels and envelopes from a spreadsheet or a table.
 - **Developer**: content controls, macros in Python, document properties.
 - **With the rest of Folio Studio**: copy and paste with Sheet, Show and Draw; a Cork diagram
