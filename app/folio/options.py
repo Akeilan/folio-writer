@@ -106,8 +106,19 @@ class OptionsDialog:
         loc = Gtk.FileChooserButton(title="Default local file location",
                                     action=Gtk.FileChooserAction.SELECT_FOLDER)
         loc.set_current_folder(s.get("default_dir") or self.win.dialogs.last_dir)
+        # version history (W4-02): past saves kept on this computer
+        vers = Gtk.CheckButton(label="Keep a version of the document each time it is saved")
+        vers.set_active(s.get("versions", True))
+        vkeep = Gtk.SpinButton.new_with_range(1, 200, 1)
+        vkeep.set_value(s.get("versions_keep", 25))
+        vb = Gtk.Box(spacing=6)
+        vb.pack_start(Gtk.Label(label="Keep up to"), False, False, 0)
+        vb.pack_start(vkeep, False, False, 0)
+        vb.pack_start(Gtk.Label(label="versions of each document on this computer"), False, False, 0)
         sv.pack_start(grid([["Save files in this _format:", fmt]]), False, False, 0)
         sv.pack_start(ar, False, False, 0)
+        sv.pack_start(vers, False, False, 0)
+        sv.pack_start(vb, False, False, 0)
         sv.pack_start(grid([["Default local file location:", loc]]), False, False, 0)
         # this document's fonts travel with it (W3-08)
         ed_now = getattr(self.win.engine, "ed", None)
@@ -380,6 +391,8 @@ class OptionsDialog:
             s["default_format"] = ["docx", "odt", "doc", "rtf"][fmt.get_active()]
             s["autorecover"] = autosave.get_active()
             s["autorecover_minutes"] = int(mins.get_value())
+            s["versions"] = vers.get_active()
+            s["versions_keep"] = int(vkeep.get_value())
             s["default_dir"] = loc.get_filename() or s.get("default_dir")
             if ed_now is not None:
                 want = {"w:embedTrueTypeFonts": emb.get_active(),

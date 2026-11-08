@@ -461,22 +461,37 @@ class Backstage(Gtk.Box):
              [("Check for\nIssues", lambda: self._inspect())])
         vers = docprotect.versions(self.win.app, eng.path) if eng.path and not eng.is_new \
             else []
+        on, _keep = docprotect.wanted(self.win.app)
+        if vers:
+            vtext = "%d version%s of this document are kept on this computer:" % (
+                len(vers), "" if len(vers) == 1 else "s")
+        elif not on:
+            vtext = "Version history is off. Options \u203a Save turns it back on."
+        else:
+            vtext = "There are no previous versions of this file yet. One is kept each time it is saved."
         card("cmd/lc_versiondialog" if icons.exists("cmd/lc_versiondialog") else "cmd/lc_open",
-             "Manage Document",
-             "There are no previous versions of this file." if not vers else
-             "Autosaved versions of this document:",
-             [("Manage\nDocument", self._manage_menu)])
+             "Version History", vtext,
+             [("Version\nHistory", lambda: (self.close(), docprotect.history_dialog(self.win)))])
         if vers:
             vb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-            for ts, vp in vers[:6]:
-                lnk = Gtk.Button(label=docprotect.version_label(ts))
+            for ts, vp, kind in vers[:6]:
+                lnk = Gtk.Button(label=docprotect.version_label(ts, kind))
                 lnk.set_relief(Gtk.ReliefStyle.NONE)
                 lnk.get_child().set_xalign(0)
-                lnk.connect("clicked", lambda _b, ts=ts, vp=vp: (
-                    self.close(), docprotect.open_version(self.win, ts, vp)))
+                lnk.connect("clicked", lambda _b, ts=ts, vp=vp, kind=kind: (
+                    self.close(), docprotect.open_version(self.win, ts, vp, kind)))
                 vb.pack_start(lnk, False, False, 0)
+            if len(vers) > 6:
+                more = Gtk.Button(label="All %d versions\u2026" % len(vers))
+                more.set_relief(Gtk.ReliefStyle.NONE)
+                more.get_child().set_xalign(0)
+                more.connect("clicked", lambda *_: (self.close(), docprotect.history_dialog(self.win)))
+                vb.pack_start(more, False, False, 0)
             vb.set_margin_start(116)
             left.pack_start(vb, False, False, 0)
+        card("cmd/lc_open", "Manage Document",
+             "Recover a document that was never saved, from what was kept automatically.",
+             [("Manage\nDocument", self._manage_menu)])
         cols.pack_start(left, True, True, 0)
         right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         right.set_size_request(320, -1)
