@@ -26,6 +26,7 @@ WINDOW = {
     "outline-view", "close-outline", "read-mode", "immersive-reader", "close-immersive", "split", "new-window",
     "read-aloud", "check-accessibility", "merge-preview", "find-recipient", "highlight-merge-fields", "paragraph-borders", "zoom-one-page", "zoom-page-width", "toggle-ruler", "drop-cap", "watermark-dialog", "draw-shape",
     "context-menu", "open-dialog", "view-macros", "apply-styles", "field-braces",
+    "version-history", "recover-unsaved",
 }
 
 def split_command(name):

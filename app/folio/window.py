@@ -500,6 +500,7 @@ class DocWindow(Gtk.ApplicationWindow):
         if self.read_only:
             self.dialogs.message("This document is read-only. Use Save As to save a copy.")
             return self.save_as()
+        self.keep_version_of(self.engine.path)
         ok = self.engine.save()
         self._after_save(ok)
         return ok
@@ -521,6 +522,8 @@ class DocWindow(Gtk.ApplicationWindow):
                 "Do you want to continue?", yes="OK", no="Cancel"):
             return False
         self.engine.save_error = None
+        if keep:
+            self.keep_version_of(path)
         ok = self.engine.save_as(path, keep=keep)
         if not ok and getattr(self.engine, "save_error", None) == "needs-converter":
             self.dialogs.message("To save in this format, install LibreOffice (sudo apt install "
@@ -537,6 +540,24 @@ class DocWindow(Gtk.ApplicationWindow):
         elif not ok:
             self.dialogs.message("The document couldn't be saved.", kind="error")
         return ok
+
+    def act_version_history(self):
+        """File \u203a Info \u203a Version History (W4-02)."""
+        from . import docprotect
+        return docprotect.history_dialog(self)
+
+    def act_recover_unsaved(self):
+        from . import docprotect
+        return docprotect.recover_unsaved(self)
+
+    def keep_version_of(self, path):
+        """Before writing over a document, keep how it stands now as a version (W4-02)."""
+        try:
+            from .docprotect import keep_saved_copy
+            return keep_saved_copy(self.app, path)
+        except Exception as e:      # noqa: BLE001  a version is never worth losing a save over
+            print("version:", e)
+            return None
 
     def _after_save(self, ok):
         if ok:
