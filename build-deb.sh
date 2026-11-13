@@ -28,6 +28,13 @@ if [ "${NO_CORE:-}" != 1 ]; then
   (cd "$HERE/core" && ./build-jammy.sh >/dev/null 2>&1) || true
 fi
 if [ -f "$CORE_SO" ]; then
+  # The engine is a built binary. A package built from one older than its own source ships work
+  # that never reaches anyone and cannot be told apart from work that was never done: Sheet
+  # carried a three-week-old engine that way. NO_CORE=1 skips the build, so check the result.
+  STALE="$(find "$HERE/core/src" "$HERE/core/Cargo.toml" -newer "$CORE_SO" 2>/dev/null | head -5)"
+  [ -z "$STALE" ] || { echo "the engine binary is older than its own source:" >&2
+    echo "$STALE" | sed 's#^#  #' >&2
+    echo "build it (core/build-jammy.sh) before packaging" >&2; exit 1; }
   install -Dm644 "$CORE_SO" "$ROOT/usr/lib/folio-page/folio_core.so"
   strip --strip-unneeded "$ROOT/usr/lib/folio-page/folio_core.so"
   ARCH=amd64
