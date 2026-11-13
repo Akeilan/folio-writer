@@ -30,6 +30,9 @@ NO_CORE=1 bash $W/build-deb.sh /home/claude/out > $LOGS/build.log 2>&1
 NEW=$(grep "folio-page_.*\.deb$" $LOGS/build.log | tail -1); TRANS=$(grep "folio-writer_.*_all\.deb$" $LOGS/build.log | tail -1)
 for f in "$NEW" "$TRANS"; do [ -f "$f" ] || { echo "build failed"; tail -20 $LOGS/build.log; exit 1; }; cp -f "$f" /home/claude/out/ 2>/dev/null; done
 NEW=/home/claude/out/$(basename $NEW); TRANS=/home/claude/out/$(basename $TRANS); ls -la $NEW $TRANS
+echo "== X4-05: against the app it replaces"
+bash /home/claude/folio-suite/tools/compare-release.sh folio-page /home/claude/folio-writer "$NEW" || \
+  echo "X4-05 FAILED: this candidate shows less than the app it replaces"
 machine() {  # root display
   local m=$1 d=$2 log=$LOGS/$(basename $1).log
   {
