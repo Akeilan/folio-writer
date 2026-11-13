@@ -570,6 +570,10 @@ impl Document {
             x.root = x.import_node(&self.dom, p.root);
             self.pkg.put_xml(&p.name, x);
         }
+        // pictures nothing points at any more go with the writing (W4-04): changing a picture
+        // adds a part and leaves the old one, so a document edited for a while grows a tail of
+        // pictures nobody can see
+        self.pkg.prune_media();
         let out = self.pkg.write()?;
         Ok(out)
     }
