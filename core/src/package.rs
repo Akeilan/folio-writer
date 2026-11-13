@@ -340,6 +340,94 @@ impl Package {
         Ok(())
     }
 
+    /// Media parts nothing points at any more, dropped, with the relationships that named them
+    /// (W4-04). Returns how many parts went.
+    ///
+    /// Changing a picture writes a new part and leaves the old one in the file: Remove Background,
+    /// Compress Pictures and turning a 3D model all do it, and a document edited for a while grows
+    /// a tail of pictures nobody can see. A relationship counts as used when its own part mentions
+    /// its Id; the ids come from the relationships themselves rather than from a guess at which
+    /// attributes carry them, so this does not depend on knowing every attribute in the format.
+    pub fn prune_media(&mut self) -> usize {
+        let parts = self.part_names();
+        let mut keep: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut drop_rels: Vec<(String, String)> = Vec::new();   // (part, rel id)
+        for part in &parts {
+            if part.ends_with(".rels") {
+                continue;
+            }
+            let rels = self.rels(part);
+            if rels.is_empty() {
+                continue;
+            }
+            // Anything we cannot read keeps whatever it points at. A picture is only dropped on
+            // the word of a part we have actually read and searched: losing one would be worse
+            // than carrying it.
+            let text = if Self::is_xml(part) {
+                self.xml(part).ok().map(|d| d.serialize())
+            } else {
+                None
+            };
+            for r in rels {
+                if r.external || r.id.is_empty() {
+                    continue;
+                }
+                let target = Self::resolve(part, &r.target);
+                let media = target.contains("/media/") || target.starts_with("media/");
+                match &text {
+                    Some(t) if media && !Self::mentions(t, &r.id) => {
+                        drop_rels.push((part.clone(), r.id.clone()))
+                    }
+                    _ => {
+                        keep.insert(target);
+                    }
+                }
+            }
+        }
+        for (part, id) in &drop_rels {
+            let name = Self::rels_name(part);
+            if let Ok(doc) = self.xml_mut(&name) {
+                let gone: Vec<_> = doc.elements(doc.root)
+                    .filter(|&n| doc.attr(n, "Id") == Some(id.as_str())).collect();
+                for n in gone {
+                    doc.detach(n);
+                }
+            }
+        }
+        let mut went = 0;
+        for part in parts {
+            let media = part.contains("/media/") || part.starts_with("media/");
+            if media && !keep.contains(&part) {
+                self.remove(&part);
+                went += 1;
+            }
+        }
+        went
+    }
+
+    /// Whether a part mentions a relationship id as a whole attribute value.
+    fn mentions(text: &str, id: &str) -> bool {
+        let mut from = 0;
+        while let Some(i) = text[from..].find(id) {
+            let at = from + i;
+            let end = at + id.len();
+            let before = text[..at].chars().next_back();
+            let after = text[end..].chars().next();
+            // "rId7" must not match inside "rId70", and must sit in quotes
+            let whole = !after.map(|c| c.is_ascii_alphanumeric()).unwrap_or(false)
+                && matches!(before, Some('"') | Some('\''));
+            if whole {
+                return true;
+            }
+            from = end;
+        }
+        false
+    }
+
+    fn is_xml(name: &str) -> bool {
+        name.ends_with(".xml") || name.ends_with(".rels")
+    }
+
     /// Parts as (name, bytes), with modified XML serialized.
     pub fn parts(&self) -> BTreeMap<String, Vec<u8>> {
         let mut out = BTreeMap::new();
@@ -357,6 +445,50 @@ impl Package {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn prune_media_drops_what_nothing_points_at() {
+        // a document with two pictures in the file but only one in the text (W4-04)
+        let mut zip = Vec::new();
+        {
+            let mut w = zip::ZipWriter::new(std::io::Cursor::new(&mut zip));
+            let o = zip::write::FileOptions::<()>::default();
+            let add = |w: &mut zip::ZipWriter<std::io::Cursor<&mut Vec<u8>>>, n: &str, b: &[u8]| {
+                use std::io::Write;
+                w.start_file(n, o).unwrap();
+                w.write_all(b).unwrap();
+            };
+            add(&mut w, "[Content_Types].xml",
+                br#"<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="png" ContentType="image/png"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/></Types>"#);
+            add(&mut w, "_rels/.rels",
+                br#"<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#);
+            add(&mut w, "word/document.xml",
+                br#"<?xml version="1.0"?><w:document xmlns:w="w" xmlns:r="r"><w:body><w:p><w:drawing><a:blip r:embed="rId5"/></w:drawing></w:p></w:body></w:document>"#);
+            add(&mut w, "word/_rels/document.xml.rels",
+                br#"<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/><Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image2.png"/><Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com" TargetMode="External"/></Relationships>"#);
+            add(&mut w, "word/media/image1.png", b"one");
+            add(&mut w, "word/media/image2.png", b"two");
+            w.finish().unwrap();
+        }
+        let mut pkg = Package::open(&zip).unwrap();
+        assert!(pkg.has("word/media/image2.png"));
+        let went = pkg.prune_media();
+        assert_eq!(went, 1, "only the picture nothing points at goes");
+        assert!(pkg.has("word/media/image1.png"), "the one in the text stays");
+        assert!(!pkg.has("word/media/image2.png"), "the one nothing points at goes");
+        let rels = pkg.rels("word/document.xml");
+        assert!(rels.iter().any(|r| r.id == "rId5"), "its relationship stays");
+        assert!(!rels.iter().any(|r| r.id == "rId6"), "the orphan relationship goes");
+        assert!(rels.iter().any(|r| r.id == "rId9"), "a link to the web is not a picture");
+        assert_eq!(pkg.prune_media(), 0, "nothing left to drop the second time");
+    }
+
+    #[test]
+    fn a_relationship_id_is_matched_whole() {
+        assert!(Package::mentions(r#"<a r:embed="rId7"/>"#, "rId7"));
+        assert!(!Package::mentions(r#"<a r:embed="rId70"/>"#, "rId7"));
+        assert!(!Package::mentions(r#"<a r:embed="xrId7"/>"#, "rId7"));
+    }
 
     #[test]
     fn resolve_paths() {
