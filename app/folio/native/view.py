@@ -81,7 +81,20 @@ class NativeView(Gtk.DrawingArea):
         pass
 
     def copy_selection(self, mime):
-        return "", None
+        """The selection as HTML or as plain text, the way Copy builds it. Callers take
+        (data, None); nothing in the app may assume this is a stub again (W5-17)."""
+        ed = self.ed
+        text = (ed.selected_text() if ed is not None else "") or ""
+        if not text or "html" not in (mime or ""):
+            return text, None
+        try:
+            from . import htmlexport
+            frag = ed.copy_fragment()
+            if frag:
+                return htmlexport.fragment_to_html(frag, ed.paragraph_styles()), None
+        except Exception as e:      # noqa: BLE001
+            print("copy_selection:", e)
+        return text, None
 
     # ------------------------------------------------------------ document
     def set_editor(self, ed):

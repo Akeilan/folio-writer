@@ -373,7 +373,8 @@ impl Package {
                     continue;
                 }
                 let target = Self::resolve(part, &r.target);
-                let media = target.contains("/media/") || target.starts_with("media/");
+                let media = target.contains("/media/") || target.starts_with("media/")
+                    || Self::is_story_part(&target);
                 match &text {
                     Some(t) if media && !Self::mentions(t, &r.id) => {
                         drop_rels.push((part.clone(), r.id.clone()))
@@ -396,13 +397,22 @@ impl Package {
         }
         let mut went = 0;
         for part in parts {
-            let media = part.contains("/media/") || part.starts_with("media/");
+            let media = part.contains("/media/") || part.starts_with("media/")
+                || Self::is_story_part(&part);
             if media && !keep.contains(&part) {
                 self.remove(&part);
                 went += 1;
             }
         }
         went
+    }
+
+    /// A header or footer part: its own text, pointed at from the body by relationship id. Undo
+    /// takes the reference out of the body and leaves the part, so the words of an undone header
+    /// (or watermark, which is drawn in one) were still in the saved file (W5-10).
+    fn is_story_part(name: &str) -> bool {
+        let base = name.rsplit('/').next().unwrap_or(name);
+        (base.starts_with("header") || base.starts_with("footer")) && base.ends_with(".xml")
     }
 
     /// Whether a part mentions a relationship id as a whole attribute value.
@@ -480,6 +490,40 @@ mod tests {
         assert!(rels.iter().any(|r| r.id == "rId5"), "its relationship stays");
         assert!(!rels.iter().any(|r| r.id == "rId6"), "the orphan relationship goes");
         assert!(rels.iter().any(|r| r.id == "rId9"), "a link to the web is not a picture");
+        assert_eq!(pkg.prune_media(), 0, "nothing left to drop the second time");
+    }
+
+    #[test]
+    fn prune_drops_an_undone_header() {
+        // the words of a header stay in the file after Undo unless its part goes too (W5-10)
+        let mut zip = Vec::new();
+        {
+            let mut w = zip::ZipWriter::new(std::io::Cursor::new(&mut zip));
+            let o = zip::write::FileOptions::<()>::default();
+            let add = |w: &mut zip::ZipWriter<std::io::Cursor<&mut Vec<u8>>>, n: &str, b: &[u8]| {
+                use std::io::Write;
+                w.start_file(n, o).unwrap();
+                w.write_all(b).unwrap();
+            };
+            add(&mut w, "[Content_Types].xml",
+                br#"<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>"#);
+            add(&mut w, "_rels/.rels",
+                br#"<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#);
+            // the body points at header1 only: header2 is what Undo left behind
+            add(&mut w, "word/document.xml",
+                br#"<?xml version="1.0"?><w:document xmlns:w="w" xmlns:r="r"><w:body><w:sectPr><w:headerReference r:id="rId4"/></w:sectPr></w:body></w:document>"#);
+            add(&mut w, "word/_rels/document.xml.rels",
+                br#"<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header2.xml"/><Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/></Relationships>"#);
+            add(&mut w, "word/header1.xml", b"<hdr>shown</hdr>");
+            add(&mut w, "word/header2.xml", b"<hdr>undone secret</hdr>");
+            add(&mut w, "word/comments.xml", b"<comments/>");
+            w.finish().unwrap();
+        }
+        let mut pkg = Package::open(&zip).unwrap();
+        assert_eq!(pkg.prune_media(), 1, "only the header nothing points at goes");
+        assert!(pkg.has("word/header1.xml"), "the header in use stays");
+        assert!(!pkg.has("word/header2.xml"), "the undone header goes, words and all");
+        assert!(pkg.has("word/comments.xml"), "a part referred to by type alone is left alone");
         assert_eq!(pkg.prune_media(), 0, "nothing left to drop the second time");
     }
 

@@ -26,6 +26,8 @@ WINDOW = {
     "outline-view", "close-outline", "read-mode", "immersive-reader", "close-immersive", "split", "new-window",
     "read-aloud", "check-accessibility", "merge-preview", "find-recipient", "highlight-merge-fields", "paragraph-borders", "zoom-one-page", "zoom-page-width", "toggle-ruler", "drop-cap", "watermark-dialog", "draw-shape",
     "context-menu", "open-dialog", "view-macros", "apply-styles", "field-braces",
+    # W5-18: the window has all four; without them here they answered "not available yet"
+    "record-macro", "stop-recording", "pause-recording", "autoformat-now",
     "version-history", "recover-unsaved", "insert-3d-model", "model-view", "model-reset",
     "model-turn", "model-nudge",
 }
