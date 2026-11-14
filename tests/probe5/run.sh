@@ -8,6 +8,6 @@ rsync -a --delete /home/claude/folio-writer/app /home/claude/folio-writer/share 
 cp $R/src/fwc/target/release/libfolio_core.so $R/tmp/p5/app/folio_core.so
 sed -i "s#/tmp/ftest.log#/tmp/p5log_$N.log#; s#/tmp/fshot_#/tmp/p5shot_#" $R/tmp/p5/tests/common.py
 mkdir -p $R/tmp/p5/probes $R/tmp/p5out; cp /home/claude/p5/*.py $R/tmp/p5/probes/ 2>/dev/null
-rm -f $R/tmp/p5log_$N.log; rm -rf $R/tmp/p5home_$N; mkdir -p $R/tmp/p5home_$N
-chroot $R bash -c "cd /tmp/p5; HOME=/tmp/p5home_$N XDG_CONFIG_HOME=/tmp/p5home_$N/.config DISPLAY=:$D FOLIO_ENGINE=native FOLIO_SHARE=/tmp/p5/share FOLIO_WRITER_TESTS=/tmp/p5/tests FOLIO_TEST_SCRIPT=/tmp/p5/probes/$N.py PYTHONPATH=app timeout ${T:-600} python3 -m folio > /tmp/p5out/$N.out 2>&1; echo rc=\$?"
+rm -f $R/tmp/p5log_$N.log; H=${HOMEN:-$N}; [ -n "$KEEPHOME" ] || rm -rf $R/tmp/p5home_$H; mkdir -p $R/tmp/p5home_$H
+chroot $R bash -c "cd /tmp/p5; HOME=/tmp/p5home_$H XDG_CONFIG_HOME=/tmp/p5home_$H/.config DISPLAY=:$D FOLIO_ENGINE=native FOLIO_SHARE=/tmp/p5/share FOLIO_WRITER_TESTS=/tmp/p5/tests FOLIO_TEST_SCRIPT=/tmp/p5/probes/$N.py PYTHONPATH=app timeout ${T:-600} python3 -m folio > /tmp/p5out/$N.out 2>&1; echo rc=\$?"
 echo "pass=$(grep -c ^PASS $R/tmp/p5log_$N.log 2>/dev/null) fail=$(grep -c ^FAIL $R/tmp/p5log_$N.log 2>/dev/null) err=$(grep -c ^ERROR $R/tmp/p5log_$N.log 2>/dev/null)"
