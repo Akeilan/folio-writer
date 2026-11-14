@@ -455,6 +455,7 @@ AC_TABS = [
         ("ac_ordinals", "Ordinals (1st) with superscript", True),
         ("ac_fractions", "Fractions (1/2) with fraction character (½)", True),
         ("ac_dashes", "Hyphens (--) with dash (—)", True),
+        ("ac_ellipsis", "Three dots (...) with an ellipsis (…)", True),
         ("ac_bold_italic", "*Bold* and _italic_ with real formatting", True),
         ("ac_urls", "Internet and network paths with hyperlinks", True),
         ("#", "Apply as you type", None),

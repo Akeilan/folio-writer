@@ -1,6 +1,6 @@
 # helpers for test scripts run inside the app (exec'd with win, app, GLib, Gtk)
 import subprocess, time, os, traceback
-LOG = open("/tmp/ftest.log", "a")
+LOG = open(os.environ.get("FOLIO_TEST_LOG", "/tmp/ftest.log"), "a")
 def log(*a):
     LOG.write(" ".join(str(x) for x in a) + "\n"); LOG.flush()
 def shot(name):
