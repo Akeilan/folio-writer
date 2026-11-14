@@ -465,7 +465,6 @@ impl Renderer {
             }
         }
         // decorations
-        let xa = x0 + line.xs[a - line.start];
         let mut eb = b;
         // trailing spaces at the end of the line are not underlined
         if b == line.end {
@@ -476,7 +475,17 @@ impl Renderer {
         if eb <= a {
             return;
         }
-        let xb = x0 + line.xs[eb - 1 - line.start] + line.ws[eb - 1 - line.start];
+        // right to left, the first unit of the run sits at its right end, so
+        // take the span rather than the ends
+        let (mut xa, mut xb) = (f64::INFINITY, f64::NEG_INFINITY);
+        for k in a..eb {
+            let i = k - line.start;
+            xa = xa.min(x0 + line.xs[i]);
+            xb = xb.max(x0 + line.xs[i] + line.ws[i]);
+        }
+        if !xa.is_finite() || !xb.is_finite() {
+            return;
+        }
         let f = &sh.font;
         let size = st.draw_size;
         let thick = (f.underline_thick * size / f.upem).max(0.5);
