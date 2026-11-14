@@ -41,8 +41,12 @@ def _paper_is_letter():
 
 class FolioApp(Gtk.Application):
     def __init__(self):
-        Gtk.Application.__init__(self, application_id=APP_ID,
-                                 flags=Gio.ApplicationFlags.HANDLES_OPEN)
+        # A test script drives its own instance: without this a second one hands the files to
+        # whichever Page is already running and exits, so the test never runs (W5-23).
+        flags = Gio.ApplicationFlags.HANDLES_OPEN
+        if os.environ.get("FOLIO_TEST_SCRIPT"):
+            flags |= Gio.ApplicationFlags.NON_UNIQUE
+        Gtk.Application.__init__(self, application_id=APP_ID, flags=flags)
         GLib.set_application_name(APP_NAME)
         GLib.set_prgname("folio-page")
         os.makedirs(CONFIG, exist_ok=True)
@@ -224,29 +228,35 @@ class FolioApp(Gtk.Application):
                 break
 
     # -------------------------------------------------------- autorecover
-    def _recover_path(self, win):
-        return os.path.join(self.autorecover_dir, "%s-%d.odt" % (
+    # The recovery copy is a .docx, the format the engine writes whole (W5-01). It used to be an
+    # .odt, which goes out through a converter and leaves shapes, tracked changes, content controls
+    # and highlighting behind — so a crash cost the user those. Copies left by an older version
+    # are still offered.
+    RECOVER_EXT = ".docx"
+
+    def _recover_path(self, win, ext=RECOVER_EXT):
+        return os.path.join(self.autorecover_dir, "%s-%d%s" % (
             "".join(c for c in win.doc_name() if c.isalnum() or c in " -_") or "Document",
-            id(win) % 100000))
+            id(win) % 100000, ext))
 
     def write_autorecover(self, win):
         p = self._recover_path(win)
-        if win.engine.save_as(p, "odt", keep=False):
+        if win.engine.save_as(p, "docx", keep=False):
             with open(p + ".info", "w", encoding="utf-8") as f:
                 json.dump({"name": win.doc_name(), "path": win.engine.path or ""}, f)
 
     def clear_autorecover(self, win):
-        p = self._recover_path(win)
-        for f in (p, p + ".info"):
-            try:
-                os.remove(f)
-            except OSError:
-                pass
+        for p in (self._recover_path(win), self._recover_path(win, ".odt")):
+            for f in (p, p + ".info"):
+                try:
+                    os.remove(f)
+                except OSError:
+                    pass
 
     def recovered_files(self):
         out = []
         for f in sorted(os.listdir(self.autorecover_dir)):
-            if f.endswith(".odt"):
+            if f.endswith((".docx", ".odt")):
                 p = os.path.join(self.autorecover_dir, f)
                 info = {}
                 try:

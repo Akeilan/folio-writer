@@ -33,3 +33,4 @@ DOC: Backlog 5 = https://claude.ai/artifact/BhArf1Nqj8aQYzzjtLoZ1U node 1ca94a34
 27. Record Macro, Stop Recording, Pause Recording (View > Macros and the status bar button) and Ctrl+Alt+K (AutoFormat) answer "This isn't available with the new engine yet." Not routed in native/actions.py WINDOW list though window.act_record_macro / act_autoformat_now exist. [p23]
 28. Walk SKIP list is by substring: "open" hides Bullets > Open bullet and Paragraph Spacing > Open, "record" hides the four Mailings record buttons, "print" hides View > Print Layout, "close" hides Close Outline View. [p22]
 OK: all 171 other action names route. Print path (lp) correct with mixed page sizes. Skipped commands otherwise fine.
+29. Memory: 115 MB empty, 450-510 MB with a 490-page document, and it is not given back when that document is closed (508 MB with a one-line document open). Reopening does not keep growing (549 after three more). [p28]

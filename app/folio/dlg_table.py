@@ -46,11 +46,10 @@ class TableDialogs:
         self.eng.command(".uno:SplitTable", {"Type": ("short", 1)})
 
     def text_to_table(self):
-        m = self._model_or_warn()
-        if m is None:
+        ed = self.win.engine.ed
+        if ed is None:
             return
-        vc = modelapi.view_cursor(m)
-        text = vc.getString()
+        text = ed.selected_text()
         if not text.strip():
             self.message("Select the text you want to convert to a table first.")
             return
@@ -99,14 +98,21 @@ class TableDialogs:
             s = sep()
             ncols = int(cols.get_value())
             data = [(l.split(s) if s else [l]) for l in lines]
-            vc.setString("")
-            table = m.createInstance("com.sun.star.text.TextTable")
-            table.initialize(max(1, len(data)), ncols)
-            vc.getText().insertTextContent(vc, table, False)
-            for r, row in enumerate(data):
-                for c in range(ncols):
-                    val = row[c].strip() if c < len(row) else ""
-                    table.getCellByPosition(c, r).setString(val)
+            # one undo step: clear the selected lines, put a table there, fill it cell by cell (W5-03)
+            ed.begin_group("Convert Text to Table")
+            try:
+                ed.delete(True, False)
+                ed.insert_table(max(1, len(data)), ncols)
+                for r, row in enumerate(data):
+                    for c in range(ncols):
+                        val = row[c].strip() if c < len(row) else ""
+                        if val:
+                            ed.type_text(val)
+                        if not (r == len(data) - 1 and c == ncols - 1):
+                            ed.cell_step(False)
+            finally:
+                ed.end_group()
+            self.win.engine.view.after_edit()
         d.done()
 
 

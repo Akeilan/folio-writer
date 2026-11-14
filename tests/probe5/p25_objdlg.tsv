@@ -1,0 +1,29 @@
+Table Layout	Properties	CHANGED	ok	ok	0.11	FDialog:Table Properties	
+Table Layout	Rows & Columns Settings	CHANGED	ok	ok	0.09	FDialog:Insert Cells	
+Table Layout	Cell Size Settings	CHANGED	ok	ok	0.11	FDialog:Table Properties	
+Table Layout	Cell Margins	CHANGED	ok	ok	0.10	FDialog:Table Options	
+Table Layout	Sort	UI	-	-	0.11	FDialog:Sort	
+Table Layout	Convert to Text	CHANGED	ok	ok	0.10	FDialog:Convert Table To Text	
+Table Layout	Formula	CHANGED	ok	ok	0.10	FDialog:Formula	
+Table Design	Borders > Borders and Shading...	UI	-	-	0.14	FDialog:Borders and Shading	
+Shape Format	Shape Fill > More Colors...	CHANGED	ok	ok	0.10	ColorChooserDialog:Colors	
+Shape Format	Position > More Layout Options...	UI	-	-	0.13	FDialog:Layout	
+Shape Format	Wrap Text > Edit Wrap Points	CHANGED	ok	ok	0.10	FDialog:Edit Wrap Points	
+Shape Format	Wrap Text > More Layout Options...	UI	-	-	0.15	FDialog:Layout	
+Shape Format	Size Settings	UI	-	-	0.13	FDialog:Layout	
+Picture Format	Corrections > Picture Corrections Options...	UI	-	-	0.09	FDialog:Format Picture	
+Picture Format	Compress Pictures	CHANGED	BROKEN(steps=1)	-	0.11	FDialog:Compress Pictures	
+Picture Format	Change Picture	UI	-	-	0.12	FileChooserDialog:Insert Picture	
+Picture Format	Position > More Layout Options...	UI	-	-	0.14	FDialog:Layout	
+Picture Format	Wrap Text > Edit Wrap Points	CHANGED	ok	ok	0.10	FDialog:Edit Wrap Points	
+Picture Format	Wrap Text > More Layout Options...	UI	-	-	0.14	FDialog:Layout	
+Picture Format	Crop > Crop...	UI	-	-	0.10	FDialog:Crop	
+Picture Format	Size Settings	UI	-	-	0.15	FDialog:Layout	
+Header & Footer	Page Number > Format Page Numbers...	CHANGED	ok	ok	0.10	FDialog:Page Number Format	
+Header & Footer	Date & Time	CHANGED	ok	ok	0.10	FDialog:Date and Time	
+Header & Footer	Document Info > Document Property	CHANGED	ok	ok	0.11	FDialog:Field	
+Header & Footer	Quick Parts > Field...	CHANGED	ok	ok	0.09	FDialog:Field	
+Header & Footer	Quick Parts > Building Blocks Organizer...	UI	-	-	0.08	FDialog:Building Blocks Organizer	
+Header & Footer	Pictures	UI	-	-	0.11	FileChooserDialog:Insert Picture	
+Header & Footer	Insert Alignment Tab	CHANGED	ok	ok	0.10	FDialog:Alignment Tab	
+DONE 991

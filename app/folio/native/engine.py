@@ -152,11 +152,9 @@ class NativeEngine(GObject.GObject):
                 if os.path.exists(p):
                     tpl = p
                     break
-            ed = core().Editor.open(tpl)
-            with open(path, encoding="utf-8", errors="replace") as fh:
-                text = fh.read().replace("\r\n", "\n").replace("\r", "\n")
-            if text:
-                ed.type_text(text.rstrip("\n"))
+            from . import plaintext
+            text = plaintext.read(path)
+            ed = plaintext.editor_for(core(), tpl, text)
             ed.move_caret("doc_start", False)
             return ed
         import shutil

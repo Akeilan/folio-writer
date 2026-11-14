@@ -1157,8 +1157,14 @@ class Backstage(Gtk.Box):
             return
         import datetime
         from .native import docprops
-        docprops.set_core(self.win.engine.ed, lastPrinted=datetime.datetime.now(
+        ed = self.win.engine.ed
+        was = ed.modified
+        docprops.set_core(ed, lastPrinted=datetime.datetime.now(
             datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+        if not was:
+            # printing is not an edit: a document that was saved stays saved (W5-12)
+            ed.mark_saved()
+            self.win.update_title()
         self.close()
 
 
