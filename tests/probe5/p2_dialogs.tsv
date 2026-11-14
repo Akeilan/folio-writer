@@ -1,0 +1,75 @@
+Home	Paste (Ctrl+V) > Set Default Paste...	UI	-	-	0.25	FDialog:Options	
+Home	Underline (Ctrl+U) > More Underlines...	UI	-	-	0.13	FDialog:Font	
+Home	Font Color > More Colors...	CHANGED	ok	ok	0.11	ColorChooserDialog:Colors	
+Home	Font Settings	UI	-	-	0.17	FDialog:Font	
+Home	Multilevel List > Define New Multilevel List...	CHANGED	ok	ok	0.11	FDialog:Define New Multilevel List	
+Home	Sort	UI	-	-	0.13	FDialog:Sort	
+Home	Line and Paragraph Spacing > Line Spacing Options...	UI	-	-	0.12	FDialog:Paragraph	
+Home	Borders > Borders and Shading...	UI	-	-	0.15	FDialog:Borders and Shading	
+Home	Paragraph Settings	UI	-	-	0.13	FDialog:Paragraph	
+Insert	Add a Table > Insert Table...	CHANGED	ok	ok	0.08	FDialog:Insert Table	
+Insert	Add a Table > Convert Text to Table...	ERROR	-	-	0.08	FDialog:Convert Text to Table	, lambda: self.text_to_table(), |   File "/tmp/p5/app/folio/dlg_table.py", line 102, in text_to_table |     vc.setString("") |   File "/tmp/p5/app/folio/native/uno_props.py", line 197, in __getattr__ |     raise AttributeError(k) | AttributeError: setString | 
+Insert	Pictures	UI	-	-	0.12	FileChooserDialog:Insert Picture	
+Insert	Icons	UI	-	-	0.26	FDialog:Insert Icons	
+Insert	3D Models > This Device...	UI	-	-	0.12	FileChooserDialog:Insert 3D Model	
+Insert	SmartArt	CHANGED	BROKEN(steps=1)	-	0.11	FDialog:Choose a SmartArt Graphic	
+Insert	Chart	CHANGED	BROKEN(steps=1)	-	0.10	FDialog:Insert Chart	
+Insert	Insert Link (Ctrl+K)	UI	-	-	0.11	FDialog:Insert Hyperlink	
+Insert	Bookmark	UI	-	-	0.10	FDialog:Bookmark	
+Insert	Cross-reference	UI	-	-	0.10	FDialog:Cross-reference	
+Insert	Page Number > Format Page Numbers...	CHANGED	ok	ok	0.11	FDialog:Page Number Format	
+Insert	Quick Parts > Field...	CHANGED	ok	ok	0.08	FDialog:Field	
+Insert	Quick Parts > Building Blocks Organizer...	UI	-	-	0.08	FDialog:Building Blocks Organizer	
+Insert	Date & Time	CHANGED	ok	ok	0.10	FDialog:Date and Time	
+Insert	Field	CHANGED	ok	ok	0.11	FDialog:Field	
+Insert	Drop Cap > Drop Cap Options...	UI	-	-	0.10	FDialog:Drop Cap	
+Insert	Signature Line > Signature Line...	CHANGED	ok	ok	0.10	FDialog:Signature Setup	
+Insert	Object > Object...	CHANGED	BROKEN(steps=1)	-	0.13	FDialog:Object;FDialog:Insert Chart	
+Insert	Object > Text from File...	UI	-	-	0.11	FileChooserDialog:Insert File	
+Insert	Symbol > More Symbols...	UI	-	-	0.08	FDialog:Symbol;FDialog:Symbol;FDialog:Symbol	
+Draw	Ink to Math	UI	-	-	0.24	FDialog:Math Input Control	
+Design	Paragraph Spacing > Custom Paragraph Spacing...	UI	-	-	0.11	FDialog:Paragraph	
+Design	Watermark > Custom Watermark...	UI	-	-	0.12	FDialog:Printed Watermark	
+Design	Page Color > More Colors...	CHANGED	ok	ok	0.09	ColorChooserDialog:Colors	
+Design	Page Color > Fill Effects...	CHANGED	ok	ok	0.13	FDialog:Fill Effects	
+Design	Page Borders	CHANGED	ok	ok	0.11	FDialog:Borders and Shading	
+Layout	Margins > Custom Margins...	CHANGED	ok	ok	0.14	FDialog:Page Setup	
+Layout	Size > More Paper Sizes...	CHANGED	ok	ok	0.13	FDialog:Page Setup	
+Layout	Columns > More Columns...	CHANGED	ok	ok	0.12	FDialog:Page Setup	
+Layout	Line Numbers > Line Numbering Options...	UI	-	-	0.10	FDialog:Line Numbers	
+Layout	Hyphenation > Hyphenation Options...	CHANGED	BROKEN(steps=0)	-	0.10	FDialog:Hyphenation	
+Layout	Page Setup Settings	CHANGED	ok	ok	0.12	FDialog:Page Setup	
+Layout	Paragraph Settings	UI	-	-	0.11	FDialog:Paragraph	
+References	Table of Contents > Custom Table of Contents...	CHANGED	BROKEN(steps=1)	-	0.11	FDialog:Table of Contents	
+References	Footnotes Settings	CHANGED	BROKEN(steps=1)	-	0.12	FDialog:Footnote and Endnote	
+References	Insert Citation > Add New Source...	CHANGED	BROKEN(steps=1)	-	0.08	FDialog:Create Source	
+References	Manage Sources	UI	-	-	0.11	FDialog:Source Manager	
+References	Bibliography > References	HARNESS	-	-	0	BadZipFile('File is not a zip file') __init__ |     self._RealGetContents() |   File "/usr/lib/python3.10/zipfile.py", line 1355, in _RealGetContents |     raise BadZipFile("File is not a zip file") | zipfile.BadZipFile: File is not a zip file | 
+References	Insert Caption	CHANGED	ok	ok	0.10	FDialog:Caption	
+References	Insert Table of Figures	CHANGED	BROKEN(steps=1)	-	0.12	FDialog:Table of Figures	
+References	Cross-reference	UI	-	-	0.11	FDialog:Cross-reference	
+References	Insert Index	CHANGED	BROKEN(steps=1)	-	0.11	FDialog:Index	
+References	Mark Citation (Alt+Shift+I)	UI	-	-	0.10	FDialog:Mark Citation	
+Mailings	Envelopes	UI	-	-	0.10	FDialog:Envelopes and Labels	
+Mailings	Labels	UI	-	-	0.36	FDialog:Envelopes and Labels	
+Mailings	Start Mail Merge > Envelopes...	CHANGED	BROKEN(steps=2)	-	0.10	FDialog:Envelope Options	
+Mailings	Start Mail Merge > Labels...	CHANGED	BROKEN(steps=3)	-	0.10	FDialog:Label Options	
+Mailings	Select Recipients > Type a New List...	CHANGED	BROKEN(steps=0)	-	0.15	FDialog:New Address List;FileChooserDialog:Save Address List	
+Mailings	Select Recipients > Use an Existing List...	UI	-	-	0.10	FileChooserDialog:Select Data Source	
+Mailings	Greeting Line	CHANGED	ok	ok	0.10	FDialog:Insert Greeting Line	
+Mailings	Rules > Ask...	CHANGED	ok	ok	0.10	FDialog:Insert Word Field: Ask	
+Mailings	Rules > Fill-in...	CHANGED	ok	ok	0.11	FDialog:Insert Word Field: Fill-in	
+Mailings	Rules > If...Then...Else...	CHANGED	ok	ok	0.10	FDialog:Insert Word Field: IF	
+Mailings	Rules > Set Bookmark...	CHANGED	ok	ok	0.10	FDialog:Insert Word Field: Set	
+Mailings	Match Fields	CHANGED	BROKEN(steps=0)	-	0.13	FDialog:Match Fields	
+Mailings	Auto Check for Errors	UI	-	-	0.41	FDialog:Checking and Reporting Errors	
+Review	Word Count (Ctrl+Shift+G)	UI	-	-	0.11	FDialog:Word Count	
+Review	Language > Set Proofing Language...	CHANGED	ok	ok	0.12	FDialog:Language	
+Review	Track Changes (Ctrl+Shift+E) > Lock Tracking	UI	-	-	0.10	FDialog:Lock Tracking	
+Review	Show Markup > Specific People...	UI	-	-	0.11	FDialog:Specific People	
+Review	Tracking Settings	UI	-	-	0.11	FDialog:Track Changes Options	
+View	Zoom	UI	-	-	0.11	FDialog:Zoom	
+View	View Side by Side	UI	-	-	0.11	FDialog:Compare Side by Side	
+Help	About	UI	-	-	0.11	FDialog:About Folio Page	
+Outlining	Insert a document as a subdocument	UI	-	-	0.11	FileChooserDialog:Insert Subdocument	
+DONE 920

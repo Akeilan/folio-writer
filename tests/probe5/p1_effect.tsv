@@ -1,0 +1,921 @@
+Home	Paste (Ctrl+V)	SAME	-	-	0.08	
+Home	Paste (Ctrl+V) > Keep Source Formatting	SAME	-	-	0.08	
+Home	Paste (Ctrl+V) > Keep Text Only	SAME	-	-	0.08	
+Home	Paste (Ctrl+V) > Paste Special...	SAME	-	-	0.09	
+Home	Paste (Ctrl+V) > Set Default Paste...	UI	-	-	0.27	
+Home	Cut (Ctrl+X)	CHANGED	ok	ok	0.09	
+Home	Copy (Ctrl+C)	SAME	-	-	0.08	
+Home	Format Painter (Ctrl+Shift+C / Ctrl+Shift+V)	SAME	-	-	0.08	
+Home	Clipboard Settings	SAME	-	-	0.08	
+Home	Increase Font Size (Ctrl+Shift+>)	CHANGED	ok	ok	0.08	
+Home	Decrease Font Size (Ctrl+Shift+<)	CHANGED	ok	ok	0.08	
+Home	Change Case (Shift+F3) > Sentence case.	SAME	-	-	0.08	
+Home	Change Case (Shift+F3) > lowercase	SAME	-	-	0.08	
+Home	Change Case (Shift+F3) > UPPERCASE	CHANGED	ok	ok	0.08	
+Home	Change Case (Shift+F3) > Capitalize Each Word	CHANGED	ok	ok	0.08	
+Home	Change Case (Shift+F3) > tOGGLE cASE	CHANGED	ok	ok	0.09	
+Home	Clear All Formatting	CHANGED	ok	ok	0.09	
+Home	Bold (Ctrl+B)	CHANGED	ok	ok	0.09	
+Home	Italic (Ctrl+I)	CHANGED	ok	ok	0.09	
+Home	Underline (Ctrl+U)	CHANGED	ok	ok	0.08	
+Home	Underline (Ctrl+U) > Underline	CHANGED	ok	ok	0.08	
+Home	Underline (Ctrl+U) > Double Underline	CHANGED	ok	ok	0.08	
+Home	Underline (Ctrl+U) > Thick Underline	CHANGED	ok	ok	0.08	
+Home	Underline (Ctrl+U) > Dotted Underline	CHANGED	ok	ok	0.09	
+Home	Underline (Ctrl+U) > Dashed Underline	CHANGED	ok	ok	0.08	
+Home	Underline (Ctrl+U) > Dot-Dash Underline	CHANGED	ok	ok	0.08	
+Home	Underline (Ctrl+U) > Wave Underline	CHANGED	ok	ok	0.08	
+Home	Underline (Ctrl+U) > More Underlines...	UI	-	-	0.14	
+Home	Strikethrough	CHANGED	ok	ok	0.08	
+Home	Subscript (Ctrl+=)	CHANGED	ok	ok	0.08	
+Home	Superscript (Ctrl+Shift+=)	CHANGED	ok	ok	0.09	
+Home	Text Effects and Typography > Fill: Black, Text color 1; Outline: White	CHANGED	ok	ok	0.08	
+Home	Text Effects and Typography > Fill: Blue, Accent color 5; Outline: White	CHANGED	ok	ok	0.08	
+Home	Text Effects and Typography > Fill: Green, Accent color 6; Outline	CHANGED	ok	ok	0.08	
+Home	Text Effects and Typography > Fill: Gray, Accent color 3; Sharp Bevel	CHANGED	ok	ok	0.08	
+Home	Text Effects and Typography > Fill: Gold, Accent color 4; Soft Bevel	CHANGED	ok	ok	0.09	
+Home	Text Effects and Typography > Fill: White; Outline: Blue, Accent color 1; Shadow	CHANGED	ok	ok	0.08	
+Home	Text Effects and Typography > Fill: Orange, Accent color 2; Outline: Orange	CHANGED	ok	ok	0.09	
+Home	Text Effects and Typography > Fill: Blue, Accent color 1; Shadow	CHANGED	ok	ok	0.09	
+Home	Text Effects and Typography > Fill: Black, Text color 1; Shadow	CHANGED	ok	ok	0.08	
+Home	Text Effects and Typography > Outline	CHANGED	ok	ok	0.08	
+Home	Text Effects and Typography > Shadow	CHANGED	ok	ok	0.09	
+Home	Text Highlight Color	CHANGED	ok	ok	0.09	
+Home	Text Highlight Color > Black	CHANGED	ok	ok	0.09	
+Home	Text Highlight Color > Gray 25%	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Gray 50%	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Dark Yellow	CHANGED	ok	ok	0.09	
+Home	Text Highlight Color > Dark Red	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Violet	CHANGED	ok	ok	0.09	
+Home	Text Highlight Color > Green	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Teal	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Dark Blue	CHANGED	ok	ok	0.09	
+Home	Text Highlight Color > Red	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Blue	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Pink	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Turquoise	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Bright Green	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > Yellow	CHANGED	ok	ok	0.08	
+Home	Text Highlight Color > No Color	CHANGED	ok	ok	0.08	
+Home	Font Color	CHANGED	ok	ok	0.08	
+Home	Font Color > Automatic	CHANGED	ok	ok	0.08	
+Home	Font Color > #385623	CHANGED	ok	ok	0.08	
+Home	Font Color > #548135	CHANGED	ok	ok	0.09	
+Home	Font Color > #A9CD90	CHANGED	ok	ok	0.08	
+Home	Font Color > #C5DEB5	CHANGED	ok	ok	0.08	
+Home	Font Color > #E2EEDA	CHANGED	ok	ok	0.08	
+Home	Font Color > #70AD47	CHANGED	ok	ok	0.08	
+Home	Font Color > #2D4D6A	CHANGED	ok	ok	0.08	
+Home	Font Color > #44749F	CHANGED	ok	ok	0.08	
+Home	Font Color > #9CC3E5	CHANGED	ok	ok	0.08	
+Home	Font Color > #BDD7EE	CHANGED	ok	ok	0.08	
+Home	Font Color > #DEEBF6	CHANGED	ok	ok	0.09	
+Home	Font Color > #5B9BD5	CHANGED	ok	ok	0.09	
+Home	Font Color > #7F6000	CHANGED	ok	ok	0.08	
+Home	Font Color > #BF9000	CHANGED	ok	ok	0.08	
+Home	Font Color > #FFD966	CHANGED	ok	ok	0.09	
+Home	Font Color > #FFE599	CHANGED	ok	ok	0.09	
+Home	Font Color > #FFF2CC	CHANGED	ok	ok	0.08	
+Home	Font Color > #FFC000	CHANGED	ok	ok	0.08	
+Home	Font Color > #525252	CHANGED	ok	ok	0.08	
+Home	Font Color > #7B7B7B	CHANGED	ok	ok	0.08	
+Home	Font Color > #C9C9C9	CHANGED	ok	ok	0.09	
+Home	Font Color > #DBDBDB	CHANGED	ok	ok	0.08	
+Home	Font Color > #EDEDED	CHANGED	ok	ok	0.08	
+Home	Font Color > #A5A5A5	CHANGED	ok	ok	0.08	
+Home	Font Color > #763E18	CHANGED	ok	ok	0.08	
+Home	Font Color > #B15D24	CHANGED	ok	ok	0.08	
+Home	Font Color > #F4B183	CHANGED	ok	ok	0.08	
+Home	Font Color > #F7CBAC	CHANGED	ok	ok	0.08	
+Home	Font Color > #FBE5D5	CHANGED	ok	ok	0.08	
+Home	Font Color > #ED7D31	CHANGED	ok	ok	0.08	
+Home	Font Color > #223962	CHANGED	ok	ok	0.09	
+Home	Font Color > #335593	CHANGED	ok	ok	0.09	
+Home	Font Color > #8EAADB	CHANGED	ok	ok	0.09	
+Home	Font Color > #B4C6E7	CHANGED	ok	ok	0.08	
+Home	Font Color > #D9E2F3	CHANGED	ok	ok	0.08	
+Home	Font Color > #4472C4	CHANGED	ok	ok	0.08	
+Home	Font Color > #222A35	CHANGED	ok	ok	0.08	
+Home	Font Color > #333F4F	CHANGED	ok	ok	0.09	
+Home	Font Color > #8E98A5	CHANGED	ok	ok	0.08	
+Home	Font Color > #B4BAC3	CHANGED	ok	ok	0.08	
+Home	Font Color > #D9DCE1	CHANGED	ok	ok	0.08	
+Home	Font Color > #44546A	CHANGED	ok	ok	0.08	
+Home	Font Color > #737373	CHANGED	ok	ok	0.09	
+Home	Font Color > #ADACAC	CHANGED	ok	ok	0.08	
+Home	Font Color > #F0F0F0	CHANGED	ok	ok	0.09	
+Home	Font Color > #F5F5F5	CHANGED	ok	ok	0.08	
+Home	Font Color > #FAFAFA	CHANGED	ok	ok	0.08	
+Home	Font Color > #E7E6E6	CHANGED	ok	ok	0.08	
+Home	Font Color > #595959	CHANGED	ok	ok	0.09	
+Home	Font Color > #7F7F7F	CHANGED	ok	ok	0.08	
+Home	Font Color > #666666	CHANGED	ok	ok	0.08	
+Home	Font Color > #999999	CHANGED	ok	ok	0.08	
+Home	Font Color > #CCCCCC	CHANGED	ok	ok	0.08	
+Home	Font Color > #000000	CHANGED	ok	ok	0.08	
+Home	Font Color > #7F7F7F	CHANGED	ok	ok	0.09	
+Home	Font Color > #BFBFBF	CHANGED	ok	ok	0.08	
+Home	Font Color > #D8D8D8	CHANGED	ok	ok	0.08	
+Home	Font Color > #E5E5E5	CHANGED	ok	ok	0.09	
+Home	Font Color > #F2F2F2	CHANGED	ok	ok	0.08	
+Home	Font Color > #FFFFFF	CHANGED	ok	ok	0.09	
+Home	Font Color > #C00000	CHANGED	ok	ok	0.09	
+Home	Font Color > #FF0000	CHANGED	ok	ok	0.08	
+Home	Font Color > #FFC000	CHANGED	ok	ok	0.08	
+Home	Font Color > #FFFF00	CHANGED	ok	ok	0.08	
+Home	Font Color > #92D050	CHANGED	ok	ok	0.08	
+Home	Font Color > #00B050	CHANGED	ok	ok	0.08	
+Home	Font Color > #00B0F0	CHANGED	ok	ok	0.08	
+Home	Font Color > #0070C0	CHANGED	ok	ok	0.08	
+Home	Font Color > #002060	CHANGED	ok	ok	0.08	
+Home	Font Color > #7030A0	CHANGED	ok	ok	0.08	
+Home	Font Color > More Colors...	UI	-	-	0.10	
+Home	Font Settings	UI	-	-	0.14	
+Home	Bullets	CHANGED	BROKEN(steps=1)	-	0.09	
+Home	Bullets > •  Filled bullet	CHANGED	ok	ok	0.09	
+Home	Bullets > ▪  Square bullet	CHANGED	ok	ok	0.09	
+Home	Bullets > None	SAME	-	-	0.08	
+Home	Numbering	CHANGED	ok	ok	0.08	
+Home	Numbering > 1.  2.  3.	CHANGED	ok	ok	0.08	
+Home	Numbering > 1)  2)  3)	CHANGED	ok	ok	0.08	
+Home	Numbering > A.  B.  C.	CHANGED	ok	ok	0.08	
+Home	Numbering > a)  b)  c)	CHANGED	ok	ok	0.08	
+Home	Numbering > I.  II.  III.	CHANGED	ok	ok	0.08	
+Home	Numbering > i.  ii.  iii.	CHANGED	ok	ok	0.09	
+Home	Numbering > None	SAME	-	-	0.08	
+Home	Numbering > Set Numbering Value...	SAME	-	-	0.09	
+Home	Multilevel List > None	SAME	-	-	0.08	
+Home	Multilevel List > 1.  a.  i.	CHANGED	ok	ok	0.08	
+Home	Multilevel List > 1)  a)  i)	CHANGED	ok	ok	0.08	
+Home	Multilevel List > 1.  1.1.  1.1.1.	CHANGED	ok	ok	0.08	
+Home	Multilevel List > •  ◦  ▪	CHANGED	ok	ok	0.09	
+Home	Multilevel List > Article I.  Section 1.01  (a)	CHANGED	ok	ok	0.08	
+Home	Multilevel List > I.  A.  1.  a)	CHANGED	ok	ok	0.09	
+Home	Multilevel List > 1 Heading 1, 1.1 Heading 2	CHANGED	ok	ok	0.09	
+Home	Multilevel List > Chapter 1 Heading 1	CHANGED	ok	ok	0.09	
+Home	Multilevel List > Define New Multilevel List...	UI	-	-	0.11	
+Home	Decrease Indent	CHANGED	ok	ok	0.08	
+Home	Increase Indent	CHANGED	ok	ok	0.08	
+Home	Sort	UI	-	-	0.12	
+Home	Show/Hide ¶ (Ctrl+Shift+8)	SAME	-	-	0.09	
+Home	Align Left (Ctrl+L)	CHANGED	ok	ok	0.08	
+Home	Center (Ctrl+E)	CHANGED	ok	ok	0.08	
+Home	Align Right (Ctrl+R)	CHANGED	ok	ok	0.08	
+Home	Justify (Ctrl+J)	CHANGED	ok	ok	0.08	
+Home	Line and Paragraph Spacing > 1.0	CHANGED	ok	ok	0.09	
+Home	Line and Paragraph Spacing > 1.15	CHANGED	ok	ok	0.09	
+Home	Line and Paragraph Spacing > 1.5	CHANGED	ok	ok	0.08	
+Home	Line and Paragraph Spacing > 2.0	CHANGED	ok	ok	0.08	
+Home	Line and Paragraph Spacing > 2.5	CHANGED	ok	ok	0.08	
+Home	Line and Paragraph Spacing > 3.0	CHANGED	ok	ok	0.08	
+Home	Line and Paragraph Spacing > Line Spacing Options...	UI	-	-	0.11	
+Home	Line and Paragraph Spacing > Add Space Before Paragraph	CHANGED	ok	ok	0.09	
+Home	Line and Paragraph Spacing > Remove Space After Paragraph	CHANGED	ok	ok	0.08	
+Home	Shading > No Color	CHANGED	ok	ok	0.09	
+Home	Shading > #385623	CHANGED	ok	ok	0.09	
+Home	Shading > #548135	CHANGED	ok	ok	0.08	
+Home	Shading > #A9CD90	CHANGED	ok	ok	0.08	
+Home	Shading > #C5DEB5	CHANGED	ok	ok	0.08	
+Home	Shading > #E2EEDA	CHANGED	ok	ok	0.08	
+Home	Shading > #70AD47	CHANGED	ok	ok	0.08	
+Home	Shading > #2D4D6A	CHANGED	ok	ok	0.08	
+Home	Shading > #44749F	CHANGED	ok	ok	0.09	
+Home	Shading > #9CC3E5	CHANGED	ok	ok	0.08	
+Home	Shading > #BDD7EE	CHANGED	ok	ok	0.08	
+Home	Shading > #DEEBF6	CHANGED	ok	ok	0.08	
+Home	Shading > #5B9BD5	CHANGED	ok	ok	0.09	
+Home	Shading > #7F6000	CHANGED	ok	ok	0.08	
+Home	Shading > #BF9000	CHANGED	ok	ok	0.09	
+Home	Shading > #FFD966	CHANGED	ok	ok	0.08	
+Home	Shading > #FFE599	CHANGED	ok	ok	0.08	
+Home	Shading > #FFF2CC	CHANGED	ok	ok	0.08	
+Home	Shading > #FFC000	CHANGED	ok	ok	0.08	
+Home	Shading > #525252	CHANGED	ok	ok	0.09	
+Home	Shading > #7B7B7B	CHANGED	ok	ok	0.08	
+Home	Shading > #C9C9C9	CHANGED	ok	ok	0.08	
+Home	Shading > #DBDBDB	CHANGED	ok	ok	0.08	
+Home	Shading > #EDEDED	CHANGED	ok	ok	0.08	
+Home	Shading > #A5A5A5	CHANGED	ok	ok	0.09	
+Home	Shading > #763E18	CHANGED	ok	ok	0.08	
+Home	Shading > #B15D24	CHANGED	ok	ok	0.08	
+Home	Shading > #F4B183	CHANGED	ok	ok	0.09	
+Home	Shading > #F7CBAC	CHANGED	ok	ok	0.08	
+Home	Shading > #FBE5D5	CHANGED	ok	ok	0.09	
+Home	Shading > #ED7D31	CHANGED	ok	ok	0.08	
+Home	Shading > #223962	CHANGED	ok	ok	0.08	
+Home	Shading > #335593	CHANGED	ok	ok	0.08	
+Home	Shading > #8EAADB	CHANGED	ok	ok	0.08	
+Home	Shading > #B4C6E7	CHANGED	ok	ok	0.09	
+Home	Shading > #D9E2F3	CHANGED	ok	ok	0.08	
+Home	Shading > #4472C4	CHANGED	ok	ok	0.08	
+Home	Shading > #222A35	CHANGED	ok	ok	0.08	
+Home	Shading > #333F4F	CHANGED	ok	ok	0.08	
+Home	Shading > #8E98A5	CHANGED	ok	ok	0.08	
+Home	Shading > #B4BAC3	CHANGED	ok	ok	0.08	
+Home	Shading > #D9DCE1	CHANGED	ok	ok	0.08	
+Home	Shading > #44546A	CHANGED	ok	ok	0.08	
+Home	Shading > #737373	CHANGED	ok	ok	0.09	
+Home	Shading > #ADACAC	CHANGED	ok	ok	0.08	
+Home	Shading > #F0F0F0	CHANGED	ok	ok	0.08	
+Home	Shading > #F5F5F5	CHANGED	ok	ok	0.08	
+Home	Shading > #FAFAFA	CHANGED	ok	ok	0.08	
+Home	Shading > #E7E6E6	CHANGED	ok	ok	0.08	
+Home	Shading > #595959	CHANGED	ok	ok	0.09	
+Home	Shading > #7F7F7F	CHANGED	ok	ok	0.08	
+Home	Shading > #666666	CHANGED	ok	ok	0.09	
+Home	Shading > #999999	CHANGED	ok	ok	0.08	
+Home	Shading > #CCCCCC	CHANGED	ok	ok	0.09	
+Home	Shading > #000000	CHANGED	ok	ok	0.09	
+Home	Shading > #7F7F7F	CHANGED	ok	ok	0.08	
+Home	Shading > #BFBFBF	CHANGED	ok	ok	0.08	
+Home	Shading > #D8D8D8	CHANGED	ok	ok	0.08	
+Home	Shading > #E5E5E5	CHANGED	ok	ok	0.09	
+Home	Shading > #F2F2F2	CHANGED	ok	ok	0.08	
+Home	Shading > #FFFFFF	CHANGED	ok	ok	0.09	
+Home	Shading > #C00000	CHANGED	ok	ok	0.09	
+Home	Shading > #FF0000	CHANGED	ok	ok	0.08	
+Home	Shading > #FFC000	CHANGED	ok	ok	0.08	
+Home	Shading > #FFFF00	CHANGED	ok	ok	0.08	
+Home	Shading > #92D050	CHANGED	ok	ok	0.08	
+Home	Shading > #00B050	CHANGED	ok	ok	0.08	
+Home	Shading > #00B0F0	CHANGED	ok	ok	0.08	
+Home	Shading > #0070C0	CHANGED	ok	ok	0.08	
+Home	Shading > #002060	CHANGED	ok	ok	0.08	
+Home	Shading > #7030A0	CHANGED	ok	ok	0.08	
+Home	Borders > Bottom Border	CHANGED	ok	ok	0.08	
+Home	Borders > Top Border	CHANGED	ok	ok	0.08	
+Home	Borders > Left Border	CHANGED	ok	ok	0.08	
+Home	Borders > Right Border	CHANGED	ok	ok	0.08	
+Home	Borders > No Border	CHANGED	ok	ok	0.08	
+Home	Borders > All Borders	CHANGED	ok	ok	0.08	
+Home	Borders > Outside Borders	CHANGED	ok	ok	0.09	
+Home	Borders > Inside Borders	CHANGED	ok	ok	0.08	
+Home	Borders > Inside Horizontal Border	CHANGED	ok	ok	0.08	
+Home	Borders > Inside Vertical Border	SAME	-	-	0.08	
+Home	Borders > Diagonal Down Border	SAME	-	-	0.08	
+Home	Borders > Diagonal Up Border	SAME	-	-	0.09	
+Home	Borders > Horizontal Line	CHANGED	ok	ok	0.08	
+Home	Borders > Draw Table	SAME	-	-	0.08	
+Home	Borders > View Gridlines	SAME	-	-	0.08	
+Home	Borders > Borders and Shading...	UI	-	-	0.14	
+Home	Paragraph Settings	UI	-	-	0.12	
+Home	Styles Settings	SAME	-	-	0.13	
+Home	Find (Ctrl+F)	SAME	-	-	0.09	
+Home	Find (Ctrl+F) > Find	SAME	-	-	0.08	
+Home	Find (Ctrl+F) > Advanced Find...	SAME	-	-	0.10	
+Home	Find (Ctrl+F) > Go To...	SAME	-	-	0.09	
+Home	Replace (Ctrl+H)	SAME	-	-	0.09	
+Home	Select > Select All	SAME	-	-	0.08	
+Home	Select > Select Objects	SAME	-	-	0.08	
+Home	Select > Select All Text With Similar Formatting	SAME	-	-	0.08	
+Home	Select > Selection Pane...	SAME	-	-	0.09	
+Insert	Cover Page > Simple	CHANGED	ok	ok	0.09	
+Insert	Cover Page > Banded	CHANGED	BROKEN(steps=4)	-	0.08	
+Insert	Cover Page > Grid	CHANGED	ok	ok	0.08	
+Insert	Cover Page > Facet	CHANGED	ok	ok	0.08	
+Insert	Cover Page > Ion (Dark)	CHANGED	ok	ok	0.09	
+Insert	Cover Page > Ion (Light)	CHANGED	ok	ok	0.08	
+Insert	Cover Page > Motion	CHANGED	ok	ok	0.08	
+Insert	Cover Page > Retrospect	CHANGED	ok	ok	0.08	
+Insert	Cover Page > Semaphore	CHANGED	ok	ok	0.08	
+Insert	Cover Page > Sideline	CHANGED	ok	ok	0.08	
+Insert	Cover Page > Slice (Dark)	CHANGED	ok	ok	0.08	
+Insert	Cover Page > Whisp	CHANGED	ok	ok	0.08	
+Insert	Cover Page > Remove Current Cover Page	SAME	-	-	0.08	
+Insert	Blank Page	CHANGED	ok	ok	0.08	
+Insert	Page Break (Ctrl+Enter)	CHANGED	ok	ok	0.09	
+Insert	Add a Table > Insert Table...	UI	-	-	0.09	
+Insert	Add a Table > Draw Table	SAME	-	-	0.09	
+Insert	Add a Table > Convert Text to Table...	UI	-	-	0.08	
+Insert	Add a Table > Quick Tables	UI	-	-	0.08	
+Insert	Pictures	UI	-	-	0.11	
+Insert	Shapes > Line	SAME	-	-	0.08	
+Insert	Shapes > Arrow	SAME	-	-	0.08	
+Insert	Shapes > Connector: Elbow	SAME	-	-	0.08	
+Insert	Shapes > Connector: Curved	SAME	-	-	0.08	
+Insert	Shapes > Freeform: Scribble	SAME	-	-	0.08	
+Insert	Shapes > Rectangle	SAME	-	-	0.08	
+Insert	Shapes > Rounded Rectangle	SAME	-	-	0.08	
+Insert	Shapes > Oval	SAME	-	-	0.08	
+Insert	Shapes > Triangle	SAME	-	-	0.08	
+Insert	Shapes > Right Triangle	SAME	-	-	0.08	
+Insert	Shapes > Parallelogram	SAME	-	-	0.08	
+Insert	Shapes > Trapezoid	SAME	-	-	0.08	
+Insert	Shapes > Diamond	SAME	-	-	0.08	
+Insert	Shapes > Pentagon	SAME	-	-	0.09	
+Insert	Shapes > Hexagon	SAME	-	-	0.08	
+Insert	Shapes > Octagon	SAME	-	-	0.08	
+Insert	Shapes > Frame	SAME	-	-	0.08	
+Insert	Shapes > Donut	SAME	-	-	0.08	
+Insert	Shapes > Cube	SAME	-	-	0.08	
+Insert	Shapes > Can	SAME	-	-	0.08	
+Insert	Shapes > Heart	SAME	-	-	0.08	
+Insert	Shapes > Lightning Bolt	SAME	-	-	0.08	
+Insert	Shapes > Sun	SAME	-	-	0.08	
+Insert	Shapes > Moon	SAME	-	-	0.10	
+Insert	Shapes > Smiley Face	SAME	-	-	0.08	
+Insert	Shapes > Cloud	SAME	-	-	0.09	
+Insert	Shapes > Right Arrow	SAME	-	-	0.08	
+Insert	Shapes > Left Arrow	SAME	-	-	0.08	
+Insert	Shapes > Up Arrow	SAME	-	-	0.08	
+Insert	Shapes > Down Arrow	SAME	-	-	0.08	
+Insert	Shapes > Left-Right Arrow	SAME	-	-	0.08	
+Insert	Shapes > Up-Down Arrow	SAME	-	-	0.08	
+Insert	Shapes > Notched Right Arrow	SAME	-	-	0.08	
+Insert	Shapes > Chevron	SAME	-	-	0.08	
+Insert	Shapes > Circular Arrow	SAME	-	-	0.09	
+Insert	Shapes > Plus Sign	SAME	-	-	0.08	
+Insert	Shapes > Minus Sign	SAME	-	-	0.08	
+Insert	Shapes > Multiplication Sign	SAME	-	-	0.08	
+Insert	Shapes > Division Sign	SAME	-	-	0.08	
+Insert	Shapes > Equal	SAME	-	-	0.08	
+Insert	Shapes > Not Equal	SAME	-	-	0.08	
+Insert	Shapes > Process	SAME	-	-	0.08	
+Insert	Shapes > Decision	SAME	-	-	0.08	
+Insert	Shapes > Terminator	SAME	-	-	0.08	
+Insert	Shapes > Document	SAME	-	-	0.08	
+Insert	Shapes > Data	SAME	-	-	0.09	
+Insert	Shapes > Connector	SAME	-	-	0.08	
+Insert	Shapes > Star: 4 Points	SAME	-	-	0.08	
+Insert	Shapes > Star: 5 Points	SAME	-	-	0.08	
+Insert	Shapes > Star: 6 Points	SAME	-	-	0.09	
+Insert	Shapes > Star: 8 Points	SAME	-	-	0.08	
+Insert	Shapes > Star: 24 Points	SAME	-	-	0.08	
+Insert	Shapes > Scroll: Horizontal	SAME	-	-	0.08	
+Insert	Shapes > Speech Bubble: Rectangle	SAME	-	-	0.08	
+Insert	Shapes > Speech Bubble: Rounded Rectangle	SAME	-	-	0.08	
+Insert	Shapes > Speech Bubble: Oval	SAME	-	-	0.08	
+Insert	Shapes > Thought Bubble: Cloud	SAME	-	-	0.08	
+Insert	Shapes > Text Box	SAME	-	-	0.08	
+Insert	Shapes > New Drawing Canvas	CHANGED	ok	ok	0.08	
+Insert	Icons	UI	-	-	0.26	
+Insert	3D Models > This Device...	UI	-	-	0.12	
+Insert	3D Models > Front	SAME	-	-	0.08	
+Insert	3D Models > Back	SAME	-	-	0.08	
+Insert	3D Models > Left	SAME	-	-	0.08	
+Insert	3D Models > Right	SAME	-	-	0.08	
+Insert	3D Models > Top	SAME	-	-	0.08	
+Insert	3D Models > Bottom	SAME	-	-	0.08	
+Insert	3D Models > Above Front Left	SAME	-	-	0.08	
+Insert	3D Models > Above Front Right	SAME	-	-	0.08	
+Insert	3D Models > Below Front Left	SAME	-	-	0.08	
+Insert	3D Models > Below Front Right	SAME	-	-	0.09	
+Insert	3D Models > Turn...	SAME	-	-	0.09	
+Insert	3D Models > Turn Left	SAME	-	-	0.08	
+Insert	3D Models > Turn Right	SAME	-	-	0.09	
+Insert	3D Models > Tip Up	SAME	-	-	0.08	
+Insert	3D Models > Tip Down	SAME	-	-	0.08	
+Insert	3D Models > Reset 3D Model	SAME	-	-	0.08	
+Insert	SmartArt	UI	-	-	0.10	
+Insert	Chart	UI	-	-	0.12	
+Insert	Screenshot > Screen Clipping	SAME	-	-	0.09	
+Insert	Insert Link (Ctrl+K)	UI	-	-	0.11	
+Insert	Bookmark	UI	-	-	0.10	
+Insert	Cross-reference	UI	-	-	0.11	
+Insert	New Comment (Ctrl+Alt+M)	CHANGED	BROKEN(steps=1)	-	0.09	
+Insert	Header > Blank	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Header > Blank (Three Columns)	CHANGED	BROKEN(steps=2)	-	0.11	
+Insert	Header > Austin	CHANGED	BROKEN(steps=3)	-	0.08	
+Insert	Header > Banded	CHANGED	BROKEN(steps=3)	-	0.09	
+Insert	Header > Facet	CHANGED	BROKEN(steps=3)	-	0.09	
+Insert	Header > Grid	CHANGED	BROKEN(steps=3)	-	0.08	
+Insert	Header > Integral	CHANGED	BROKEN(steps=3)	-	0.08	
+Insert	Header > Ion	CHANGED	BROKEN(steps=3)	-	0.09	
+Insert	Header > Retrospect	CHANGED	BROKEN(steps=3)	-	0.08	
+Insert	Header > Sideline	CHANGED	BROKEN(steps=3)	-	0.08	
+Insert	Header > Whisp	CHANGED	BROKEN(steps=3)	-	0.09	
+Insert	Header > Edit Header	CHANGED	BROKEN(steps=1)	-	0.09	
+Insert	Header > Remove Header	SAME	-	-	0.08	
+Insert	Footer > Blank	CHANGED	BROKEN(steps=2)	-	0.09	
+Insert	Footer > Blank (Three Columns)	CHANGED	BROKEN(steps=2)	-	0.09	
+Insert	Footer > Austin	CHANGED	BROKEN(steps=2)	-	0.09	
+Insert	Footer > Banded	CHANGED	BROKEN(steps=2)	-	0.09	
+Insert	Footer > Facet	CHANGED	BROKEN(steps=3)	-	0.08	
+Insert	Footer > Integral	CHANGED	BROKEN(steps=3)	-	0.09	
+Insert	Footer > Ion	CHANGED	BROKEN(steps=2)	-	0.09	
+Insert	Footer > Retrospect	CHANGED	BROKEN(steps=3)	-	0.09	
+Insert	Footer > Semaphore	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Footer > Sideline	CHANGED	BROKEN(steps=2)	-	0.09	
+Insert	Footer > Edit Footer	CHANGED	BROKEN(steps=1)	-	0.09	
+Insert	Footer > Remove Footer	SAME	-	-	0.09	
+Insert	Page Number > Top of Page	SAME	-	-	0.08	
+Insert	Page Number > Plain Number 1	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Plain Number 2	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Plain Number 3	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Bold Numbers	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Page X of Y	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Bottom of Page	SAME	-	-	0.08	
+Insert	Page Number > Plain Number 1	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Plain Number 2	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Plain Number 3	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Bold Numbers	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Page X of Y	CHANGED	BROKEN(steps=2)	-	0.08	
+Insert	Page Number > Page Margins	SAME	-	-	0.08	
+Insert	Page Number > Circle, Right	CHANGED	BROKEN(steps=9)	-	0.09	
+Insert	Page Number > Plain Number, Right	CHANGED	BROKEN(steps=6)	-	0.09	
+Insert	Page Number > Plain Number, Left	CHANGED	BROKEN(steps=6)	-	0.08	
+Insert	Page Number > Current Position	SAME	-	-	0.08	
+Insert	Page Number > Plain Number	CHANGED	ok	ok	0.08	
+Insert	Page Number > Page X of Y	CHANGED	ok	ok	0.08	
+Insert	Page Number > Top of Page	SAME	-	-	0.08	
+Insert	Page Number > Bottom of Page	SAME	-	-	0.09	
+Insert	Page Number > Page Margins	SAME	-	-	0.08	
+Insert	Page Number > Current Position	SAME	-	-	0.08	
+Insert	Page Number > Format Page Numbers...	UI	-	-	0.10	
+Insert	Page Number > Remove Page Numbers	SAME	-	-	0.08	
+Insert	Text Box > Simple Text Box	CHANGED	ok	ok	0.08	
+Insert	Text Box > Sidebar	CHANGED	ok	ok	0.09	
+Insert	Text Box > Quote	CHANGED	ok	ok	0.09	
+Insert	Text Box > Banded	CHANGED	ok	ok	0.09	
+Insert	Text Box > Draw Text Box	SAME	-	-	0.09	
+Insert	Quick Parts > Author	CHANGED	ok	ok	0.08	
+Insert	Quick Parts > Title	CHANGED	ok	ok	0.08	
+Insert	Quick Parts > Subject	CHANGED	ok	ok	0.08	
+Insert	Quick Parts > Company	CHANGED	ok	ok	0.08	
+Insert	Quick Parts > Keywords	CHANGED	ok	ok	0.08	
+Insert	Quick Parts > Comments	CHANGED	ok	ok	0.08	
+Insert	Quick Parts > Status	CHANGED	ok	ok	0.08	
+Insert	Quick Parts > Field...	UI	-	-	0.08	
+Insert	Quick Parts > Building Blocks Organizer...	UI	-	-	0.08	
+Insert	WordArt > Fill: Black, Text color 1; Outline: White	CHANGED	ok	ok	0.09	
+Insert	WordArt > Fill: Blue, Accent color 5; Outline: White	CHANGED	ok	ok	0.09	
+Insert	WordArt > Fill: Green, Accent color 6; Outline	CHANGED	ok	ok	0.09	
+Insert	WordArt > Fill: Gray, Accent color 3; Sharp Bevel	CHANGED	ok	ok	0.09	
+Insert	WordArt > Fill: Gold, Accent color 4; Soft Bevel	CHANGED	ok	ok	0.09	
+Insert	WordArt > Fill: White; Outline: Blue, Accent color 1; Shadow	CHANGED	ok	ok	0.09	
+Insert	WordArt > Fill: Orange, Accent color 2; Outline: Orange	CHANGED	ok	ok	0.09	
+Insert	WordArt > Fill: Blue, Accent color 1; Shadow	CHANGED	ok	ok	0.09	
+Insert	WordArt > Fill: Black, Text color 1; Shadow	CHANGED	ok	ok	0.09	
+Insert	Date & Time	UI	-	-	0.10	
+Insert	Field	UI	-	-	0.11	
+Insert	Drop Cap > None	SAME	-	-	0.08	
+Insert	Drop Cap > Dropped	CHANGED	ok	ok	0.08	
+Insert	Drop Cap > In margin	CHANGED	ok	ok	0.09	
+Insert	Drop Cap > Drop Cap Options...	UI	-	-	0.11	
+Insert	Signature Line > Signature Line...	UI	-	-	0.10	
+Insert	Object > Object...	UI	-	-	0.14	
+Insert	Object > Text from File...	UI	-	-	0.11	
+Insert	Equation (Alt+=)	CHANGED	ok	ok	0.10	
+Insert	Equation (Alt+=) > Area of Circle	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Binomial Theorem	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Expansion of a Sum	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Fourier Series	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Pythagorean Theorem	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Quadratic Formula	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Taylor Expansion	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Trig Identity 1	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Trig Identity 2	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Euler's Identity	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Gaussian Integral	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Normal Distribution	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Bayes' Theorem	CHANGED	ok	ok	0.08	
+Insert	Equation (Alt+=) > Definition of Derivative	CHANGED	ok	ok	0.09	
+Insert	Equation (Alt+=) > Insert New Equation	CHANGED	ok	ok	0.08	
+Insert	Symbol > √	CHANGED	ok	ok	0.09	
+Insert	Symbol > ∑	CHANGED	ok	ok	0.08	
+Insert	Symbol > Ω	CHANGED	ok	ok	0.08	
+Insert	Symbol > π	CHANGED	ok	ok	0.08	
+Insert	Symbol > β	CHANGED	ok	ok	0.08	
+Insert	Symbol > α	CHANGED	ok	ok	0.08	
+Insert	Symbol > µ	CHANGED	ok	ok	0.09	
+Insert	Symbol > ∞	CHANGED	ok	ok	0.08	
+Insert	Symbol > ×	CHANGED	ok	ok	0.08	
+Insert	Symbol > ÷	CHANGED	ok	ok	0.08	
+Insert	Symbol > ≥	CHANGED	ok	ok	0.08	
+Insert	Symbol > ≤	CHANGED	ok	ok	0.08	
+Insert	Symbol > ≠	CHANGED	ok	ok	0.08	
+Insert	Symbol > ±	CHANGED	ok	ok	0.08	
+Insert	Symbol > ™	CHANGED	ok	ok	0.08	
+Insert	Symbol > ®	CHANGED	ok	ok	0.08	
+Insert	Symbol > ©	CHANGED	ok	ok	0.08	
+Insert	Symbol > ¥	CHANGED	ok	ok	0.08	
+Insert	Symbol > £	CHANGED	ok	ok	0.08	
+Insert	Symbol > €	CHANGED	ok	ok	0.09	
+Insert	Symbol > More Symbols...	UI	-	-	0.08	
+Draw	Select	SAME	-	-	0.08	
+Draw	Eraser	SAME	-	-	0.08	
+Draw	Pen	SAME	-	-	0.08	
+Draw	Pen > Black	SAME	-	-	0.08	
+Draw	Pen > Red	SAME	-	-	0.08	
+Draw	Pen > Blue	SAME	-	-	0.08	
+Draw	Pen > Green	SAME	-	-	0.08	
+Draw	Pen > Yellow	SAME	-	-	0.08	
+Draw	Pen > Orange	SAME	-	-	0.08	
+Draw	Pen > Purple	SAME	-	-	0.08	
+Draw	Pen > Pink	SAME	-	-	0.08	
+Draw	Pen > Gray	SAME	-	-	0.08	
+Draw	Pen > 0.25 mm	SAME	-	-	0.08	
+Draw	Pen > 0.5 mm	SAME	-	-	0.08	
+Draw	Pen > 1 mm	SAME	-	-	0.08	
+Draw	Pen > 2 mm	SAME	-	-	0.08	
+Draw	Pen > 3.5 mm	SAME	-	-	0.08	
+Draw	Pen > 5 mm	SAME	-	-	0.08	
+Draw	Pen > 8 mm	SAME	-	-	0.08	
+Draw	Pen	SAME	-	-	0.08	
+Draw	Pen > Black	SAME	-	-	0.08	
+Draw	Pen > Red	SAME	-	-	0.08	
+Draw	Pen > Blue	SAME	-	-	0.08	
+Draw	Pen > Green	SAME	-	-	0.08	
+Draw	Pen > Yellow	SAME	-	-	0.08	
+Draw	Pen > Orange	SAME	-	-	0.08	
+Draw	Pen > Purple	SAME	-	-	0.08	
+Draw	Pen > Pink	SAME	-	-	0.08	
+Draw	Pen > Gray	SAME	-	-	0.08	
+Draw	Pen > 0.25 mm	SAME	-	-	0.08	
+Draw	Pen > 0.5 mm	SAME	-	-	0.08	
+Draw	Pen > 1 mm	SAME	-	-	0.08	
+Draw	Pen > 2 mm	SAME	-	-	0.08	
+Draw	Pen > 3.5 mm	SAME	-	-	0.08	
+Draw	Pen > 5 mm	SAME	-	-	0.08	
+Draw	Pen > 8 mm	SAME	-	-	0.08	
+Draw	Highlighter	SAME	-	-	0.08	
+Draw	Highlighter > Black	SAME	-	-	0.08	
+Draw	Highlighter > Red	SAME	-	-	0.08	
+Draw	Highlighter > Blue	SAME	-	-	0.08	
+Draw	Highlighter > Green	SAME	-	-	0.08	
+Draw	Highlighter > Yellow	SAME	-	-	0.08	
+Draw	Highlighter > Orange	SAME	-	-	0.08	
+Draw	Highlighter > Purple	SAME	-	-	0.08	
+Draw	Highlighter > Pink	SAME	-	-	0.08	
+Draw	Highlighter > Gray	SAME	-	-	0.08	
+Draw	Highlighter > 0.25 mm	SAME	-	-	0.08	
+Draw	Highlighter > 0.5 mm	SAME	-	-	0.08	
+Draw	Highlighter > 1 mm	SAME	-	-	0.08	
+Draw	Highlighter > 2 mm	SAME	-	-	0.08	
+Draw	Highlighter > 3.5 mm	SAME	-	-	0.08	
+Draw	Highlighter > 5 mm	SAME	-	-	0.08	
+Draw	Highlighter > 8 mm	SAME	-	-	0.08	
+Draw	Ink to Math	UI	-	-	0.28	
+Design	Themes > Default	CHANGED	ok	ok	0.09	
+Design	Themes > Default 2023	CHANGED	ok	ok	0.09	
+Design	Themes > Classic	CHANGED	ok	ok	0.08	
+Design	Themes > Slate	CHANGED	ok	ok	0.09	
+Design	Themes > Meadow	CHANGED	ok	ok	0.09	
+Design	Themes > Ember	CHANGED	ok	ok	0.09	
+Design	Themes > Lagoon	CHANGED	ok	ok	0.09	
+Design	Themes > Royal	CHANGED	ok	ok	0.09	
+Design	Themes > Harbor	CHANGED	ok	ok	0.09	
+Design	Themes > Paperback	CHANGED	ok	ok	0.09	
+Design	Themes > Marquee	CHANGED	ok	ok	0.09	
+Design	Themes > Slipstream	CHANGED	ok	ok	0.09	
+Design	Themes > Reset to Theme from Template	CHANGED	ok	ok	0.08	
+Design	Colors > Standard	CHANGED	ok	ok	0.09	
+Design	Colors > Standard 2023	CHANGED	ok	ok	0.09	
+Design	Colors > Standard 2007	CHANGED	ok	ok	0.09	
+Design	Colors > Grayscale	CHANGED	ok	ok	0.09	
+Design	Colors > Blue Warm	CHANGED	ok	ok	0.09	
+Design	Colors > Blue	CHANGED	ok	ok	0.09	
+Design	Colors > Blue II	CHANGED	ok	ok	0.09	
+Design	Colors > Blue Green	CHANGED	ok	ok	0.09	
+Design	Colors > Green	CHANGED	ok	ok	0.09	
+Design	Colors > Green Yellow	CHANGED	ok	ok	0.09	
+Design	Colors > Yellow	CHANGED	ok	ok	0.09	
+Design	Colors > Yellow Orange	CHANGED	ok	ok	0.09	
+Design	Colors > Orange	CHANGED	ok	ok	0.09	
+Design	Colors > Orange Red	CHANGED	ok	ok	0.09	
+Design	Colors > Red Orange	CHANGED	ok	ok	0.09	
+Design	Colors > Red	CHANGED	ok	ok	0.09	
+Design	Colors > Red Violet	CHANGED	ok	ok	0.09	
+Design	Colors > Violet	CHANGED	ok	ok	0.09	
+Design	Colors > Violet II	CHANGED	ok	ok	0.09	
+Design	Colors > Median	CHANGED	ok	ok	0.09	
+Design	Colors > Paper	CHANGED	ok	ok	0.08	
+Design	Colors > Marquee	CHANGED	ok	ok	0.09	
+Design	Colors > Slipstream	CHANGED	ok	ok	0.09	
+Design	Colors > Aspect	CHANGED	ok	ok	0.09	
+Design	Fonts > Standard  (Calibri Light / Calibri)	CHANGED	ok	ok	0.09	
+Design	Fonts > Standard 2023  (Aptos Display / Aptos)	CHANGED	ok	ok	0.09	
+Design	Fonts > Standard 2007  (Cambria / Calibri)	CHANGED	ok	ok	0.09	
+Design	Fonts > Calibri  (Calibri / Calibri)	CHANGED	ok	ok	0.09	
+Design	Fonts > Arial  (Arial / Arial)	CHANGED	ok	ok	0.09	
+Design	Fonts > Cambria  (Cambria / Cambria)	CHANGED	ok	ok	0.09	
+Design	Fonts > Georgia  (Georgia / Georgia)	CHANGED	ok	ok	0.09	
+Design	Fonts > Times New Roman  (Times New Roman / Times New Roman)	CHANGED	ok	ok	0.09	
+Design	Fonts > Calibri-Cambria  (Calibri / Cambria)	CHANGED	ok	ok	0.09	
+Design	Fonts > Arial-Times New Roman  (Arial / Times New Roman)	CHANGED	ok	ok	0.09	
+Design	Fonts > Candara  (Candara / Candara)	CHANGED	ok	ok	0.09	
+Design	Fonts > Constantia  (Constantia / Constantia)	CHANGED	ok	ok	0.09	
+Design	Fonts > Liberation Sans  (Liberation Sans / Liberation Sans)	CHANGED	ok	ok	0.09	
+Design	Fonts > Liberation Serif  (Liberation Serif / Liberation Serif)	CHANGED	ok	ok	0.09	
+Design	Fonts > DejaVu  (DejaVu Sans / DejaVu Serif)	CHANGED	ok	ok	0.09	
+Design	Paragraph Spacing > Default	CHANGED	ok	ok	0.09	
+Design	Paragraph Spacing > No Paragraph Space	CHANGED	ok	ok	0.09	
+Design	Paragraph Spacing > Compact	CHANGED	ok	ok	0.09	
+Design	Paragraph Spacing > Tight	CHANGED	ok	ok	0.08	
+Design	Paragraph Spacing > Relaxed	CHANGED	ok	ok	0.09	
+Design	Paragraph Spacing > Double	CHANGED	ok	ok	0.09	
+Design	Paragraph Spacing > Custom Paragraph Spacing...	UI	-	-	0.11	
+Design	Set as Default	SAME	-	-	0.08	
+Design	Watermark > CONFIDENTIAL	CHANGED	BROKEN(steps=2)	-	0.08	
+Design	Watermark > DO NOT COPY	CHANGED	BROKEN(steps=2)	-	0.08	
+Design	Watermark > DRAFT	CHANGED	BROKEN(steps=2)	-	0.08	
+Design	Watermark > SAMPLE	CHANGED	BROKEN(steps=2)	-	0.08	
+Design	Watermark > URGENT	CHANGED	BROKEN(steps=2)	-	0.08	
+Design	Watermark > Custom Watermark...	UI	-	-	0.13	
+Design	Watermark > Remove Watermark	SAME	-	-	0.09	
+Design	Page Color > No Color	SAME	-	-	0.08	
+Design	Page Color > #385623	CHANGED	BROKEN(steps=1)	-	0.08	
+Design	Page Color > #548135	CHANGED	ok	ok	0.09	
+Design	Page Color > #A9CD90	CHANGED	ok	ok	0.08	
+Design	Page Color > #C5DEB5	CHANGED	ok	ok	0.08	
+Design	Page Color > #E2EEDA	CHANGED	ok	ok	0.09	
+Design	Page Color > #70AD47	CHANGED	ok	ok	0.08	
+Design	Page Color > #2D4D6A	CHANGED	ok	ok	0.08	
+Design	Page Color > #44749F	CHANGED	ok	ok	0.09	
+Design	Page Color > #9CC3E5	CHANGED	ok	ok	0.08	
+Design	Page Color > #BDD7EE	CHANGED	ok	ok	0.08	
+Design	Page Color > #DEEBF6	CHANGED	ok	ok	0.08	
+Design	Page Color > #5B9BD5	CHANGED	ok	ok	0.08	
+Design	Page Color > #7F6000	CHANGED	ok	ok	0.08	
+Design	Page Color > #BF9000	CHANGED	ok	ok	0.08	
+Design	Page Color > #FFD966	CHANGED	ok	ok	0.08	
+Design	Page Color > #FFE599	CHANGED	ok	ok	0.08	
+Design	Page Color > #FFF2CC	CHANGED	ok	ok	0.08	
+Design	Page Color > #FFC000	CHANGED	ok	ok	0.08	
+Design	Page Color > #525252	CHANGED	ok	ok	0.08	
+Design	Page Color > #7B7B7B	CHANGED	ok	ok	0.08	
+Design	Page Color > #C9C9C9	CHANGED	ok	ok	0.08	
+Design	Page Color > #DBDBDB	CHANGED	ok	ok	0.08	
+Design	Page Color > #EDEDED	CHANGED	ok	ok	0.08	
+Design	Page Color > #A5A5A5	CHANGED	ok	ok	0.08	
+Design	Page Color > #763E18	CHANGED	ok	ok	0.08	
+Design	Page Color > #B15D24	CHANGED	ok	ok	0.08	
+Design	Page Color > #F4B183	CHANGED	ok	ok	0.08	
+Design	Page Color > #F7CBAC	CHANGED	ok	ok	0.08	
+Design	Page Color > #FBE5D5	CHANGED	ok	ok	0.08	
+Design	Page Color > #ED7D31	CHANGED	ok	ok	0.08	
+Design	Page Color > #223962	CHANGED	ok	ok	0.08	
+Design	Page Color > #335593	CHANGED	ok	ok	0.08	
+Design	Page Color > #8EAADB	CHANGED	ok	ok	0.08	
+Design	Page Color > #B4C6E7	CHANGED	ok	ok	0.08	
+Design	Page Color > #D9E2F3	CHANGED	ok	ok	0.08	
+Design	Page Color > #4472C4	CHANGED	ok	ok	0.08	
+Design	Page Color > #222A35	CHANGED	ok	ok	0.09	
+Design	Page Color > #333F4F	CHANGED	ok	ok	0.09	
+Design	Page Color > #8E98A5	CHANGED	ok	ok	0.08	
+Design	Page Color > #B4BAC3	CHANGED	ok	ok	0.09	
+Design	Page Color > #D9DCE1	CHANGED	ok	ok	0.08	
+Design	Page Color > #44546A	CHANGED	ok	ok	0.08	
+Design	Page Color > #737373	CHANGED	ok	ok	0.09	
+Design	Page Color > #ADACAC	CHANGED	ok	ok	0.08	
+Design	Page Color > #F0F0F0	CHANGED	ok	ok	0.08	
+Design	Page Color > #F5F5F5	CHANGED	ok	ok	0.08	
+Design	Page Color > #FAFAFA	CHANGED	ok	ok	0.08	
+Design	Page Color > #E7E6E6	CHANGED	ok	ok	0.08	
+Design	Page Color > #595959	CHANGED	ok	ok	0.08	
+Design	Page Color > #7F7F7F	CHANGED	ok	ok	0.09	
+Design	Page Color > #666666	CHANGED	ok	ok	0.08	
+Design	Page Color > #999999	CHANGED	ok	ok	0.08	
+Design	Page Color > #CCCCCC	CHANGED	ok	ok	0.08	
+Design	Page Color > #000000	CHANGED	ok	ok	0.08	
+Design	Page Color > #7F7F7F	CHANGED	ok	ok	0.08	
+Design	Page Color > #BFBFBF	CHANGED	ok	ok	0.09	
+Design	Page Color > #D8D8D8	CHANGED	ok	ok	0.08	
+Design	Page Color > #E5E5E5	CHANGED	ok	ok	0.08	
+Design	Page Color > #F2F2F2	CHANGED	ok	ok	0.08	
+Design	Page Color > #FFFFFF	CHANGED	ok	ok	0.08	
+Design	Page Color > #C00000	CHANGED	ok	ok	0.09	
+Design	Page Color > #FF0000	CHANGED	ok	ok	0.08	
+Design	Page Color > #FFC000	CHANGED	ok	ok	0.08	
+Design	Page Color > #FFFF00	CHANGED	ok	ok	0.08	
+Design	Page Color > #92D050	CHANGED	ok	ok	0.08	
+Design	Page Color > #00B050	CHANGED	ok	ok	0.08	
+Design	Page Color > #00B0F0	CHANGED	ok	ok	0.09	
+Design	Page Color > #0070C0	CHANGED	ok	ok	0.08	
+Design	Page Color > #002060	CHANGED	ok	ok	0.08	
+Design	Page Color > #7030A0	CHANGED	ok	ok	0.08	
+Design	Page Color > More Colors...	UI	-	-	0.10	
+Design	Page Color > Fill Effects...	UI	-	-	0.13	
+Design	Page Borders	UI	-	-	0.12	
+Layout	Margins > Normal  (Top 1", Bottom 1", Left 1", Right 1")	SAME	-	-	0.09	
+Layout	Margins > Narrow  (0.5" all sides)	CHANGED	ok	ok	0.08	
+Layout	Margins > Moderate  (Top 1", Bottom 1", Left 0.75", Right 0.75")	CHANGED	ok	ok	0.08	
+Layout	Margins > Wide  (Top 1", Bottom 1", Left 2", Right 2")	CHANGED	ok	ok	0.09	
+Layout	Margins > Mirrored  (Top 1", Bottom 1", Inside 1.25", Outside 1")	CHANGED	BROKEN(steps=1)	-	0.08	
+Layout	Margins > Office 2003 Default  (Top 1", Bottom 1", Left 1.25", Right 1.25")	CHANGED	BROKEN(steps=1)	-	0.08	
+Layout	Margins > Custom Margins...	UI	-	-	0.13	
+Layout	Orientation > Portrait	SAME	-	-	0.09	
+Layout	Orientation > Landscape	CHANGED	ok	ok	0.08	
+Layout	Size > Letter  8.5" x 11"	CHANGED	ok	ok	0.08	
+Layout	Size > Legal  8.5" x 14"	CHANGED	ok	ok	0.09	
+Layout	Size > A4  8.27" x 11.69"	SAME	-	-	0.08	
+Layout	Size > A5  5.83" x 8.27"	CHANGED	ok	ok	0.08	
+Layout	Size > Executive  7.25" x 10.5"	CHANGED	ok	ok	0.09	
+Layout	Size > More Paper Sizes...	UI	-	-	0.13	
+Layout	Columns > One	SAME	-	-	0.08	
+Layout	Columns > Two	CHANGED	ok	ok	0.09	
+Layout	Columns > Three	CHANGED	ok	ok	0.09	
+Layout	Columns > More Columns...	UI	-	-	0.12	
+Layout	Breaks > Page	CHANGED	ok	ok	0.08	
+Layout	Breaks > Column	CHANGED	ok	ok	0.08	
+Layout	Breaks > Text Wrapping	CHANGED	ok	ok	0.08	
+Layout	Breaks > Next Page	CHANGED	ok	ok	0.08	
+Layout	Breaks > Continuous	CHANGED	ok	ok	0.08	
+Layout	Breaks > Even Page	CHANGED	ok	ok	0.08	
+Layout	Breaks > Odd Page	CHANGED	ok	ok	0.08	
+Layout	Line Numbers > None	SAME	-	-	0.09	
+Layout	Line Numbers > Continuous	CHANGED	ok	ok	0.08	
+Layout	Line Numbers > Restart Each Page	CHANGED	ok	ok	0.08	
+Layout	Line Numbers > Restart Each Section	CHANGED	ok	ok	0.08	
+Layout	Line Numbers > Suppress for Current Paragraph	CHANGED	ok	ok	0.08	
+Layout	Line Numbers > Line Numbering Options...	UI	-	-	0.10	
+Layout	Hyphenation > None	SAME	-	-	0.08	
+Layout	Hyphenation > Automatic	CHANGED	BROKEN(steps=0)	-	0.09	
+Layout	Hyphenation > Manual...	SAME	-	-	0.08	
+Layout	Hyphenation > Hyphenation Options...	UI	-	-	0.11	
+Layout	Page Setup Settings	UI	-	-	0.13	
+Layout	Paragraph Settings	UI	-	-	0.11	
+Layout	Wrap Text > In Line with Text	SAME	-	-	0.08	
+Layout	Wrap Text > Square	SAME	-	-	0.08	
+Layout	Wrap Text > Tight	SAME	-	-	0.08	
+Layout	Wrap Text > Behind Text	SAME	-	-	0.08	
+Layout	Bring Forward	SAME	-	-	0.08	
+Layout	Send Backward	SAME	-	-	0.08	
+Layout	Selection Pane	SAME	-	-	0.09	
+Layout	Align > Align Left	SAME	-	-	0.08	
+Layout	Align > Align Center	SAME	-	-	0.08	
+Layout	Align > Align Right	SAME	-	-	0.08	
+Layout	Align > Align Top	SAME	-	-	0.08	
+Layout	Align > Align Middle	SAME	-	-	0.08	
+Layout	Align > Align Bottom	SAME	-	-	0.08	
+Layout	Align > Distribute Horizontally	SAME	-	-	0.08	
+Layout	Align > Distribute Vertically	SAME	-	-	0.08	
+Layout	Align > Align to Page	SAME	-	-	0.08	
+Layout	Align > Align to Margin	SAME	-	-	0.08	
+Layout	Align > Align Selected Objects	SAME	-	-	0.08	
+Layout	Group > Group	SAME	-	-	0.08	
+Layout	Group > Regroup	SAME	-	-	0.08	
+Layout	Group > Ungroup	SAME	-	-	0.08	
+References	Table of Contents > Automatic Table 1  (Contents)	CHANGED	ok	ok	0.09	
+References	Table of Contents > Automatic Table 2  (Table of Contents)	CHANGED	ok	ok	0.08	
+References	Table of Contents > Custom Table of Contents...	UI	-	-	0.11	
+References	Table of Contents > Remove Table of Contents	SAME	-	-	0.08	
+References	Add Text > Do Not Show in Table of Contents	CHANGED	ok	ok	0.09	
+References	Add Text > Level 1	CHANGED	ok	ok	0.09	
+References	Add Text > Level 2	CHANGED	ok	ok	0.08	
+References	Add Text > Level 3	CHANGED	ok	ok	0.08	
+References	Update Table	SAME	-	-	0.09	
+References	Insert Footnote (Ctrl+Alt+F)	CHANGED	BROKEN(steps=1)	-	0.09	
+References	Insert Endnote (Ctrl+Alt+D)	CHANGED	BROKEN(steps=1)	-	0.09	
+References	Next Footnote	SAME	-	-	0.09	
+References	Next Footnote > Next Footnote	SAME	-	-	0.08	
+References	Next Footnote > Previous Footnote	SAME	-	-	0.08	
+References	Next Footnote > Next Endnote	SAME	-	-	0.08	
+References	Next Footnote > Previous Endnote	SAME	-	-	0.08	
+References	Show Notes	SAME	-	-	0.08	
+References	Footnotes Settings	UI	-	-	0.11	
+References	Insert Citation > Add New Source...	UI	-	-	0.08	
+References	Insert Citation > Add New Placeholder...	SAME	-	-	0.08	
+References	Manage Sources	UI	-	-	0.11	
+References	Bibliography > Bibliography	CHANGED	ok	ok	0.08	
+References	Bibliography > References	CHANGED	ok	ok	0.09	
+References	Bibliography > Works Cited	CHANGED	ok	ok	0.08	
+References	Bibliography > Insert Bibliography	CHANGED	ok	ok	0.09	
+References	Insert Caption	UI	-	-	0.10	
+References	Insert Table of Figures	UI	-	-	0.12	
+References	Update Table	SAME	-	-	0.09	
+References	Cross-reference	UI	-	-	0.11	
+References	Mark Entry (Alt+Shift+X)	SAME	-	-	0.10	
+References	Insert Index	UI	-	-	0.11	
+References	Update Index	SAME	-	-	0.08	
+References	Mark Citation (Alt+Shift+I)	UI	-	-	0.10	
+References	Insert Table of Authorities	SAME	-	-	0.08	
+References	Update Table	SAME	-	-	0.08	
+Mailings	Envelopes	UI	-	-	0.10	
+Mailings	Labels	UI	-	-	0.10	
+Mailings	Start Mail Merge > Letters	CHANGED	BROKEN(steps=0)	-	0.08	
+Mailings	Start Mail Merge > Envelopes...	UI	-	-	0.09	
+Mailings	Start Mail Merge > Labels...	UI	-	-	0.09	
+Mailings	Start Mail Merge > E-mail Messages	CHANGED	BROKEN(steps=0)	-	0.09	
+Mailings	Start Mail Merge > Directory	CHANGED	BROKEN(steps=0)	-	0.08	
+Mailings	Start Mail Merge > Normal Word Document	CHANGED	BROKEN(steps=0)	-	0.08	
+Mailings	Select Recipients > Type a New List...	UI	-	-	0.10	
+Mailings	Select Recipients > Use an Existing List...	UI	-	-	0.12	
+Mailings	Select Recipients > Choose from Outlook Contacts...	SAME	-	-	0.08	
+Mailings	Edit Recipient List	SAME	-	-	0.08	
+Mailings	Highlight Merge Fields	SAME	-	-	0.08	
+Mailings	Address Block	SAME	-	-	0.08	
+Mailings	Greeting Line	UI	-	-	0.10	
+Mailings	Rules > Ask...	UI	-	-	0.09	
+Mailings	Rules > Fill-in...	UI	-	-	0.10	
+Mailings	Rules > If...Then...Else...	UI	-	-	0.10	
+Mailings	Rules > Merge Sequence #	CHANGED	ok	ok	0.08	
+Mailings	Rules > Set Bookmark...	UI	-	-	0.10	
+Mailings	Match Fields	SAME	-	-	0.08	
+Mailings	Update Labels	SAME	-	-	0.08	
+Mailings	Preview Results	SAME	-	-	0.08	
+Mailings	Find Recipient	SAME	-	-	0.08	
+Mailings	Auto Check for Errors	UI	-	-	0.10	
+Review	Spelling & Grammar (F7)	SAME	-	-	0.08	
+Review	Thesaurus (Shift+F7)	SAME	-	-	0.16	
+Review	Word Count (Ctrl+Shift+G)	UI	-	-	0.09	
+Review	Read Aloud (Ctrl+Alt+Space)	SAME	-	-	0.08	
+Review	Check Accessibility	SAME	-	-	0.09	
+Review	Check Accessibility > Check Accessibility	SAME	-	-	0.08	
+Review	Check Accessibility > Alt Text	SAME	-	-	0.08	
+Review	Check Accessibility > Navigation Pane	SAME	-	-	0.09	
+Review	Language > Set Proofing Language...	UI	-	-	0.10	
+Review	New Comment (Ctrl+Alt+M)	CHANGED	ok	ok	0.09	
+Review	Delete	SAME	-	-	0.08	
+Review	Delete > Delete	SAME	-	-	0.08	
+Review	Delete > Delete All Comments Shown	SAME	-	-	0.08	
+Review	Delete > Delete All Comments in Document	SAME	-	-	0.08	
+Review	Previous	SAME	-	-	0.08	
+Review	Next	SAME	-	-	0.08	
+Review	Show Comments	SAME	-	-	0.08	
+Review	Track Changes (Ctrl+Shift+E)	CHANGED	BROKEN(steps=0)	-	0.08	
+Review	Track Changes (Ctrl+Shift+E) > For Everyone	CHANGED	BROKEN(steps=0)	-	0.08	
+Review	Track Changes (Ctrl+Shift+E) > Just Mine	SAME	-	-	0.08	
+Review	Track Changes (Ctrl+Shift+E) > Lock Tracking	UI	-	-	0.09	
+Review	Show Markup > Comments	SAME	-	-	0.09	
+Review	Show Markup > Insertions and Deletions	SAME	-	-	0.09	
+Review	Show Markup > Formatting	SAME	-	-	0.08	
+Review	Show Markup > Specific People...	UI	-	-	0.10	
+Review	Show Markup > Show Revisions in Balloons	SAME	-	-	0.08	
+Review	Show Markup > Show All Revisions Inline	SAME	-	-	0.09	
+Review	Show Markup > Show Only Comments and Formatting in Balloons	SAME	-	-	0.08	
+Review	Reviewing Pane	SAME	-	-	0.09	
+Review	Tracking Settings	UI	-	-	0.11	
+Review	Accept	SAME	-	-	0.08	
+Review	Accept > Accept This Change	SAME	-	-	0.08	
+Review	Accept > Accept and Move to Next	SAME	-	-	0.08	
+Review	Accept > Accept All Changes Shown	SAME	-	-	0.08	
+Review	Accept > Accept All Changes	SAME	-	-	0.08	
+Review	Accept > Accept All Changes and Stop Tracking	SAME	-	-	0.08	
+Review	Reject	SAME	-	-	0.08	
+Review	Reject > Reject This Change	SAME	-	-	0.08	
+Review	Reject > Reject and Move to Next	SAME	-	-	0.08	
+Review	Reject > Reject All Changes Shown	SAME	-	-	0.09	
+Review	Reject > Reject All Changes	SAME	-	-	0.08	
+Review	Reject > Reject All Changes and Stop Tracking	SAME	-	-	0.08	
+Review	Previous	SAME	-	-	0.08	
+Review	Next	SAME	-	-	0.08	
+View	Read Mode	SAME	-	-	0.09	
+View	Web Layout	SAME	-	-	0.08	
+View	Outline	SAME	-	-	0.09	
+View	Draft	SAME	-	-	0.08	
+View	Vertical	SAME	-	-	0.08	
+View	Side to Side	SAME	-	-	0.08	
+View	Ruler	SAME	-	-	0.08	
+View	Navigation Pane	SAME	-	-	0.09	
+View	Formatting Marks	SAME	-	-	0.08	
+View	Zoom	UI	-	-	0.10	
+View	100%	SAME	-	-	0.09	
+View	One Page	SAME	-	-	0.08	
+View	Multiple Pages	SAME	-	-	0.08	
+View	Page Width	SAME	-	-	0.08	
+View	View Side by Side	SAME	-	-	0.08	
+View	Synchronous Scrolling	SAME	-	-	0.08	
+View	Reset Window Position	SAME	-	-	0.08	
+Help	Keyboard Shortcuts	SAME	-	-	0.11	
+Help	About	UI	-	-	0.10	
+Outlining	Promote to Heading 1	SAME	-	-	0.09	
+Outlining	Promote (Alt+Shift+Left)	SAME	-	-	0.08	
+Outlining	Demote (Alt+Shift+Right)	SAME	-	-	0.08	
+Outlining	Demote to Body Text (Ctrl+Shift+N)	SAME	-	-	0.08	
+Outlining	Move Up (Alt+Shift+Up)	SAME	-	-	0.08	
+Outlining	Move Down (Alt+Shift+Down)	SAME	-	-	0.08	
+Outlining	Expand (Alt+Shift+Plus)	SAME	-	-	0.08	
+Outlining	Collapse (Alt+Shift+Minus)	SAME	-	-	0.08	
+Outlining	Show Level > Level 1	SAME	-	-	0.08	
+Outlining	Show Level > Level 2	SAME	-	-	0.08	
+Outlining	Show Level > Level 3	SAME	-	-	0.08	
+Outlining	Show Level > Level 4	SAME	-	-	0.08	
+Outlining	Show Level > Level 5	SAME	-	-	0.08	
+Outlining	Show Level > Level 6	SAME	-	-	0.08	
+Outlining	Show Level > Level 7	SAME	-	-	0.08	
+Outlining	Show Level > Level 8	SAME	-	-	0.08	
+Outlining	Show Level > Level 9	SAME	-	-	0.08	
+Outlining	Show Level > All Levels	SAME	-	-	0.08	
+Outlining	Show Text Formatting	SAME	-	-	0.08	
+Outlining	Show First Line Only	SAME	-	-	0.08	
+Outlining	Show Document: the commands for working with subdocuments	SAME	-	-	0.08	
+Outlining	Collapse or expand the subdocuments	SAME	-	-	0.08	
+Outlining	Create a subdocument from the selected heading	CHANGED	ok	ok	0.10	
+Outlining	Insert a document as a subdocument	UI	-	-	0.12	
+Outlining	Make the subdocument part of the master document	SAME	-	-	0.08	
+Outlining	Merge the selected subdocuments into one	SAME	-	-	0.08	
+Outlining	Lock the master document so it can't be changed	SAME	-	-	0.09	
+Developer	Rich Text Content Control	CHANGED	BROKEN(steps=1)	-	0.09	
+Developer	Plain Text Content Control	CHANGED	ok	ok	0.08	
+Developer	Picture Content Control	CHANGED	ok	ok	0.08	
+Developer	Check Box Content Control	SAME	-	-	0.08	
+Developer	Combo Box Content Control	CHANGED	ok	ok	0.08	
+Developer	Drop-Down List Content Control	CHANGED	ok	ok	0.08	
+Developer	Date Picker Content Control	CHANGED	ok	ok	0.08	
+Developer	Properties	SAME	-	-	0.08	
+Immersive Reader	Column Width > Very Narrow	SAME	-	-	0.08	
+Immersive Reader	Column Width > Narrow	SAME	-	-	0.08	
+Immersive Reader	Column Width > Moderate	SAME	-	-	0.08	
+Immersive Reader	Column Width > Wide	SAME	-	-	0.08	
+Immersive Reader	Page Color > None	SAME	-	-	0.08	
+Immersive Reader	Page Color > Sepia	SAME	-	-	0.08	
+Immersive Reader	Page Color > Inverse	SAME	-	-	0.08	
+Immersive Reader	Page Color > Light Blue	SAME	-	-	0.08	
+Immersive Reader	Page Color > Light Green	SAME	-	-	0.08	
+Immersive Reader	Page Color > Lavender	SAME	-	-	0.08	
+Immersive Reader	Page Color > Light Gray	SAME	-	-	0.08	
+Immersive Reader	Text Spacing	SAME	-	-	0.08	
+Immersive Reader	Syllables	SAME	-	-	0.08	
+Immersive Reader	Read Aloud	SAME	-	-	0.08	
+DONE 920
