@@ -29,3 +29,7 @@ DOC: Backlog 5 = https://claude.ai/artifact/BhArf1Nqj8aQYzzjtLoZ1U node 1ca94a34
 23. Window minimum width is 859 px: cannot be half-tiled on a 1366 px screen. [p19]
 24. Typing prose: "..." straight after a word is not turned into an ellipsis (it is when it stands alone) and the next word is capitalised: 'so... what then' -> 'So... What then'; '"Well..." she said' -> '“Well...” She said'. [p20b]
 25. 'teh ' at a paragraph start becomes 'The '; one Undo gives 'the ', a second 'teh ' (Word: one). Minor. [p20b]
+26. Save Selection to ... Gallery (Quick Parts, Cover Page, Header, Footer, Text Box, Equation, Bibliography): always answers "Select the text you want to save first." with text selected. 7 commands dead. [p24]
+27. Record Macro, Stop Recording, Pause Recording (View > Macros and the status bar button) and Ctrl+Alt+K (AutoFormat) answer "This isn't available with the new engine yet." Not routed in native/actions.py WINDOW list though window.act_record_macro / act_autoformat_now exist. [p23]
+28. Walk SKIP list is by substring: "open" hides Bullets > Open bullet and Paragraph Spacing > Open, "record" hides the four Mailings record buttons, "print" hides View > Print Layout, "close" hides Close Outline View. [p22]
+OK: all 171 other action names route. Print path (lp) correct with mixed page sizes. Skipped commands otherwise fine.
