@@ -167,17 +167,50 @@ pub struct Shaped {
     pub widths: Vec<f64>,
     /// for each character, the range of glyphs drawn for it
     pub glyph_of: Vec<(u32, u32)>,
+    /// the bidi embedding level of this stretch (odd: right to left)
+    pub level: u8,
 }
 
 /// Shape a string with one style: split by the fonts the characters need,
 /// measure every character.
 pub fn shape_text(fonts: &mut FontCache, styles: &StyleSheet, r: &RunProps, style: &TextStyle,
                   text: &str) -> Vec<Shaped> {
+    shape_bidi(fonts, styles, r, style, text, None)
+}
+
+/// The bidi embedding level of every character of `text`, resolved on its own
+/// (`base`: the paragraph's direction, None to take it from the text).
+pub fn levels_of(text: &str, base: Option<bool>) -> Vec<u8> {
+    let dir = base.map(|rtl| if rtl { unicode_bidi::Level::rtl() } else { unicode_bidi::Level::ltr() });
+    let info = unicode_bidi::BidiInfo::new(text, dir);
+    // BidiInfo gives a level per byte; keep the one each character starts at
+    let mut out = Vec::with_capacity(text.chars().count());
+    for (i, _) in text.char_indices() {
+        out.push(info.levels.get(i).map(|l| l.number()).unwrap_or(0));
+    }
+    out
+}
+
+/// Shape a string with one style, splitting it by the font each character
+/// needs and by bidi level, so each stretch is shaped in its own direction.
+/// `levels` is the paragraph's resolved level per character of `text`; without
+/// it the levels are resolved from `text` alone.
+pub fn shape_bidi(fonts: &mut FontCache, styles: &StyleSheet, r: &RunProps, style: &TextStyle,
+                  text: &str, levels: Option<&[u8]>) -> Vec<Shaped> {
     let mut out = Vec::new();
     let chars: Vec<char> = text.chars().collect();
     if chars.is_empty() {
         return out;
     }
+    // a run marked w:rtl with no resolved levels is right to left throughout
+    let own;
+    let lv: &[u8] = match levels {
+        Some(l) if l.len() == chars.len() => l,
+        _ => {
+            own = levels_of(text, r.rtl.filter(|&v| v).map(|_| true));
+            &own
+        }
+    };
     // characters as drawn (caps)
     let drawn: Vec<char> = chars
         .iter()
@@ -204,20 +237,21 @@ pub fn shape_text(fonts: &mut FontCache, styles: &StyleSheet, r: &RunProps, styl
     let mut start = 0;
     while start < chars.len() {
         let mut end = start + 1;
-        while end < chars.len() && fid[end].id == fid[start].id {
+        while end < chars.len() && fid[end].id == fid[start].id && lv[end] == lv[start] {
             end += 1;
         }
-        out.push(shape_one(&fid[start], style, &drawn[start..end], &chars[start..end]));
+        out.push(shape_one(&fid[start], style, &drawn[start..end], &chars[start..end], lv[start]));
         start = end;
     }
     out
 }
 
-fn shape_one(font: &Arc<Font>, style: &TextStyle, drawn: &[char], orig: &[char]) -> Shaped {
+fn shape_one(font: &Arc<Font>, style: &TextStyle, drawn: &[char], orig: &[char], level: u8) -> Shaped {
     // small caps: lowercase letters drawn smaller
     let s: String = drawn.iter().collect();
     let size = style.draw_size;
-    let glyphs = font.shape(&s, size, style.kern, false);
+    let rtl = level % 2 == 1;
+    let glyphs = font.shape_dir(&s, size, style.kern, false, rtl);
     // byte offset of each char
     let mut byte_of = Vec::with_capacity(drawn.len() + 1);
     let mut b = 0u32;
@@ -235,26 +269,37 @@ fn shape_one(font: &Arc<Font>, style: &TextStyle, drawn: &[char], orig: &[char])
             Err(i) => i.saturating_sub(1),
         }
     };
+    // glyphs come in visual order: left to right text has rising clusters,
+    // right to left text falling ones. Group them, then read the groups in
+    // cluster order so the mapping is the same either way.
+    let mut groups: Vec<(u32, usize, usize, f64)> = Vec::new();
     let mut gi = 0;
     while gi < glyphs.len() {
         let cl = glyphs[gi].cluster;
-        let ci = char_at(cl);
         let mut gj = gi;
         let mut adv = 0.0;
         while gj < glyphs.len() && glyphs[gj].cluster == cl {
             adv += glyphs[gj].advance;
             gj += 1;
         }
+        groups.push((cl, gi, gj, adv));
+        gi = gj;
+    }
+    groups.sort_by_key(|g| g.0);
+    for (gn, &(cl, g0, g1, adv)) in groups.iter().enumerate() {
+        let ci = char_at(cl);
         // characters of this cluster: up to the next cluster's character
-        let next_ci = if gj < glyphs.len() { char_at(glyphs[gj].cluster) } else { drawn.len() };
+        let next_ci = match groups.get(gn + 1) {
+            Some(&(ncl, ..)) => char_at(ncl),
+            None => drawn.len(),
+        };
         let n = (next_ci.max(ci + 1) - ci).max(1);
         for k in 0..n {
             if ci + k < drawn.len() {
                 widths[ci + k] = adv / n as f64;
-                glyph_of[ci + k] = if k == 0 { (gi as u32, gj as u32) } else { (gj as u32, gj as u32) };
+                glyph_of[ci + k] = if k == 0 { (g0 as u32, g1 as u32) } else { (g1 as u32, g1 as u32) };
             }
         }
-        gi = gj;
     }
     let mut out_glyphs = glyphs;
     if style.scale != 1.0 {
@@ -277,5 +322,6 @@ fn shape_one(font: &Arc<Font>, style: &TextStyle, drawn: &[char], orig: &[char])
             widths[i] = 0.0;
         }
     }
-    Shaped { font: font.clone(), style: style.clone(), text: orig.to_vec(), glyphs: out_glyphs, widths, glyph_of }
+    Shaped { font: font.clone(), style: style.clone(), text: orig.to_vec(), glyphs: out_glyphs, widths, glyph_of,
+             level }
 }

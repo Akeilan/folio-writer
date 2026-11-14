@@ -110,10 +110,19 @@ impl Font {
     /// Shape `text` at `size` points. Word turns kerning and ligatures off
     /// unless a run asks for them.
     pub fn shape(&self, text: &str, size: f64, kern: bool, ligatures: bool) -> Vec<Glyph> {
+        self.shape_dir(text, size, kern, ligatures, false)
+    }
+
+    /// Shape a stretch of text. `rtl` forces right-to-left, for a bidi run the
+    /// layout has already resolved; otherwise the script decides.
+    pub fn shape_dir(&self, text: &str, size: f64, kern: bool, ligatures: bool, rtl: bool) -> Vec<Glyph> {
         let Some(face) = rustybuzz::Face::from_slice(&self.data, self.index) else { return Vec::new() };
         let mut buf = rustybuzz::UnicodeBuffer::new();
         buf.push_str(text);
         buf.guess_segment_properties();
+        if rtl {
+            buf.set_direction(rustybuzz::Direction::RightToLeft);
+        }
         let tag = rustybuzz::ttf_parser::Tag::from_bytes;
         let mut feats = vec![rustybuzz::Feature::new(tag(b"kern"), kern as u32, ..)];
         if !ligatures {

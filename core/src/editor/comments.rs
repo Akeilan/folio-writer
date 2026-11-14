@@ -178,8 +178,16 @@ impl Editor {
                 }
                 let Some(&(pg, k)) = loc.get(&(pi, li)) else { continue };
                 let placed = &self.layout.pages[pg].lines[k];
-                let x1 = Self::x_in_line(pl, li, s.max(line.pos_start));
-                let x2 = Self::x_in_line(pl, li, e.min(line.pos_end));
+                let (a0, b0) = (s.max(line.pos_start), e.min(line.pos_end));
+                if a0 < b0 && pl.line_has_rtl(li) {
+                    // right to left, a logical range is not one rectangle
+                    for (x1, x2) in pl.line_spans(li, a0, b0) {
+                        out.push((pg, placed.x + x1, placed.y, (x2 - x1).max(0.0), line.height));
+                    }
+                    continue;
+                }
+                let x1 = Self::x_in_line(pl, li, a0);
+                let x2 = Self::x_in_line(pl, li, b0);
                 out.push((pg, placed.x + x1, placed.y, (x2 - x1).max(0.0), line.height));
             }
         }
