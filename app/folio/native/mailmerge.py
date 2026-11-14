@@ -916,8 +916,21 @@ def email_messages(win, to_column, subject, fmt="html", which="all", first=1, la
 
 
 def post_program():
+    """Kept for a Folio Post that is still installed somewhere; it is not required any more."""
     import shutil
     return shutil.which("folio-post")
+
+
+def mail_program():
+    """How a message reaches the computer's own mail program. Folio Post, the suite's mail app,
+    was discontinued, so Page hands messages to whatever the desktop uses, the way every other
+    Linux program does (W5-11)."""
+    import shutil
+    for name in ("xdg-email", "thunderbird", "evolution", "kmail", "geary"):
+        p = shutil.which(name)
+        if p:
+            return p
+    return None
 
 
 def post_contacts():

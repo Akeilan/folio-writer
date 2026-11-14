@@ -1134,7 +1134,9 @@ class DocWindow(Gtk.ApplicationWindow):
         elif shutil.which("xdg-email"):
             subprocess.Popen(["xdg-email", "--subject", name, "--attach", path])
         else:
-            self.dialogs.message("Sending needs a mail app: install Folio Post.")
+            self.dialogs.message("Sending needs a mail program set up on this computer. Install "
+                                 "one (Thunderbird, Evolution or another) and set up your account "
+                                 "there, then try again.")
             return None
         return path
 
