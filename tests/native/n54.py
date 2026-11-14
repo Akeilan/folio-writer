@@ -26,32 +26,51 @@ def put(s):
     E.view.after_edit()
     return ed.body_blocks()[0][1]
 
+
+EMOJI_FONTS = ("Noto Color Emoji", "Twemoji Mozilla", "Segoe UI Emoji",
+               "Apple Color Emoji", "JoyPixels", "EmojiOne Color", "OpenMoji Color")
+
+def have_emoji_font():
+    """Whether a colour emoji font is installed. Without one there is nothing to draw
+    in colour, so the colour checks below have no machine to run on."""
+    import subprocess
+    try:
+        out = subprocess.run(["fc-list", ":", "family"], capture_output=True,
+                             text=True, timeout=20).stdout
+    except Exception:
+        return False
+    return any(f.lower() in out.lower() for f in EMOJI_FONTS)
+
 def a():
     yield 1.0
     focus(); yield 0.2
     ed = E.ed
-    p = put("\U0001F600"); yield 0.8
-    im = area("emoji1", p, 0, 1)
-    n, hues = colours(im)
-    check("a grinning face is drawn in colour", n > 40, "%d coloured pixels" % n)
-    check("it has several colours", hues >= 2, "%d hues" % hues)
-    # a skin-tone modifier is part of the emoji, not a box of its own
-    p = put("\U0001F44D\U0001F3FD"); yield 0.8
-    w_mod = ed.range_rects(p, 0, p, 2)[0][3]
-    p2 = put("\U0001F44D"); yield 0.6
-    w_plain = ed.range_rects(p2, 0, p2, 1)[0][3]
-    check("thumbs up with a skin tone is one emoji wide", abs(w_mod - w_plain) < w_plain * 0.3,
-          "%.2f vs %.2f" % (w_mod, w_plain))
-    p = put("\U0001F44D\U0001F3FD"); yield 0.8
-    im = area("emoji2", p, 0, 2)
-    n2, _h = colours(im)
-    check("the skin tone is drawn in colour", n2 > 40, "%d coloured pixels" % n2)
-    # a flag is one picture from its two regional indicators
-    p = put("\U0001F1F3\U0001F1F1"); yield 0.8
-    im = area("flag", p, 0, 2)
-    n3, h3 = colours(im)
-    check("a flag is drawn in colour", n3 > 40, "%d coloured pixels" % n3)
-    check("the flag has several colours", h3 >= 2, "%d hues" % h3)
+    colour = have_emoji_font()
+    if not colour:
+        note("colour emoji", "no colour emoji font on this machine; the six colour checks are skipped")
+    if colour:
+        p = put("\U0001F600"); yield 0.8
+        im = area("emoji1", p, 0, 1)
+        n, hues = colours(im)
+        check("a grinning face is drawn in colour", n > 40, "%d coloured pixels" % n)
+        check("it has several colours", hues >= 2, "%d hues" % hues)
+        # a skin-tone modifier is part of the emoji, not a box of its own
+        p = put("\U0001F44D\U0001F3FD"); yield 0.8
+        w_mod = ed.range_rects(p, 0, p, 2)[0][3]
+        p2 = put("\U0001F44D"); yield 0.6
+        w_plain = ed.range_rects(p2, 0, p2, 1)[0][3]
+        check("thumbs up with a skin tone is one emoji wide", abs(w_mod - w_plain) < w_plain * 0.3,
+              "%.2f vs %.2f" % (w_mod, w_plain))
+        p = put("\U0001F44D\U0001F3FD"); yield 0.8
+        im = area("emoji2", p, 0, 2)
+        n2, _h = colours(im)
+        check("the skin tone is drawn in colour", n2 > 40, "%d coloured pixels" % n2)
+        # a flag is one picture from its two regional indicators
+        p = put("\U0001F1F3\U0001F1F1"); yield 0.8
+        im = area("flag", p, 0, 2)
+        n3, h3 = colours(im)
+        check("a flag is drawn in colour", n3 > 40, "%d coloured pixels" % n3)
+        check("the flag has several colours", h3 >= 2, "%d hues" % h3)
     # text symbols stay text: a tick is not turned into a picture
     p = put("✓"); yield 0.6
     im = area("tick", p, 0, 1)
