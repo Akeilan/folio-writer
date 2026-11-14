@@ -5,7 +5,7 @@ import re
 import os
 import zipfile
 
-from gi.repository import GdkPixbuf, Gtk
+from gi.repository import GdkPixbuf, GLib, Gtk
 
 from . import SHARE
 
@@ -109,6 +109,47 @@ def green_pixbuf(pb):
                                           w, h, rs).copy()
 
 
+# Dark Gray and Black paint the ribbon dark; the icons are drawn as dark ink on white paper,
+# which on dark chrome is next to invisible. On those themes the grey parts of each icon are
+# turned over - ink becomes light, paper dark - and the coloured parts are left as they are, so
+# the green, red and gold still mean what they meant (W5-19).
+_dark = False
+# the White theme's title bar is light, so its silhouettes have to be dark
+_title_light = False
+
+
+def set_theme(name):
+    """Follow File > Options > Office Theme."""
+    global _dark, _title_light
+    dark = name in ("Dark Gray", "Black")
+    light = name == "White"
+    if dark != _dark or light != _title_light:
+        _dark, _title_light = dark, light
+        _cache.clear()
+
+
+def for_dark(pb):
+    """A copy of the icon with its greys turned over."""
+    if pb is None:
+        return None
+    if not pb.get_has_alpha():
+        pb = pb.add_alpha(False, 0, 0, 0)
+    pb = pb.copy()
+    w, h, rs, n = pb.get_width(), pb.get_height(), pb.get_rowstride(), pb.get_n_channels()
+    data = bytearray(pb.get_pixels())
+    for y in range(h):
+        row = y * rs
+        for x in range(w):
+            i = row + x * n
+            r, g, b = data[i], data[i + 1], data[i + 2]
+            if max(r, g, b) - min(r, g, b) <= 28:        # grey enough to be ink or paper
+                data[i] = 255 - r
+                data[i + 1] = 255 - g
+                data[i + 2] = 255 - b
+    return GdkPixbuf.Pixbuf.new_from_bytes(GLib.Bytes.new(bytes(data)), pb.get_colorspace(),
+                                           pb.get_has_alpha(), pb.get_bits_per_sample(), w, h, rs)
+
+
 def pixbuf(name, size):
     """name: a command ('bold', '.uno:Bold') or a path inside the theme
     ('cmd/lc_bold'); size 16 or 32 (scaled to fit)."""
@@ -171,6 +212,8 @@ def pixbuf(name, size):
                 except Exception:
                     pass
                 pb = None
+    if _dark and pb is not None:
+        pb = for_dark(pb)
     _cache[key] = pb
     return pb
 
@@ -212,22 +255,26 @@ def image(name, size):
         img = Gtk.Image.new_from_icon_name("image-missing", Gtk.IconSize.MENU)
         img.set_pixel_size(size)
         return img
-    return Gtk.Image.new_from_pixbuf(pb)
+    img = Gtk.Image.new_from_pixbuf(pb)
+    img.folio_icon = (name, size)       # so the Office theme can draw it again (W5-19)
+    return img
 
 
 def white_image(name, size):
-    """The icon as a white silhouette (for the coloured title bar)."""
+    """The icon as a silhouette for the title bar: white on a coloured or dark bar, dark on the
+    White theme's light one, where white on white could not be seen at all (W5-19)."""
     pb = pixbuf(name, size)
     if pb is None:
         return image(name, size)
     if not pb.get_has_alpha():
         pb = pb.add_alpha(False, 0, 0, 0)
+    v = 38 if _title_light else 255
     w, h, rs, n = pb.get_width(), pb.get_height(), pb.get_rowstride(), pb.get_n_channels()
     data = bytearray(pb.get_pixels())
     for y in range(h):
         for x in range(w):
             i = y * rs + x * n
-            data[i] = data[i + 1] = data[i + 2] = 255
+            data[i] = data[i + 1] = data[i + 2] = v
     out = GdkPixbuf.Pixbuf.new_from_data(bytes(data), GdkPixbuf.Colorspace.RGB, True, 8,
                                          w, h, rs)
     return Gtk.Image.new_from_pixbuf(out.copy())

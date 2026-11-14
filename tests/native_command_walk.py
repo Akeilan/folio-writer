@@ -67,8 +67,23 @@ def _logged(self, k):
 _um.NativeModel.__getattr__ = _logged
 ERR = []
 sys.excepthook = lambda t, v, tb: ERR.append("".join(traceback.format_exception(t, v, tb))[-400:])
-SKIP = ("print", "close", "exit", "quit", "new-window", "open", "share", "backstage", "save", "macro",
-        "read-aloud", "speak", "dictate", "help", "record")
+# Commands left out, by what they do rather than by a word in their label: matching "open"
+# anywhere also hid Bullets > Open bullet and Paragraph Spacing > Open, "record" hid the four
+# Mailings record buttons and "print" hid View > Print Layout (W5-14).
+SKIP_EXACT = {"print", "close", "exit", "quit", "new-window", "open", "share", "backstage",
+              "save", "save-as", "close-all", "read-aloud", "dictate", "help",
+              "record-macro", "stop-recording", "pause-recording"}
+SKIP_LABEL = ("print...", "close and", "exit", "e-mail", "send e", "publish", "save as",
+              "save a copy", "open...", "recent", "record macro", "stop recording",
+              "pause recording", "read aloud", "dictate", "help")
+
+
+def skipped(label, fn):
+    lab = label.lower()
+    if any(lab == x or lab.startswith(x) for x in SKIP_LABEL):
+        return True
+    act = getattr(fn, "action", None)
+    return isinstance(act, str) and act in SKIP_EXACT
 
 
 def pump(t=0.15):
@@ -97,7 +112,10 @@ def items_of(tabs=None, exclude=()):
         if (tabs and tab not in tabs) or tab in exclude:
             continue
         if getattr(c, "action", None) is not None:
-            out.append((tab, name_of(c), lambda c=c: c.run()))
+            def run(c=c):
+                return c.run()
+            run.action = c.action if isinstance(c.action, str) else None
+            out.append((tab, name_of(c), run))
         m = getattr(c, "menu", None)
         if callable(m) and not isinstance(m, Gtk.Widget):
             # galleries built when opened (Cover Page, WordArt...): their items as lists
@@ -141,7 +159,7 @@ def items_of(tabs=None, exclude=()):
 
 def walk(items, setup=None):
     for tab, label, fn in items:
-        if any(s in label.lower() for s in SKIP):
+        if skipped(label, fn):
             OUT.write("%s\t%s\t-\tSKIP\n" % (tab, label))
             continue
         if setup:
@@ -242,6 +260,71 @@ sel_shape()
 win.update_object_tabs() if hasattr(win, "update_object_tabs") else None
 pump(0.3)
 walk(items_of(tabs=("Shape Format",)), setup=sel_shape)
+
+
+# The tabs that need something in the document before their controls mean anything. They were
+# left out of the walk altogether, so the release gate had never pressed them (W5-14).
+def clear_body():
+    e = win.engine.ed
+    try:
+        if e.story() != "body":
+            e.edit_notes(None)
+    except Exception:
+        pass
+    try:
+        e.leave_textbox()
+    except Exception:
+        pass
+    e.deselect_object()
+    e.select_all()
+    e.delete(True, False)
+    e.type_text("Alpha beta gamma delta.")
+
+
+def in_table():
+    e = win.engine.ed
+    clear_body()
+    e.move_caret("doc_end", False)
+    e.type_text("\n")
+    e.insert_table(3, 3)
+    for i in range(9):
+        e.type_text("c%d" % i)
+        if i < 8:
+            e.cell_step(False)
+    for _k in range(4):
+        e.cell_step(True)
+    win.engine.view.after_edit()
+    pump(0.1)
+
+
+def in_header():
+    e = win.engine.ed
+    clear_body()
+    e.ensure_header_footer(e.current_section(), False)
+    e.edit_header_footer(0, False)
+    e.type_text("Head")
+    win.engine.view.after_edit()
+    pump(0.1)
+
+
+def in_equation():
+    e = win.engine.ed
+    clear_body()
+    e.move_caret("doc_end", False)
+    win.run("equation")
+    pump(0.2)
+    e.type_text("x^2+y")
+    win.engine.view.after_edit()
+    pump(0.1)
+
+
+for _tabs, _setup in ((("Table Design", "Table Layout"), in_table),
+                      (("Header & Footer",), in_header),
+                      (("Equation",), in_equation)):
+    _setup()
+    pump(0.2)
+    walk(items_of(tabs=_tabs), setup=_setup)
+clear_body()
 print("DONE", flush=True)
 OUT.close()
 sys.stdout.flush()

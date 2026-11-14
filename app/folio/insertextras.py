@@ -54,13 +54,26 @@ def save_parts(parts):
 GALLERIES = ["Quick Parts", "AutoText", "Cover Pages", "Headers", "Footers", "Text Boxes"]
 
 
+def selection_html(win):
+    """(formatted, plain) for the selection, the way Copy builds them (W5-17)."""
+    ed = win.engine.ed
+    if ed is None:
+        return None, ""
+    text = ed.selected_text() or ""
+    html = None
+    if text:
+        try:
+            from .native import htmlexport
+            frag = ed.copy_fragment()
+            if frag:
+                html = htmlexport.fragment_to_html(frag, ed.paragraph_styles())
+        except Exception as e:      # noqa: BLE001
+            print("save selection:", e)
+    return html, text
+
+
 def save_selection_as_part(win, default_gallery="Quick Parts"):
-    view = win.engine.view
-    try:
-        html, _ = view.copy_selection("text/html")
-        text, _ = view.copy_selection("text/plain;charset=utf-8")
-    except Exception:
-        html = text = None
+    html, text = selection_html(win)
     if not text:
         win.dialogs.message("Select the text you want to save first.")
         return

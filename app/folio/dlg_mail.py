@@ -565,11 +565,13 @@ def not_available(win, what):
     win.status.flash("%s isn't available in Folio Page: it has no e-mail or Outlook connection." % what)
 
 
-def _need_post(win, what):
-    if _M(win).post_program():
+def _need_mail(win, what):
+    """A mail program on this computer, Folio Post or the desktop's own (W5-11)."""
+    M = _M(win)
+    if M.post_program() or M.mail_program():
         return True
-    win.dialogs.message("%s needs Folio Post, the suite's mail program: install it (it comes with the "
-                        "Folio Suite) and set up your mail account there." % what)
+    win.dialogs.message("%s needs a mail program set up on this computer. Install one (Thunderbird, "
+                        "Evolution or another) and set up your account there, then try again." % what)
     return False
 
 
@@ -586,7 +588,8 @@ def start_email(win):
 
 
 def send_email(win):
-    """Finish & Merge > Send Email Messages: one message per recipient, sent by Folio Post."""
+    """Finish & Merge > Send Email Messages: one message per recipient, opened in the computer's
+    mail program ready to send (W5-11)."""
     m = _m(win)
     if m is None:
         return
@@ -594,7 +597,7 @@ def send_email(win):
     if not rows:
         win.dialogs.message("Select a recipient list first (Select Recipients).")
         return
-    if not _need_post(win, "Sending e-mail"):
+    if not _need_mail(win, "Sending e-mail"):
         return
     d = FDialog(win, "Merge to E-mail")
     order = _M(win).email_columns(m)
@@ -656,7 +659,10 @@ def send_email(win):
 
 
 def _launch_post(win, job, tmpd, n):
-    """folio-post --send-merge: Post asks which account, sends and files them in Sent."""
+    """Hand the merged messages to the mail program: Folio Post where it is installed, else the
+    computer's own, one message at a time through xdg-email (W5-11)."""
+    if not _M(win).post_program():
+        return _launch_desktop_mail(win, job, tmpd, n)
     import json
     import shutil
     import subprocess
@@ -693,24 +699,68 @@ def _launch_post(win, job, tmpd, n):
     GLib.child_watch_add(GLib.PRIORITY_DEFAULT, p.pid, done)
 
 
+def _launch_desktop_mail(win, job, tmpd, n):
+    """Open each merged message in the computer's mail program, ready to send. Nothing is sent
+    behind the user's back: they see each message and press Send."""
+    import json
+    import shutil
+    import subprocess
+    prog = _M(win).mail_program()
+    with open(job, encoding="utf-8") as fh:
+        msgs = json.load(fh).get("messages", [])
+    if prog is None or not prog.endswith("xdg-email"):
+        shutil.rmtree(tmpd, ignore_errors=True)
+        win.dialogs.message("Page can open these messages only through xdg-email, which isn't "
+                            "installed. Use Finish & Merge ▸ Edit Individual Documents instead, "
+                            "and send them from your mail program.", kind="error")
+        return
+    if n > 20 and not win.dialogs.confirm(
+            "This opens %d messages in your mail program, one window each. Continue?" % n,
+            yes="Open", no="Cancel"):
+        shutil.rmtree(tmpd, ignore_errors=True)
+        return
+    opened = 0
+    for msg in msgs:
+        args = [prog, "--utf8"]
+        if msg.get("subject"):
+            args += ["--subject", msg["subject"]]
+        if msg.get("text"):
+            args += ["--body", msg["text"]]
+        for att in msg.get("attachments", []):
+            args += ["--attach", att]
+        args.append(msg.get("to", ""))
+        try:
+            subprocess.Popen(args)
+            opened += 1
+        except OSError as e:
+            win.dialogs.message("The mail program couldn't be started. (%s)" % e, kind="error")
+            break
+    win.status.flash("%d message%s opened in your mail program; press Send in each."
+                     % (opened, "" if opened == 1 else "s"))
+    win.merge_mail_result = {"status": 0, "sent": 0, "opened": opened, "failed": []}
+    # the attachments have to outlive this call, so the folder stays until Page closes
+
+
 def choose_post_contacts(win):
-    """Select Recipients > Choose from Outlook Contacts: Folio Post's contacts, by group."""
+    """Select Recipients > Choose from Contacts: an address book, where the computer has one.
+    Folio Post held one; it was discontinued, so without it Page says where else to look
+    (W5-11)."""
     m = _m(win)
     if m is None:
         return
-    if not _need_post(win, "Choosing from your contacts"):
-        return
     try:
-        contacts = _M(win).post_contacts() or []
-    except Exception as e:
-        win.dialogs.message("Folio Post's contacts couldn't be read. (%s)" % e, kind="error")
-        return
+        contacts = (_M(win).post_contacts() if _M(win).post_program() else None) or []
+    except Exception as e:      # noqa: BLE001
+        print("contacts:", e)
+        contacts = []
     if not contacts:
-        win.dialogs.message("There are no contacts in Folio Post yet.")
+        win.dialogs.message("Page has no address book of its own. Export your contacts from your "
+                            "mail program as a .csv or a spreadsheet, then choose Select "
+                            "Recipients \u25b8 Use an Existing List.")
         return
     groups = sorted({g for c in contacts for g in (c.get("groups") or [])})
     d = FDialog(win, "Select Contacts")
-    d.add(heading("Contacts from Folio Post"))
+    d.add(heading("Contacts"))
     grp = combo(["All contacts"] + groups, 0)
     d.add(grid([["_Folder:", grp]]))
     store = Gtk.ListStore(bool, str, str, str, int)

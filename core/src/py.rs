@@ -256,15 +256,31 @@ impl PyEditor {
     }
 
     /// Bold/italic/... : "w:b", "w:i", "w:strike", "w:caps", "w:smallCaps"
-    fn toggle(&mut self, which: &str) {
+    /// A run property that can be on or off, by its Word name. Only the ones Word has: a name
+    /// the format does not know would be written into the file as an element Word cannot read,
+    /// so a macro could leave a document no other program would open (W5-16).
+    fn toggle(&mut self, which: &str) -> PyResult<()> {
         let label = match which {
             "w:b" => "Bold",
             "w:i" => "Italic",
             "w:strike" => "Strikethrough",
-            _ => "Format",
+            "w:dstrike" => "Double Strikethrough",
+            "w:caps" => "All Caps",
+            "w:smallCaps" => "Small Caps",
+            "w:outline" => "Outline",
+            "w:shadow" => "Shadow",
+            "w:emboss" => "Emboss",
+            "w:imprint" => "Engrave",
+            "w:vanish" => "Hidden",
+            "w:noProof" => "Do Not Check Spelling",
+            "w:bCs" => "Bold",
+            "w:iCs" => "Italic",
+            _ => return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "{which:?} is not a run property that can be turned on and off"))),
         };
         self.ed.toggle(which, label);
         self.touched();
+        Ok(())
     }
 
     /// Underline kind ("single", "double", "none"...).

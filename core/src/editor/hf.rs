@@ -442,13 +442,23 @@ impl Editor {
 
     /// A document-wide on/off setting: "mirrorMargins", "evenAndOddHeaders".
     pub fn set_setting(&mut self, name: &str, on: bool) -> bool {
+        let label = match name {
+            "mirrorMargins" => "Mirror Margins",
+            "evenAndOddHeaders" => "Different Odd and Even Pages",
+            "autoHyphenation" => "Hyphenation",
+            "doNotHyphenateCaps" => "Hyphenation",
+            _ => return false,
+        };
+        // a transaction of its own, so this is one step on the undo stack (W5-10)
+        self.begin();
+        self.remember_settings();
         let s = &mut self.doc.settings;
         let cur = match name {
             "mirrorMargins" => &mut s.mirror_margins,
             "evenAndOddHeaders" => &mut s.even_odd_headers,
             "autoHyphenation" => &mut s.auto_hyphenation,
             "doNotHyphenateCaps" => &mut s.no_hyphenate_caps,
-            _ => return false,
+            _ => unreachable!(),
         };
         if *cur != on {
             *cur = on;
@@ -456,6 +466,7 @@ impl Editor {
             self.cache.retain(|_, _| false);
             self.relayout();
         }
+        self.commit(label, false);
         true
     }
 
@@ -472,12 +483,15 @@ impl Editor {
     /// Hyphenation Options: the zone (twips) and the most consecutive
     /// hyphenated lines (0: no limit).
     pub fn set_hyphenation_options(&mut self, zone: i32, limit: i32) {
+        self.begin();
+        self.remember_settings();
         let s = &mut self.doc.settings;
         s.hyphenation_zone = zone.max(0);
         s.hyphen_limit = limit.max(0);
         self.modified = true;
         self.cache.retain(|_, _| false);
         self.relayout();
+        self.commit("Hyphenation Options", false);
     }
 
     pub fn hyphenation_options(&self) -> (i32, i32) {

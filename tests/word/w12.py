@@ -52,7 +52,7 @@ WANT = {
  ("Insert", "Screenshot"): ["Screen Clipping"],
  ("Insert", "Object"): ["Object", "Text from File"],
  ("Mailings", "Start Mail Merge"): ["Letters", "E-mail Messages", "Envelopes", "Labels", "Directory", "Normal Word Document", "Step-by-Step Mail Merge Wizard"],
- ("Mailings", "Select Recipients"): ["Type a New List", "Use an Existing List", "Choose from Outlook Contacts"],
+ ("Mailings", "Select Recipients"): ["Type a New List", "Use an Existing List", "Choose from Contacts"],
  ("Mailings", "Finish & Merge"): ["Edit Individual Documents", "Print Documents", "Send Email Messages"],
  ("Design", "Paragraph Spacing"): ["No Paragraph Space", "Compact", "Tight", "Open", "Relaxed", "Double", "Custom Paragraph Spacing"],
  ("Design", "Page Color"): ["No Color", "More Colors", "Fill Effects"],

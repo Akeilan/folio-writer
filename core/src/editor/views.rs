@@ -520,8 +520,9 @@ impl Editor {
             self.doc.dom.insert(root, 0, bg);
         }
         self.cache.clear();
-        self.commit("Page Color", false);
+        // inside the transaction, so Undo takes the setting out again with the colour (W5-10)
         let _ = self.set_settings_xml("w:displayBackgroundShape", if color.is_some() { Some("<w:displayBackgroundShape/>") } else { None });
+        self.commit("Page Color", false);
         true
     }
 
