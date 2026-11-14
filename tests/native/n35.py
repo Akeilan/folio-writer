@@ -54,7 +54,7 @@ def a():
     check("xdg-email when Folio Post isn't there", CALLS[-1][0] == "xdg-email" and "--attach" in CALLS[-1], CALLS[-1])
     WHICH.clear()
     p4 = send(False); yield 0.3
-    check("no mail app: says so", p4 is None and any("mail app" in m for m in MSG), MSG)
+    check("no mail program: says so", p4 is None and any("mail program" in m for m in MSG), MSG)
     E.ed.mark_saved()
 
 
