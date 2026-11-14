@@ -1,0 +1,336 @@
+TABS PRESENT: ['Background Removal', 'Chart Design', 'Design', 'Developer', 'Draw', 'Equation', 'Header & Footer', 'Help', 'Home', 'Immersive Reader', 'Insert', 'Layout', 'Mailings', 'Outlining', 'Picture Format', 'References', 'Review', 'Shape Format', 'SmartArt Design', 'Table Design', 'Table Layout', 'View']
+Table Layout	Select > Select Cell	SAME	-	-	0.08	
+Table Layout	Select > Select Column	SAME	-	-	0.08	
+Table Layout	Select > Select Row	SAME	-	-	0.09	
+Table Layout	Select > Select Table	SAME	-	-	0.08	
+Table Layout	View Gridlines	SAME	-	-	0.08	
+Table Layout	Properties	UI	-	-	0.13	
+Table Layout	Draw Table	SAME	-	-	0.09	
+Table Layout	Eraser	SAME	-	-	0.08	
+Table Layout	Delete Table	CHANGED	ok	ok	0.08	
+Table Layout	Insert Above	CHANGED	ok	ok	0.09	
+Table Layout	Insert Below	CHANGED	ok	ok	0.09	
+Table Layout	Delete Rows	CHANGED	ok	ok	0.08	
+Table Layout	Insert Left	CHANGED	ok	ok	0.08	
+Table Layout	Insert Right	CHANGED	ok	ok	0.08	
+Table Layout	Delete Columns	CHANGED	ok	ok	0.08	
+Table Layout	Rows & Columns Settings	UI	-	-	0.09	
+Table Layout	Merge Cells	SAME	-	-	0.08	
+Table Layout	AutoFit > AutoFit Contents	CHANGED	ok	ok	0.08	
+Table Layout	AutoFit > AutoFit Window	CHANGED	ok	ok	0.08	
+Table Layout	AutoFit > Fixed Column Width	CHANGED	ok	ok	0.08	
+Table Layout	Distribute Rows	CHANGED	ok	ok	0.08	
+Table Layout	Distribute Columns	SAME	-	-	0.08	
+Table Layout	Cell Size Settings	UI	-	-	0.11	
+Table Layout	Align Top Left	CHANGED	ok	ok	0.08	
+Table Layout	Align Top Center	CHANGED	ok	ok	0.08	
+Table Layout	Align Top Right	CHANGED	ok	ok	0.08	
+Table Layout	Align Center Left	CHANGED	ok	ok	0.08	
+Table Layout	Align Center	CHANGED	ok	ok	0.08	
+Table Layout	Align Center Right	CHANGED	ok	ok	0.09	
+Table Layout	Align Bottom Left	CHANGED	ok	ok	0.09	
+Table Layout	Align Bottom Center	CHANGED	ok	ok	0.09	
+Table Layout	Align Bottom Right	CHANGED	ok	ok	0.08	
+Table Layout	Text Direction	CHANGED	ok	ok	0.09	
+Table Layout	Cell Margins	UI	-	-	0.10	
+Table Layout	Repeat Header Rows	CHANGED	ok	ok	0.08	
+Table Layout	Sort	UI	-	-	0.11	
+Table Layout	Convert to Text	UI	-	-	0.10	
+Table Layout	Formula	UI	-	-	0.10	
+Table Design	Header Row	CHANGED	ok	ok	0.08	
+Table Design	Total Row	CHANGED	ok	ok	0.08	
+Table Design	Banded Rows	CHANGED	ok	ok	0.08	
+Table Design	First Column	CHANGED	ok	ok	0.08	
+Table Design	Last Column	CHANGED	ok	ok	0.08	
+Table Design	Banded Columns	CHANGED	ok	ok	0.08	
+Table Design	Borders > Bottom Border	CHANGED	ok	ok	0.08	
+Table Design	Borders > Top Border	CHANGED	ok	ok	0.08	
+Table Design	Borders > Left Border	CHANGED	ok	ok	0.09	
+Table Design	Borders > Right Border	CHANGED	ok	ok	0.09	
+Table Design	Borders > No Border	CHANGED	ok	ok	0.08	
+Table Design	Borders > All Borders	CHANGED	ok	ok	0.08	
+Table Design	Borders > Outside Borders	CHANGED	ok	ok	0.08	
+Table Design	Borders > Inside Borders	CHANGED	ok	ok	0.08	
+Table Design	Borders > Inside Horizontal Border	CHANGED	ok	ok	0.09	
+Table Design	Borders > Inside Vertical Border	CHANGED	ok	ok	0.08	
+Table Design	Borders > View Gridlines	SAME	-	-	0.08	
+Table Design	Borders > Borders and Shading...	UI	-	-	0.14	
+Table Design	Shading > No Color	SAME	-	-	0.09	
+Table Design	Shading > #385623	CHANGED	ok	ok	0.08	
+Table Design	Shading > #548135	CHANGED	ok	ok	0.08	
+Table Design	Shading > #A9CD90	CHANGED	ok	ok	0.08	
+Table Design	Shading > #C5DEB5	CHANGED	ok	ok	0.08	
+Table Design	Shading > #E2EEDA	CHANGED	ok	ok	0.08	
+Table Design	Shading > #70AD47	CHANGED	ok	ok	0.09	
+Table Design	Shading > #2D4D6A	CHANGED	ok	ok	0.08	
+Table Design	Shading > #44749F	CHANGED	ok	ok	0.08	
+Table Design	Shading > #9CC3E5	CHANGED	ok	ok	0.08	
+Table Design	Shading > #BDD7EE	CHANGED	ok	ok	0.08	
+Table Design	Shading > #DEEBF6	CHANGED	ok	ok	0.08	
+Table Design	Shading > #5B9BD5	CHANGED	ok	ok	0.08	
+Table Design	Shading > #7F6000	CHANGED	ok	ok	0.08	
+Table Design	Shading > #BF9000	CHANGED	ok	ok	0.08	
+Table Design	Shading > #FFD966	CHANGED	ok	ok	0.08	
+Table Design	Shading > #FFE599	CHANGED	ok	ok	0.09	
+Table Design	Shading > #FFF2CC	CHANGED	ok	ok	0.08	
+Table Design	Shading > #FFC000	CHANGED	ok	ok	0.08	
+Table Design	Shading > #525252	CHANGED	ok	ok	0.08	
+Table Design	Shading > #7B7B7B	CHANGED	ok	ok	0.09	
+Table Design	Shading > #C9C9C9	CHANGED	ok	ok	0.08	
+Table Design	Shading > #DBDBDB	CHANGED	ok	ok	0.08	
+Table Design	Shading > #EDEDED	CHANGED	ok	ok	0.08	
+Table Design	Shading > #A5A5A5	CHANGED	ok	ok	0.08	
+Table Design	Shading > #763E18	CHANGED	ok	ok	0.08	
+Table Design	Shading > #B15D24	CHANGED	ok	ok	0.08	
+Table Design	Shading > #F4B183	CHANGED	ok	ok	0.08	
+Table Design	Shading > #F7CBAC	CHANGED	ok	ok	0.09	
+Table Design	Shading > #FBE5D5	CHANGED	ok	ok	0.08	
+Table Design	Shading > #ED7D31	CHANGED	ok	ok	0.08	
+Table Design	Shading > #223962	CHANGED	ok	ok	0.08	
+Table Design	Shading > #335593	CHANGED	ok	ok	0.08	
+Table Design	Shading > #8EAADB	CHANGED	ok	ok	0.08	
+Table Design	Shading > #B4C6E7	CHANGED	ok	ok	0.08	
+Table Design	Shading > #D9E2F3	CHANGED	ok	ok	0.08	
+Table Design	Shading > #4472C4	CHANGED	ok	ok	0.09	
+Table Design	Shading > #222A35	CHANGED	ok	ok	0.08	
+Table Design	Shading > #333F4F	CHANGED	ok	ok	0.08	
+Table Design	Shading > #8E98A5	CHANGED	ok	ok	0.08	
+Table Design	Shading > #B4BAC3	CHANGED	ok	ok	0.08	
+Table Design	Shading > #D9DCE1	CHANGED	ok	ok	0.08	
+Table Design	Shading > #44546A	CHANGED	ok	ok	0.08	
+Table Design	Shading > #737373	CHANGED	ok	ok	0.08	
+Table Design	Shading > #ADACAC	CHANGED	ok	ok	0.08	
+Table Design	Shading > #F0F0F0	CHANGED	ok	ok	0.08	
+Table Design	Shading > #F5F5F5	CHANGED	ok	ok	0.08	
+Table Design	Shading > #FAFAFA	CHANGED	ok	ok	0.08	
+Table Design	Shading > #E7E6E6	CHANGED	ok	ok	0.08	
+Table Design	Shading > #595959	CHANGED	ok	ok	0.09	
+Table Design	Shading > #7F7F7F	CHANGED	ok	ok	0.08	
+Table Design	Shading > #666666	CHANGED	ok	ok	0.09	
+Table Design	Shading > #999999	CHANGED	ok	ok	0.09	
+Table Design	Shading > #CCCCCC	CHANGED	ok	ok	0.08	
+Table Design	Shading > #000000	CHANGED	ok	ok	0.09	
+Table Design	Shading > #7F7F7F	CHANGED	ok	ok	0.09	
+Table Design	Shading > #BFBFBF	CHANGED	ok	ok	0.09	
+Table Design	Shading > #D8D8D8	CHANGED	ok	ok	0.08	
+Table Design	Shading > #E5E5E5	CHANGED	ok	ok	0.09	
+Table Design	Shading > #F2F2F2	CHANGED	ok	ok	0.09	
+Table Design	Shading > #FFFFFF	CHANGED	ok	ok	0.08	
+Table Design	Shading > #C00000	CHANGED	ok	ok	0.09	
+Table Design	Shading > #FF0000	CHANGED	ok	ok	0.08	
+Table Design	Shading > #FFC000	CHANGED	ok	ok	0.08	
+Table Design	Shading > #FFFF00	CHANGED	ok	ok	0.08	
+Table Design	Shading > #92D050	CHANGED	ok	ok	0.08	
+Table Design	Shading > #00B050	CHANGED	ok	ok	0.08	
+Table Design	Shading > #00B0F0	CHANGED	ok	ok	0.09	
+Table Design	Shading > #0070C0	CHANGED	ok	ok	0.08	
+Table Design	Shading > #002060	CHANGED	ok	ok	0.08	
+Table Design	Shading > #7030A0	CHANGED	ok	ok	0.09	
+Header & Footer	Header	CHANGED	BROKEN(steps=1)	-	0.09	
+Header & Footer	Footer	CHANGED	BROKEN(steps=1)	-	0.08	
+Header & Footer	Page Number > Top of Page	SAME	-	-	0.09	
+Header & Footer	Page Number > Plain Number 1	CHANGED	BROKEN(steps=2)	-	0.09	
+Header & Footer	Page Number > Plain Number 2	CHANGED	BROKEN(steps=2)	-	0.09	
+Header & Footer	Page Number > Plain Number 3	CHANGED	BROKEN(steps=2)	-	0.09	
+Header & Footer	Page Number > Bold Numbers	CHANGED	BROKEN(steps=2)	-	0.08	
+Header & Footer	Page Number > Page X of Y	CHANGED	BROKEN(steps=2)	-	0.09	
+Header & Footer	Page Number > Bottom of Page	SAME	-	-	0.08	
+Header & Footer	Page Number > Plain Number 1	CHANGED	BROKEN(steps=2)	-	0.08	
+Header & Footer	Page Number > Plain Number 2	CHANGED	BROKEN(steps=2)	-	0.09	
+Header & Footer	Page Number > Plain Number 3	CHANGED	BROKEN(steps=2)	-	0.09	
+Header & Footer	Page Number > Bold Numbers	CHANGED	BROKEN(steps=2)	-	0.08	
+Header & Footer	Page Number > Page X of Y	CHANGED	BROKEN(steps=2)	-	0.09	
+Header & Footer	Page Number > Page Margins	SAME	-	-	0.08	
+Header & Footer	Page Number > Circle, Right	CHANGED	BROKEN(steps=9)	-	0.08	
+Header & Footer	Page Number > Plain Number, Right	CHANGED	BROKEN(steps=6)	-	0.08	
+Header & Footer	Page Number > Plain Number, Left	CHANGED	BROKEN(steps=6)	-	0.09	
+Header & Footer	Page Number > Current Position	SAME	-	-	0.09	
+Header & Footer	Page Number > Plain Number	CHANGED	ok	ok	0.09	
+Header & Footer	Page Number > Page X of Y	CHANGED	ok	ok	0.08	
+Header & Footer	Page Number > Top of Page	SAME	-	-	0.08	
+Header & Footer	Page Number > Bottom of Page	SAME	-	-	0.08	
+Header & Footer	Page Number > Page Margins	SAME	-	-	0.08	
+Header & Footer	Page Number > Current Position	SAME	-	-	0.08	
+Header & Footer	Page Number > Format Page Numbers...	UI	-	-	0.10	
+Header & Footer	Page Number > Remove Page Numbers	SAME	-	-	0.08	
+Header & Footer	Date & Time	UI	-	-	0.10	
+Header & Footer	Document Info > Author	CHANGED	ok	ok	0.08	
+Header & Footer	Document Info > File Name	CHANGED	ok	ok	0.09	
+Header & Footer	Document Info > Document Title	CHANGED	ok	ok	0.09	
+Header & Footer	Document Info > Document Property	UI	-	-	0.12	
+Header & Footer	Quick Parts > Author	CHANGED	ok	ok	0.09	
+Header & Footer	Quick Parts > Title	CHANGED	ok	ok	0.09	
+Header & Footer	Quick Parts > Subject	CHANGED	ok	ok	0.08	
+Header & Footer	Quick Parts > Company	CHANGED	ok	ok	0.08	
+Header & Footer	Quick Parts > Keywords	CHANGED	ok	ok	0.09	
+Header & Footer	Quick Parts > Comments	CHANGED	ok	ok	0.10	
+Header & Footer	Quick Parts > Status	CHANGED	ok	ok	0.09	
+Header & Footer	Quick Parts > Field...	UI	-	-	0.08	
+Header & Footer	Quick Parts > Building Blocks Organizer...	UI	-	-	0.09	
+Header & Footer	Pictures	UI	-	-	0.12	
+Header & Footer	Go to Header	CHANGED	BROKEN(steps=1)	-	0.08	
+Header & Footer	Go to Footer	CHANGED	BROKEN(steps=1)	-	0.08	
+Header & Footer	Previous	SAME	-	-	0.09	
+Header & Footer	Next	SAME	-	-	0.08	
+Header & Footer	Link to Previous	SAME	-	-	0.08	
+Header & Footer	Different First Page	CHANGED	BROKEN(steps=2)	-	0.09	
+Header & Footer	Different Odd & Even Pages	CHANGED	BROKEN(steps=1)	-	0.09	
+Header & Footer	Show Document Text	SAME	-	-	0.08	
+Header & Footer	Insert Alignment Tab	UI	-	-	0.11	
+Equation	Equation > Area of Circle	CHANGED	ok	ok	0.09	
+Equation	Equation > Binomial Theorem	CHANGED	ok	ok	0.09	
+Equation	Equation > Expansion of a Sum	CHANGED	ok	ok	0.09	
+Equation	Equation > Fourier Series	CHANGED	ok	ok	0.09	
+Equation	Equation > Pythagorean Theorem	CHANGED	ok	ok	0.09	
+Equation	Equation > Quadratic Formula	CHANGED	ok	ok	0.09	
+Equation	Equation > Taylor Expansion	CHANGED	ok	ok	0.09	
+Equation	Equation > Trig Identity 1	CHANGED	ok	ok	0.09	
+Equation	Equation > Trig Identity 2	CHANGED	ok	ok	0.09	
+Equation	Equation > Euler's Identity	CHANGED	ok	ok	0.08	
+Equation	Equation > Gaussian Integral	CHANGED	ok	ok	0.08	
+Equation	Equation > Normal Distribution	CHANGED	ok	ok	0.09	
+Equation	Equation > Bayes' Theorem	CHANGED	ok	ok	0.09	
+Equation	Equation > Definition of Derivative	CHANGED	ok	ok	0.09	
+Equation	Equation > Insert New Equation	CHANGED	ok	ok	0.08	
+Equation	Ink Equation	UI	-	-	0.34	
+Equation	Tools Settings	UI	-	-	0.10	
+Equation	Unicode	SAME	-	-	0.08	
+Equation	LaTeX	SAME	-	-	0.08	
+Equation	Convert > Current - Professional	SAME	-	-	0.08	
+Equation	Convert > Current - Linear	SAME	-	-	0.09	
+Equation	Convert > All - Professional	CHANGED	ok	ok	0.08	
+Equation	Convert > All - Linear	CHANGED	ok	ok	0.08	
+Equation	Normal Text	SAME	-	-	0.09	
+Equation	Fraction > Stacked Fraction	SAME	-	-	0.08	
+Equation	Fraction > Skewed Fraction	SAME	-	-	0.09	
+Equation	Fraction > Linear Fraction	SAME	-	-	0.08	
+Equation	Fraction > Fraction without Bar	SAME	-	-	0.08	
+Equation	Fraction > dy over dx	SAME	-	-	0.09	
+Equation	Fraction > Delta y over Delta x	SAME	-	-	0.08	
+Equation	Fraction > Partial y over partial x	SAME	-	-	0.09	
+Equation	Fraction > delta y over delta x	SAME	-	-	0.08	
+Equation	Fraction > Pi over 2	SAME	-	-	0.08	
+Equation	Script > Superscript	SAME	-	-	0.08	
+Equation	Script > Subscript	SAME	-	-	0.08	
+Equation	Script > Subscript-Superscript	SAME	-	-	0.08	
+Equation	Script > Left Subscript-Superscript	SAME	-	-	0.08	
+Equation	Script > Subscript-Superscript	SAME	-	-	0.08	
+Equation	Script > Exponential	SAME	-	-	0.08	
+Equation	Script > x squared	SAME	-	-	0.08	
+Equation	Script > x sub n	SAME	-	-	0.08	
+Equation	Radical > Square Root	SAME	-	-	0.08	
+Equation	Radical > Radical with Degree	SAME	-	-	0.08	
+Equation	Radical > Cube Root	SAME	-	-	0.08	
+Equation	Radical > Fourth Root	SAME	-	-	0.08	
+Equation	Radical > Quadratic Root	SAME	-	-	0.08	
+Equation	Radical > Hypotenuse	SAME	-	-	0.08	
+Equation	Integral > Integral	SAME	-	-	0.09	
+Equation	Integral > Integral with Limits	SAME	-	-	0.09	
+Equation	Integral > Double Integral	SAME	-	-	0.08	
+Equation	Integral > Double Integral with Limits	SAME	-	-	0.08	
+Equation	Integral > Triple Integral	SAME	-	-	0.08	
+Equation	Integral > Triple Integral with Limits	SAME	-	-	0.08	
+Equation	Integral > Contour Integral	SAME	-	-	0.09	
+Equation	Integral > Contour Integral with Limits	SAME	-	-	0.08	
+Equation	Integral > Surface Integral	SAME	-	-	0.08	
+Equation	Integral > Volume Integral	SAME	-	-	0.08	
+Equation	Integral > Differential x	SAME	-	-	0.08	
+Equation	Integral > Differential y	SAME	-	-	0.08	
+Equation	Integral > Differential theta	SAME	-	-	0.08	
+Equation	Large Operator > Summation	SAME	-	-	0.09	
+Equation	Large Operator > Summation with Limits	SAME	-	-	0.08	
+Equation	Large Operator > Summation with Subscript Limit	SAME	-	-	0.08	
+Equation	Large Operator > Product	SAME	-	-	0.08	
+Equation	Large Operator > Co-Product	SAME	-	-	0.08	
+Equation	Large Operator > Union	SAME	-	-	0.09	
+Equation	Large Operator > Intersection	SAME	-	-	0.09	
+Equation	Large Operator > Logical OR	SAME	-	-	0.08	
+Equation	Large Operator > Logical AND	SAME	-	-	0.08	
+Equation	Large Operator > Summation over k	SAME	-	-	0.08	
+Equation	Large Operator > Summation over i	SAME	-	-	0.08	
+Equation	Large Operator > Union of intersections	SAME	-	-	0.08	
+Equation	Bracket > Parentheses	SAME	-	-	0.08	
+Equation	Bracket > Brackets	SAME	-	-	0.08	
+Equation	Bracket > Braces	SAME	-	-	0.08	
+Equation	Bracket > Angle Brackets	SAME	-	-	0.08	
+Equation	Bracket > Floor	SAME	-	-	0.09	
+Equation	Bracket > Ceiling	SAME	-	-	0.08	
+Equation	Bracket > Absolute Value	SAME	-	-	0.08	
+Equation	Bracket > Norm	SAME	-	-	0.08	
+Equation	Bracket > Double Square Brackets	SAME	-	-	0.08	
+Equation	Bracket > Bra-ket	SAME	-	-	0.09	
+Equation	Bracket > Set Builder	SAME	-	-	0.08	
+Equation	Bracket > Left Brace	SAME	-	-	0.08	
+Equation	Bracket > Cases	SAME	-	-	0.09	
+Equation	Bracket > Binomial Coefficient	SAME	-	-	0.08	
+Equation	Bracket > Binomial Coefficient in Angle Brackets	SAME	-	-	0.09	
+Equation	Function > Sine	SAME	-	-	0.08	
+Equation	Function > Cosine	SAME	-	-	0.08	
+Equation	Function > Tangent	SAME	-	-	0.08	
+Equation	Function > Cosecant	SAME	-	-	0.08	
+Equation	Function > Secant	SAME	-	-	0.08	
+Equation	Function > Cotangent	SAME	-	-	0.08	
+Equation	Function > Inverse Sine	SAME	-	-	0.08	
+Equation	Function > Inverse Cosine	SAME	-	-	0.08	
+Equation	Function > Inverse Tangent	SAME	-	-	0.08	
+Equation	Function > Hyperbolic Sine	SAME	-	-	0.08	
+Equation	Function > Hyperbolic Cosine	SAME	-	-	0.09	
+Equation	Function > Hyperbolic Tangent	SAME	-	-	0.09	
+Equation	Function > Sine theta	SAME	-	-	0.09	
+Equation	Function > Cosine 2x	SAME	-	-	0.08	
+Equation	Function > Tangent formula	SAME	-	-	0.08	
+Equation	Accent > Dot	SAME	-	-	0.09	
+Equation	Accent > Double Dot	SAME	-	-	0.08	
+Equation	Accent > Triple Dot	SAME	-	-	0.09	
+Equation	Accent > Hat	SAME	-	-	0.09	
+Equation	Accent > Check	SAME	-	-	0.09	
+Equation	Accent > Acute	SAME	-	-	0.09	
+Equation	Accent > Grave	SAME	-	-	0.08	
+Equation	Accent > Breve	SAME	-	-	0.09	
+Equation	Accent > Tilde	SAME	-	-	0.08	
+Equation	Accent > Bar	SAME	-	-	0.08	
+Equation	Accent > Vector Arrow	SAME	-	-	0.08	
+Equation	Accent > Overbar	SAME	-	-	0.08	
+Equation	Accent > Underbar	SAME	-	-	0.08	
+Equation	Accent > Overbrace	SAME	-	-	0.08	
+Equation	Accent > Underbrace	SAME	-	-	0.08	
+Equation	Accent > Bar over AB	SAME	-	-	0.08	
+Equation	Accent > x hat	SAME	-	-	0.08	
+Equation	Limit and Log > Logarithm with Base	SAME	-	-	0.08	
+Equation	Limit and Log > Logarithm	SAME	-	-	0.08	
+Equation	Limit and Log > Limit	SAME	-	-	0.08	
+Equation	Limit and Log > Minimum	SAME	-	-	0.08	
+Equation	Limit and Log > Maximum	SAME	-	-	0.08	
+Equation	Limit and Log > Natural Logarithm	SAME	-	-	0.08	
+Equation	Limit and Log > Limit Example	SAME	-	-	0.08	
+Equation	Limit and Log > Maximum Example	SAME	-	-	0.09	
+Equation	Operator > Colon Equal	SAME	-	-	0.08	
+Equation	Operator > Equal by Definition	SAME	-	-	0.09	
+Equation	Operator > Character Above	SAME	-	-	0.08	
+Equation	Operator > Character Below	SAME	-	-	0.08	
+Equation	Operator > Right Arrow with Text Above	SAME	-	-	0.08	
+Equation	Operator > Left Arrow with Text Above	SAME	-	-	0.08	
+Equation	Operator > Long Right Arrow with Text Above	SAME	-	-	0.08	
+Equation	Operator > Double Right Arrow with Text Above	SAME	-	-	0.08	
+Equation	Operator > Double Arrow with Text Above	SAME	-	-	0.09	
+Equation	Operator > Yields	SAME	-	-	0.08	
+Equation	Matrix > 1×2 Empty Matrix	SAME	-	-	0.08	
+Equation	Matrix > 2×1 Empty Matrix	SAME	-	-	0.08	
+Equation	Matrix > 1×3 Empty Matrix	SAME	-	-	0.08	
+Equation	Matrix > 3×1 Empty Matrix	SAME	-	-	0.08	
+Equation	Matrix > 2×2 Empty Matrix	SAME	-	-	0.08	
+Equation	Matrix > 2×3 Empty Matrix	SAME	-	-	0.08	
+Equation	Matrix > 3×2 Empty Matrix	SAME	-	-	0.09	
+Equation	Matrix > 3×3 Empty Matrix	SAME	-	-	0.08	
+Equation	Matrix > Midline Dots	SAME	-	-	0.08	
+Equation	Matrix > Vertical Dots	SAME	-	-	0.09	
+Equation	Matrix > Diagonal Dots	SAME	-	-	0.08	
+Equation	Matrix > 2×2 Identity Matrix	SAME	-	-	0.08	
+Equation	Matrix > 3×3 Identity Matrix	SAME	-	-	0.09	
+Equation	Matrix > Matrix with Parentheses	SAME	-	-	0.09	
+Equation	Matrix > Matrix with Brackets	SAME	-	-	0.09	
+Equation	Matrix > Determinant	SAME	-	-	0.08	
+Equation	Matrix > Two Equations	SAME	-	-	0.08	
+Equation	Matrix > Three Equations	SAME	-	-	0.09	
+Equation	Matrix > Aligned Equations	SAME	-	-	0.09	
+DONE 334

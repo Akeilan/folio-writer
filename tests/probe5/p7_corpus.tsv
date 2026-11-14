@@ -1,0 +1,66 @@
+61745.docx	0.1s	pages 1 vs 1	words missing 0/18 extra 0		
+breaks.docx	0.1s	pages 4 vs 4	words missing 0/52 extra 0		
+empty.docx	0.1s	pages 1 vs 1	words missing 0/1 extra 0		
+lists.docx	0.1s	pages 1 vs 1	words missing 0/33 extra 0		
+long.docx	0.2s	pages 92 vs 92	words missing 0/34998 extra 0		
+longtable.docx	0.2s	pages 7 vs 7	words missing 0/3002 extra 0		
+oneline.docx	0.1s	pages 1 vs 1	words missing 0/3 extra 0		
+pictures.docx	0.1s	pages 3 vs 3	words missing 0/35 extra 0		
+scripts.docx	0.1s	pages 1 vs 1	words missing 13/130 extra 8	中文测试文本,用于检查换行和字体回退,日本語のテキストです,한국어,텍스트입니다	
+sections.docx	0.1s	pages 6 vs 6	words missing 0/1707 extra 0		
+styles.docx	0.1s	pages 1 vs 1	words missing 0/164 extra 0		
+tables.docx	0.1s	pages 1 vs 1	words missing 0/48 extra 0		
+w311.docx	0.1s	pages 1 vs 1	words missing 0/17 extra 0		
+61745.doc	0.1s	pages 1 vs 1	words missing 0/18 extra 0		
+61745.odt	0.1s	pages 1 vs 1	words missing 18/18 extra 0	Category,Series,Chart,Title	
+61745.rtf	0.1s	pages 1 vs 1	words missing 18/18 extra 0	Category,Series,Chart,Title	
+breaks.doc	0.1s	pages 4 vs 4	words missing 0/52 extra 0		
+breaks.odt	0.1s	pages 3 vs 4  DIFF	words missing 0/52 extra 0		
+breaks.rtf	0.1s	pages 4 vs 4	words missing 0/52 extra 0		
+empty.doc	0.1s	pages 1 vs 1	words missing 0/1 extra 0		
+empty.odt	0.1s	pages 1 vs 1	words missing 0/1 extra 0		
+empty.rtf	0.1s	pages 1 vs 1	words missing 0/1 extra 0		
+lists.doc	0.1s	pages 1 vs 1	words missing 0/33 extra 0		
+lists.odt	0.1s	pages 1 vs 1	words missing 0/33 extra 0		
+lists.rtf	0.1s	pages 1 vs 1	words missing 0/33 extra 0		
+lo_61745.docx	0.1s	pages 1 vs 1	words missing 0/18 extra 0		
+lo_breaks.docx	0.1s	pages 4 vs 4	words missing 0/52 extra 0		
+lo_empty.docx	0.1s	pages 1 vs 1	words missing 0/1 extra 0		
+lo_lists.docx	0.1s	pages 1 vs 1	words missing 0/33 extra 0		
+lo_long.docx	0.2s	pages 92 vs 92	words missing 0/34998 extra 0		
+lo_longtable.docx	0.2s	pages 7 vs 7	words missing 0/3002 extra 0		
+lo_oneline.docx	0.1s	pages 1 vs 1	words missing 0/3 extra 0		
+lo_pictures.docx	0.1s	pages 3 vs 3	words missing 0/35 extra 0		
+lo_scripts.docx	0.1s	pages 1 vs 1	words missing 13/130 extra 8	中文测试文本,用于检查换行和字体回退,日本語のテキストです,한국어,텍스트입니다	
+lo_sections.docx	0.1s	pages 6 vs 6	words missing 0/1707 extra 0		
+lo_styles.docx	0.1s	pages 1 vs 1	words missing 0/164 extra 0		
+lo_tables.docx	0.1s	pages 1 vs 1	words missing 0/48 extra 0		
+lo_w311.docx	0.1s	pages 1 vs 1	words missing 0/17 extra 0		
+long.doc	0.5s	pages 92 vs 92	words missing 0/34998 extra 0		
+long.odt	0.4s	pages 92 vs 92	words missing 0/34998 extra 0		
+long.rtf	0.3s	pages 92 vs 92	words missing 0/34998 extra 0		
+longtable.doc	0.4s	pages 7 vs 7	words missing 0/3002 extra 0		
+longtable.odt	0.4s	pages 7 vs 7	words missing 0/3002 extra 0		
+longtable.rtf	1.0s	pages 7 vs 7	words missing 0/3002 extra 0		
+oneline.doc	0.1s	pages 1 vs 1	words missing 0/3 extra 0		
+oneline.odt	0.1s	pages 1 vs 1	words missing 0/3 extra 0		
+oneline.rtf	0.1s	pages 1 vs 1	words missing 0/3 extra 0		
+pictures.doc	0.1s	pages 3 vs 3	words missing 0/35 extra 0		
+pictures.odt	0.1s	pages 3 vs 3	words missing 0/35 extra 0		
+pictures.rtf	1.5s	pages 3 vs 3	words missing 0/35 extra 0		
+scripts.doc	0.1s	pages 1 vs 1	words missing 13/130 extra 8	中文测试文本,用于检查换行和字体回退,日本語のテキストです,한국어,텍스트입니다	
+scripts.odt	0.1s	pages 1 vs 1	words missing 13/130 extra 8	中文测试文本,用于检查换行和字体回退,日本語のテキストです,한국어,텍스트입니다	
+scripts.rtf	0.1s	pages 1 vs 1	words missing 13/130 extra 8	中文测试文本,用于检查换行和字体回退,日本語のテキストです,한국어,텍스트입니다	
+sections.doc	0.1s	pages 6 vs 6	words missing 14/1707 extra 0	header,Section,one,footer,First	
+sections.odt	0.1s	pages 6 vs 6	words missing 14/1707 extra 6	Section,one,footer,Landscape	
+sections.rtf	0.1s	pages 5 vs 6  DIFF	words missing 5/1707 extra 0	header,Section,one,footer,Landscape	
+styles.doc	0.1s	pages 1 vs 1	words missing 0/164 extra 0		
+styles.odt	0.1s	pages 1 vs 1	words missing 0/164 extra 0		
+styles.rtf	0.1s	pages 1 vs 1	words missing 0/164 extra 0		
+tables.doc	0.1s	pages 1 vs 1	words missing 0/48 extra 0		
+tables.odt	0.1s	pages 1 vs 1	words missing 0/48 extra 0		
+tables.rtf	0.2s	pages 1 vs 1	words missing 2/48 extra 2	with,word	
+w311.doc	0.1s	pages 1 vs 1	words missing 0/17 extra 0		
+w311.odt	0.1s	pages 1 vs 1	words missing 0/17 extra 0		
+w311.rtf	0.1s	pages 1 vs 1	words missing 0/17 extra 0		
+DONE
