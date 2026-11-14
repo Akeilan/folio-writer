@@ -12,3 +12,13 @@
 11. OK: corpus of 13 docx + LO-written docx/doc/odt/rtf (65 files) all open, no errors; page counts match LibreOffice on all docx (92-page doc included); words all present.
 12. OK: equations tab works at user level (my p4 setup was wrong).
 13. Baseline suites on rebuilt machine: native 46/48 scripts clean, word 55/57; the 4 failures are the machine (xclip missing then, DejaVu UI font making ribbon 101px). Need re-run.
+14. AutoRecover writes .odt (app.py write_autorecover): after a crash the recovered document has lost shapes, tracked changes, content controls, highlight (same losses as Save As .odt). Confirmed end to end. [p12]
+15. Text files not UTF-8 open as garbage: Latin-1 shows replacement chars, UTF-16 shows NULs. No encoding detection or prompt. [p13]
+16. A 2.4 MB .txt (40,000 lines) takes 52 s to open; a 490-page .docx takes 0.8 s. [p14]
+17. AutoRecover's .odt write blocks the window 1.8 s on a 490-page novel (docx save is 0.03 s). [p14]
+18. Memory: 766 MB with a 490-page (250k words) document open. [p14] (check baseline)
+19. Ribbon height depends on installed UI font: 96 px designed, 101 with DejaVu, 107 with Noto Sans; n33 fails on a machine with Noto Sans (which Ubuntu/Zorin ship). [baseline]
+OK: engine fuzz 33,000 random edits over 90 runs: no panic, every save reopens identically, undo-all returns the exact original XML.
+OK: 600 damaged files: 432 opened, 168 refused cleanly, no panic, no hang.
+OK: perf on 490 pages: 40 ms per key at start and end, find-all 60 ms, PDF 0.3 s.
+OK: save names (unicode, 200 chars, no extension), missing/zero/garbage files refused with a message.
