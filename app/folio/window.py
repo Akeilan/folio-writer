@@ -416,6 +416,10 @@ class DocWindow(Gtk.ApplicationWindow):
                     docprotect.apply_final(self)
             except Exception as e:
                 print("protection:", e)
+        note = getattr(self.engine, "import_note", None)
+        if ok and note:
+            self.dialogs.message(note)
+            self.engine.import_note = None
         if ok and self.app.settings.get("track_options"):
             from . import trackoptions
             trackoptions.apply(self)

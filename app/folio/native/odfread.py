@@ -260,6 +260,9 @@ def para_props(el, tabs_relative=True):
             p["line_rule"] = "auto"
     if A(el, "fo:break-before") == "page":
         p["pbb"] = True
+    if A(el, "fo:break-before") == "column":
+        # a column break starts the paragraph in the next column; it was read as nothing (W5-04)
+        p["colbb"] = True
     if A(el, "fo:break-after") == "page":
         p["break_after"] = True
     if A(el, "fo:keep-with-next") == "always":
@@ -560,6 +563,28 @@ class Reader:
             self.in_master = was
 
     def _section_from_master(self, mname):
+        """A section's page setup from a master page. Where that master hands on to another
+        (style:next-style-name), it is the first page's and the other is the running one — which
+        is how OpenDocument says "different first page". Reading only the first gave every page
+        the first page's header and lost the running header and the footers (W5-04)."""
+        nxt = None
+        first = self.masters.get(mname) if mname else None
+        if first is not None:
+            nname = A(first, "style:next-style-name")
+            if nname and nname != A(first, "style:name") and nname in self.masters:
+                nxt, mname = first, nname
+        s = self._one_master(mname)
+        if nxt is not None:
+            f = self._one_master(A(nxt, "style:name"))
+            for key in ("headers", "footers"):
+                got = (f.get(key) or {}).get("default")
+                if got:
+                    s.setdefault(key, {})["first"] = got
+                    s["title_pg"] = True
+            # the first page's own margins are the running page's: only its header differs
+        return s
+
+    def _one_master(self, mname):
         s = B.section()
         m = self.masters.get(mname) if mname else None
         if m is None and self.masters:
@@ -1113,8 +1138,11 @@ class Reader:
                 pick = (data, ext)
         if pick is None:
             if obj is not None:
-                # an embedded object with no picture to show
-                return
+                # An embedded object - a chart or a drawing made in another program. Its only
+                # stand-in here is a StarView metafile, which nothing outside LibreOffice reads,
+                # so there is nothing to put in the document; say so rather than drop it in
+                # silence (W5-04).
+                self.doc.dropped["objects"] = self.doc.dropped.get("objects", 0) + 1
             return
         data, ext = pick
         if ext == "svg":
