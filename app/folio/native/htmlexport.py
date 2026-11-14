@@ -148,17 +148,53 @@ def _css_run(st):
 class Writer:
     """Walks body XML and writes HTML."""
 
-    def __init__(self, styles, rels=None, media=None, labels=None):
+    def __init__(self, styles, rels=None, media=None, labels=None, notes=None):
         self.styles = styles
         self.rels = rels or {}
         self.media = media or {}
         self.labels = labels or {}
+        # (kind, id) -> the number shown for a footnote or endnote
+        self.notes = notes or {}
         self.para_index = 0
 
     # ------------------------------------------------------------ blocks
+    def _list_of(self, el):
+        """(level, ordered) if this paragraph is a list item, else None."""
+        if el.tag != q("w:p"):
+            return None
+        ppr = el.find("w:pPr", NS)
+        num = ppr.find("w:numPr", NS) if ppr is not None else None
+        if num is None or num.find("w:numId", NS) is None:
+            return None
+        lvl = _val(num, "w:ilvl") or "0"
+        mark = (self.labels.get(self.para_index) or "").strip()
+        ordered = bool(re.match(r"^[\(\[]?[0-9IVXivx]+[.)\]]?$|^[\(\[]?[a-zA-Z][.)\]]$", mark))
+        try:
+            return int(lvl), ordered
+        except ValueError:
+            return 0, ordered
+
     def blocks(self, parent):
         out = []
+        stack = []          # open list tags, outermost first
+        def close_to(n):
+            while len(stack) > n:
+                out.append("</%s>" % stack.pop())
         for el in parent:
+            info = self._list_of(el)
+            if info is not None:
+                lvl, ordered = info
+                tag = "ol" if ordered else "ul"
+                if len(stack) > lvl + 1:
+                    close_to(lvl + 1)
+                if len(stack) == lvl + 1 and stack[-1] != tag:
+                    close_to(lvl)
+                while len(stack) < lvl + 1:
+                    out.append("<%s>" % tag)
+                    stack.append(tag)
+                out.append("<li>%s</li>" % (self.para(el, as_item=True) or ""))
+                continue
+            close_to(0)
             if el.tag == q("w:p"):
                 out.append(self.para(el))
             elif el.tag == q("w:tbl"):
@@ -167,9 +203,10 @@ class Writer:
                 c = el.find("w:sdtContent", NS)
                 if c is not None:
                     out.append(self.blocks(c))
+        close_to(0)
         return "\n".join(x for x in out if x is not None)
 
-    def para(self, p):
+    def para(self, p, as_item=False):
         ppr = p.find("w:pPr", NS)
         sid = _val(ppr, "w:pStyle") or "Normal"
         chain = self.styles.chain(sid)
@@ -196,6 +233,8 @@ class Writer:
         body = self.inlines(p, inherited)
         label = self.labels.get(self.para_index)
         self.para_index += 1
+        if as_item:
+            return body
         if label:
             body = "<span class=\"label\">%s</span>&#9;%s" % (html.escape(label), body)
         lvl = self.styles.heading(sid)
@@ -317,6 +356,13 @@ class Writer:
                         parts.append("&#%d;" % int(ch, 16))
                     except ValueError:
                         pass
+            elif t in (q("w:footnoteReference"), q("w:endnoteReference")):
+                kind = "fn" if t == q("w:footnoteReference") else "en"
+                nid = c.get(q("w:id"))
+                mark = self.notes.get((kind, nid))
+                if mark:
+                    parts.append('<sup><a href="#%s%s" id="%sref%s">%s</a></sup>'
+                                 % (kind, nid, kind, nid, html.escape(mark)))
             elif t in (q("w:drawing"), q("w:pict")) or t.endswith("}AlternateContent"):
                 parts.append(self.picture(c))
         s = "".join(parts)
@@ -395,8 +441,39 @@ def docx_to_html(docx, title="", labels=None):
             if p in names and target.startswith("media/"):
                 media[target] = z.read(p)
     body = doc.find("w:body", NS)
-    w = Writer(styles, rels, media, labels)
-    return PAGE % (html.escape(title or "Document"), w.blocks(body) if body is not None else "")
+    notes, note_html = _notes(docx, styles, rels, media)
+    w = Writer(styles, rels, media, labels, notes)
+    out = w.blocks(body) if body is not None else ""
+    return PAGE % (html.escape(title or "Document"), out + note_html)
+
+
+def _notes(docx, styles, rels, media):
+    """Footnotes and endnotes: the number each one shows, and the HTML for the
+    list of them that goes at the end of the page. HTML has no footnotes, so
+    they are written out where they can still be read."""
+    marks, blocks = {}, []
+    with zipfile.ZipFile(docx) as z:
+        names = set(z.namelist())
+        for kind, part, tag, heading in (("fn", "word/footnotes.xml", "w:footnote", "Footnotes"),
+                                         ("en", "word/endnotes.xml", "w:endnote", "Endnotes")):
+            if part not in names:
+                continue
+            root = ET.fromstring(z.read(part))
+            items, n = [], 0
+            for el in root.findall(tag, NS):
+                nid = el.get(q("w:id"))
+                if el.get(q("w:type")) in ("separator", "continuationSeparator",
+                                           "continuationNotice") or nid in (None, "-1", "0"):
+                    continue
+                n += 1
+                marks[(kind, nid)] = str(n)
+                w = Writer(styles, rels, media)
+                items.append('<li id="%s%s">%s <a href="#%sref%s">&#8617;</a></li>'
+                             % (kind, nid, w.blocks(el), kind, nid))
+            if items:
+                blocks.append('\n<hr>\n<h2 class="notes">%s</h2>\n<ol class="notes">\n%s\n</ol>'
+                              % (heading, "\n".join(items)))
+    return marks, "".join(blocks)
 
 
 def fragment_to_html(xml, style_names=()):
