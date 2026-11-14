@@ -525,7 +525,12 @@ impl Editor {
         }
         for u in l.start..l.end {
             if pl.units[u].pos >= off && !pl.units[u].gen {
-                return l.xs[u - l.start];
+                let k = u - l.start;
+                // right to left, the place before a character is its right edge
+                if pl.units[u].level % 2 == 1 {
+                    return l.xs[k] + l.ws[k];
+                }
+                return l.xs[k];
             }
         }
         if (l.start..l.end).all(|u| pl.units[u].gen) {
@@ -752,6 +757,31 @@ impl Editor {
 
     fn pos_at_x(pl: &ParaLayout, li: usize, x: f64) -> usize {
         let line = &pl.lines[li];
+        if pl.line_has_rtl(li) {
+            // the characters are not in x order: take the one the click is in
+            // (or nearest), then the edge it is nearer, which for a
+            // right-to-left character is its right one
+            let mut best: Option<(f64, usize)> = None;
+            for u in line.start..line.end {
+                let k = u - line.start;
+                let unit = &pl.units[u];
+                if unit.gen {
+                    continue;
+                }
+                let (Some(&ux), Some(&uw)) = (line.xs.get(k), line.ws.get(k)) else { continue };
+                let d = if x < ux { ux - x } else if x > ux + uw { x - ux - uw } else { 0.0 };
+                if best.map_or(true, |(bd, _)| d < bd) {
+                    best = Some((d, u));
+                }
+            }
+            if let Some((_, u)) = best {
+                let k = u - line.start;
+                let unit = &pl.units[u];
+                let mid = line.xs[k] + line.ws[k] / 2.0;
+                let past = if unit.level % 2 == 1 { x < mid } else { x > mid };
+                return if past { (unit.pos + 1).min(pl.text_len) } else { unit.pos };
+            }
+        }
         for u in line.start..line.end {
             let k = u - line.start;
             let unit = &pl.units[u];

@@ -156,6 +156,13 @@ class NativeEngine(GObject.GObject):
         here; .doc, .odt and .rtf by Folio's own readers; the rest through LibreOffice's converter,
         when it's installed."""
         ext = os.path.splitext(path)[1].lower()
+        if ext in (".html", ".htm", ".xhtml"):
+            # Folio's own reader: LibreOffice's HTML import drops subscript,
+            # superscript and highlighting (W5-07)
+            from . import htmlread
+            ed = htmlread.editor_for(core(), self._blank_template(), path)
+            ed.move_caret("doc_start", False)
+            return ed
         if ext in (".txt", ".text", ".md", ".csv", ".log"):
             tpl = self._blank_template()
             from . import plaintext

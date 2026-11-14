@@ -38,6 +38,8 @@ pub struct Unit {
     pub obj: (f64, f64),
     /// generated (a list number and the tab after it): not part of the text
     pub gen: bool,
+    /// bidi embedding level (odd: drawn right to left)
+    pub level: u8,
 }
 
 #[derive(Clone, Debug)]
@@ -105,6 +107,38 @@ pub struct ParaLayout {
 }
 
 impl ParaLayout {
+    /// Is any of line `li` laid out right to left?
+    pub fn line_has_rtl(&self, li: usize) -> bool {
+        let Some(l) = self.lines.get(li) else { return false };
+        (l.start..l.end).any(|u| self.units[u].level % 2 == 1)
+    }
+
+    /// The x spans line `li` covers for the text positions [s, e): one span
+    /// for each stretch that is visually joined up, so a logical range that
+    /// crosses a change of direction comes back as several pieces.
+    pub fn line_spans(&self, li: usize, s: usize, e: usize) -> Vec<(f64, f64)> {
+        let Some(l) = self.lines.get(li) else { return Vec::new() };
+        let mut iv: Vec<(f64, f64)> = Vec::new();
+        for k in l.start..l.end {
+            let u = &self.units[k];
+            if u.gen || u.pos < s || u.pos >= e {
+                continue;
+            }
+            let i = k - l.start;
+            let (Some(&x), Some(&w)) = (l.xs.get(i), l.ws.get(i)) else { continue };
+            iv.push((x, x + w));
+        }
+        iv.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+        let mut out: Vec<(f64, f64)> = Vec::new();
+        for (a, b) in iv {
+            match out.last_mut() {
+                Some(last) if a <= last.1 + 0.05 => last.1 = last.1.max(b),
+                _ => out.push((a, b)),
+            }
+        }
+        out
+    }
+
     /// Does line `li` hold a tracked change (shown or not)?
     pub fn line_changed(&self, li: usize) -> bool {
         let Some(l) = self.lines.get(li) else { return false };
@@ -213,6 +247,28 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
             mark_style.hidden = true;
         }
     }
+    // Bidi: resolve the whole paragraph's embedding levels once, so a stretch
+    // of Arabic or Hebrew inside Latin text (or the other way about) gets the
+    // level its neighbours give it. Items that are not text stand in as an
+    // object replacement character, which is neutral.
+    let base_level: u8 = if props.bidi == Some(true) { 1 } else { 0 };
+    let mut btext = String::new();
+    let mut bstart: Vec<usize> = Vec::with_capacity(pieces.len());
+    for pc in pieces.iter() {
+        bstart.push(btext.chars().count());
+        match &pc.item {
+            Item::Text(t) => btext.push_str(t),
+            Item::Atom(_, n) => btext.extend(std::iter::repeat('\u{fffc}').take(*n)),
+            Item::Hidden(_) => {}
+            Item::Tab => btext.push('\t'),
+            _ => btext.push('\u{fffc}'),
+        }
+    }
+    let blevels = if btext.is_ascii() && base_level == 0 {
+        Vec::new()      // nothing can be right to left: keep the old path exactly
+    } else {
+        crate::text::levels_of(&btext, Some(base_level == 1))
+    };
     let mut units: Vec<Unit> = Vec::new();
     let mut maths: Vec<Arc<crate::math::MBox>> = Vec::new();
     let mut has_display = false;
@@ -234,7 +290,7 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
                 let desc = (sh.font.descent_pt(st.draw_size).max(0.0) - st.raise).max(0.0);
                 for (k, &c) in sh.text.iter().enumerate() {
                     units.push(Unit { kind: UnitKind::Char(c), pos: 0, width: sh.widths[k], shaped: si, idx: k as u32,
-                        asc, desc, piece: u32::MAX, obj: (0.0, 0.0), gen: true });
+                        asc, desc, piece: u32::MAX, obj: (0.0, 0.0), gen: true, level: 0 });
                 }
                 shaped.push(sh);
             }
@@ -244,13 +300,13 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
                 for sh in shape_text(fonts, &doc.styles, &lb.rpr, &st, " ") {
                     let si = shaped.len() as u32;
                     units.push(Unit { kind: UnitKind::Char(' '), pos: 0, width: sh.widths[0], shaped: si, idx: 0,
-                        asc: fa, desc: fd, piece: u32::MAX, obj: (0.0, 0.0), gen: true });
+                        asc: fa, desc: fd, piece: u32::MAX, obj: (0.0, 0.0), gen: true, level: 0 });
                     shaped.push(sh);
                 }
             }
             "nothing" => {}
             _ => units.push(Unit { kind: UnitKind::Tab, pos: 0, width: 0.0, shaped: u32::MAX, idx: 0, asc: fa,
-                desc: fd, piece: u32::MAX, obj: (0.0, 0.0), gen: true }),
+                desc: fd, piece: u32::MAX, obj: (0.0, 0.0), gen: true, level: 0 }),
         }
     }
     let label_jc = label.map(|l| l.jc.clone()).unwrap_or_default();
@@ -295,7 +351,7 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
                     if !style.hidden && *n > 0 {
                         // nothing to show, still a place for the caret
                         units.push(Unit { kind: UnitKind::Char('\u{200b}'), pos, width: 0.0, shaped: u32::MAX, idx: 0,
-                            asc: fa, desc: fd, piece: pi as u32, obj: (0.0, 0.0), gen: false });
+                            asc: fa, desc: fd, piece: pi as u32, obj: (0.0, 0.0), gen: false, level: 0 });
                     }
                     pos += n;
                     continue;
@@ -304,9 +360,10 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
                     let si = shaped.len() as u32;
                     let asc = (sh.font.ascent_pt(style.draw_size).max(0.0) + style.raise).max(0.0);
                     let desc = (sh.font.descent_pt(style.draw_size).max(0.0) - style.raise).max(0.0);
+                    let lv = sh.level;
                     for (k, &c) in sh.text.iter().enumerate() {
                         units.push(Unit { kind: UnitKind::Char(c), pos, width: sh.widths[k], shaped: si, idx: k as u32,
-                            asc, desc, piece: pi as u32, obj: (0.0, 0.0), gen: false });
+                            asc, desc, piece: pi as u32, obj: (0.0, 0.0), gen: false, level: lv });
                     }
                     shaped.push(sh);
                 }
@@ -317,10 +374,12 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
                     pos += t.chars().count();
                     continue;
                 }
-                for sh in shape_text(fonts, &doc.styles, &pc.rpr, &style, t) {
+                let plv = blevels.get(bstart[pi]..bstart[pi] + t.chars().count());
+                for sh in crate::text::shape_bidi(fonts, &doc.styles, &pc.rpr, &style, t, plv) {
                     let si = shaped.len() as u32;
                     let asc = (sh.font.ascent_pt(style.draw_size).max(0.0) + style.raise).max(0.0);
                     let desc = (sh.font.descent_pt(style.draw_size).max(0.0) - style.raise).max(0.0);
+                    let lv = sh.level;
                     for (k, &c) in sh.text.iter().enumerate() {
                         units.push(Unit {
                             kind: UnitKind::Char(c),
@@ -333,6 +392,7 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
                             piece: pi as u32,
                             obj: (0.0, 0.0),
                             gen: false,
+                            level: lv,
                         });
                         pos += 1;
                     }
@@ -353,7 +413,7 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
                 // equation's place in the text
                 for mb in boxes {
                     units.push(Unit { kind: UnitKind::Math, pos, width: mb.w, shaped: u32::MAX, idx: maths.len() as u32,
-                        asc: mb.asc, desc: mb.desc, piece: pi as u32, obj: (mb.w, mb.asc + mb.desc), gen: false });
+                        asc: mb.asc, desc: mb.desc, piece: pi as u32, obj: (mb.w, mb.asc + mb.desc), gen: false, level: base_level });
                     maths.push(Arc::new(mb));
                 }
                 pos += 1;
@@ -379,6 +439,7 @@ pub fn layout_paragraph_in(doc: &Document, fonts: &mut FontCache, p: NodeId, wid
                     piece: pi as u32,
                     obj: (w, h),
                     gen: false,
+                    level: base_level,
                 });
                 pos += 1;
             }
@@ -681,6 +742,7 @@ fn fill_line(pl: &ParaLayout, br: &Breaker, start: usize, x0: f64, right_edge: f
     };
     align_line(pl, &mut line, is_last && !forced, x0, right_edge - hyphen);
     measure_line(pl, &mut line, br.mark, is_last);
+    reorder_line(pl, &mut line);
     let _ = first_line;
     (line, forced)
 }
@@ -980,7 +1042,9 @@ fn settle_tab(pt: (usize, f64, TabKind), xs: &mut [f64], ws: &mut [f64], x: &mut
 
 fn align_line(pl: &ParaLayout, line: &mut Line, last: bool, x0: f64, right_edge: f64) {
     let units = &pl.units;
-    let jc = pl.props.jc.as_deref().unwrap_or("left");
+    // a right-to-left paragraph sits against the right margin unless it says otherwise
+    let jc = pl.props.jc.as_deref()
+        .unwrap_or(if pl.props.bidi == Some(true) { "right" } else { "left" });
     // width without trailing spaces
     let mut used_end = line.end;
     while used_end > line.start && is_space(&units[used_end - 1]) {
@@ -1035,6 +1099,54 @@ fn align_line(pl: &ParaLayout, line: &mut Line, last: bool, x0: f64, right_edge:
         for t in line.tabs.iter_mut() {
             t.x += shift;
         }
+    }
+}
+
+/// Lay the line's units out in visual order (UAX#9 rule L2): take the widths
+/// the line settled on, reverse every stretch at each embedding level from the
+/// highest down to the lowest odd one, then give out the x positions again from
+/// the line's left edge. A line with nothing right-to-left in it is left
+/// exactly as it was.
+fn reorder_line(pl: &ParaLayout, line: &mut Line) {
+    let n = line.end.saturating_sub(line.start);
+    if n == 0 || line.xs.len() < n || line.ws.len() < n {
+        return;
+    }
+    let lv: Vec<u8> = (0..n).map(|k| pl.units[line.start + k].level).collect();
+    let min_odd = lv.iter().filter(|l| *l % 2 == 1).min().copied();
+    let Some(min_odd) = min_odd else { return };
+    let max = lv.iter().max().copied().unwrap_or(0);
+    let mut order: Vec<usize> = (0..n).collect();
+    let mut level = max;
+    while level >= min_odd {
+        let mut i = 0;
+        while i < n {
+            if lv[order[i]] >= level {
+                let mut j = i;
+                while j < n && lv[order[j]] >= level {
+                    j += 1;
+                }
+                order[i..j].reverse();
+                i = j;
+            } else {
+                i += 1;
+            }
+        }
+        if level == 0 {
+            break;
+        }
+        level -= 1;
+    }
+    // the left edge the line was laid out from
+    let left = line.xs[..n].iter().copied().fold(f64::INFINITY, f64::min);
+    if !left.is_finite() {
+        return;
+    }
+    let ws = line.ws.clone();
+    let mut x = left;
+    for &k in &order {
+        line.xs[k] = x;
+        x += ws[k];
     }
 }
 
