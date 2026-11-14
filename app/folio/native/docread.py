@@ -1655,6 +1655,16 @@ class Reader:
             b["_sect"] = u["_sect"]
         return b
 
+    @staticmethod
+    def _row_mark(grpprl):
+        """Does this paragraph carry a table definition? Word puts the row's
+        properties on its end-of-row mark, so one that holds a definition ends
+        a row even when the writer left out sprmPFTtp, as LibreOffice does."""
+        for op, _a in sprms(grpprl or b""):
+            if op in (0xD608, 0xD606):      # sprmTDefTable
+                return True
+        return False
+
     def table(self, units, i, depth):
         rows = []
         n = len(units)
@@ -1671,6 +1681,8 @@ class Reader:
                 continue
             is_row_end = u["_ttp"] if depth == 1 else u["_innerttp"]
             is_cell_end = u["_cellend"] if depth == 1 else u["_innercell"]
+            if not is_row_end and is_cell_end and self._row_mark(u["_tap"]):
+                is_row_end = True
             if is_row_end:
                 rows.append((cur_row, u["_tap"]))
                 cur_row = []
