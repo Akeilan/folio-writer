@@ -66,6 +66,8 @@ pub struct Renderer {
     /// shaded areas of the page being drawn (cells, paragraphs): for "automatic" text colour
     bgs: Vec<(f64, f64, f64, f64, u32)>,
     page_bg: u32,
+    /// decoded colour emoji by (font, glyph) (None: not a colour glyph)
+    emoji: HashMap<(usize, u16), Option<(cairo::ImageSurface, crate::fonts::RasterGlyph)>>,
 }
 
 impl Default for Renderer {
@@ -93,7 +95,45 @@ pub struct Overlay {
 impl Renderer {
     pub fn new() -> Renderer {
         Renderer { lib: freetype::Library::init().ok(), faces: HashMap::new(), pics: HashMap::new(), max_px: 2400,
-                   bgs: Vec::new(), page_bg: 0xFFFFFF }
+                   bgs: Vec::new(), page_bg: 0xFFFFFF, emoji: HashMap::new() }
+    }
+
+    /// A glyph's colour picture, decoded once. Cairo on the systems Page runs
+    /// on draws a colour font's glyphs in one colour, so the picture the font
+    /// carries is drawn as an image instead.
+    fn emoji_glyph(&mut self, f: &Font, gid: u16)
+                   -> Option<(cairo::ImageSurface, crate::fonts::RasterGlyph)> {
+        if let Some(v) = self.emoji.get(&(f.id, gid)) {
+            return v.clone();
+        }
+        // ask for the biggest strike the font has; it is scaled to the text size
+        let got = f.raster(gid, 160).and_then(|img| {
+            let dec = image::load_from_memory_with_format(&img.png, image::ImageFormat::Png).ok()?;
+            let rgba = dec.to_rgba8();
+            let (w, h) = (rgba.width() as i32, rgba.height() as i32);
+            let mut surf = cairo::ImageSurface::create(cairo::Format::ARgb32, w, h).ok()?;
+            {
+                let stride = surf.stride() as usize;
+                let mut data = surf.data().ok()?;
+                for y in 0..h as usize {
+                    for x in 0..w as usize {
+                        let px = rgba.get_pixel(x as u32, y as u32).0;
+                        let a = px[3] as u32;
+                        // cairo wants premultiplied BGRA
+                        let p = |c: u8| ((c as u32 * a + 127) / 255) as u8;
+                        let o = y * stride + x * 4;
+                        data[o] = p(px[2]);
+                        data[o + 1] = p(px[1]);
+                        data[o + 2] = p(px[0]);
+                        data[o + 3] = a as u8;
+                    }
+                }
+            }
+            surf.mark_dirty();
+            Some((surf, img))
+        });
+        self.emoji.insert((f.id, gid), got.clone());
+        got
     }
 
     fn face(&mut self, f: &Font) -> Option<cairo::FontFace> {
@@ -402,6 +442,7 @@ impl Renderer {
         };
         let y = base_y - st.raise;
         let mut glyphs: Vec<cairo::Glyph> = Vec::new();
+        let mut pictures: Vec<(f64, f64, cairo::ImageSurface, crate::fonts::RasterGlyph)> = Vec::new();
         for k in a..b {
             let u = &p.units[k];
             if let UnitKind::Char(c) = u.kind {
@@ -412,9 +453,29 @@ impl Renderer {
             let (g0, g1) = sh.glyph_of[u.idx as usize];
             let mut gx = x0 + line.xs[k - line.start];
             for g in &sh.glyphs[g0 as usize..g1 as usize] {
-                glyphs.push(cairo::Glyph::new(g.gid as _, gx + g.x_offset, y - g.y_offset));
+                match self.emoji_glyph(&sh.font, g.gid) {
+                    Some((surf, img)) => pictures.push((gx + g.x_offset, y - g.y_offset, surf, img)),
+                    None => glyphs.push(cairo::Glyph::new(g.gid as _, gx + g.x_offset, y - g.y_offset)),
+                }
                 gx += g.advance;
             }
+        }
+        for (px, py, surf, img) in pictures {
+            // the picture's own pixel size against the size it is drawn at
+            let scale = st.draw_size / img.ppem as f64;
+            let (w, h) = (img.width * scale, img.height * scale);
+            if w <= 0.0 || h <= 0.0 {
+                continue;
+            }
+            cr.save().ok();
+            // the font gives the picture's bottom edge above the baseline
+            cr.translate(px + img.x * scale, py - (img.y + img.height) * scale);
+            cr.scale(w / img.width, h / img.height);
+            let pat = cairo::SurfacePattern::create(&surf);
+            pat.set_filter(cairo::Filter::Good);
+            cr.set_source(&pat).ok();
+            cr.paint().ok();
+            cr.restore().ok();
         }
         if !glyphs.is_empty() {
             if let Some(face) = self.face(&sh.font) {
