@@ -22,3 +22,10 @@ OK: engine fuzz 33,000 random edits over 90 runs: no panic, every save reopens i
 OK: 600 damaged files: 432 opened, 168 refused cleanly, no panic, no hang.
 OK: perf on 490 pages: 40 ms per key at start and end, find-all 60 ms, PDF 0.3 s.
 OK: save names (unicode, 200 chars, no extension), missing/zero/garbage files refused with a message.
+20. Printing marks the document modified (lastPrinted). [p17]
+21. Mailings/Share still tell the user to install Folio Post "which comes with the Folio Suite". [code]
+DOC: Backlog 5 = https://claude.ai/artifact/BhArf1Nqj8aQYzzjtLoZ1U node 1ca94a34-26ff session mrjrxvrdgcb; s1 pending .28, Page table .134, s3 .30, s4 .31; rev 2. W5-01..W5-16 written.
+22. Office Theme (File > Options): Black and Dark Gray leave tab names dark-on-dark (only the active tab readable) and ribbon/status labels ghosted (shadowed, hard to read); Styles gallery, ruler stay white. White theme: title-bar icons (save, undo, redo, search glass) and window buttons vanish white-on-white. Only Colorful is right. Page does not follow a dark desktop. [p19 screenshots]
+23. Window minimum width is 859 px: cannot be half-tiled on a 1366 px screen. [p19]
+24. Typing prose: "..." straight after a word is not turned into an ellipsis (it is when it stands alone) and the next word is capitalised: 'so... what then' -> 'So... What then'; '"Well..." she said' -> '“Well...” She said'. [p20b]
+25. 'teh ' at a paragraph start becomes 'The '; one Undo gives 'the ', a second 'teh ' (Word: one). Minor. [p20b]
