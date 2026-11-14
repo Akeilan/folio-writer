@@ -138,20 +138,26 @@ class NativeEngine(GObject.GObject):
         self._cm_id = GLib.timeout_add(250, run)
 
     # --------------------------------------------------------------- files
+    # what the last opened file could not keep, for the window to mention (W5-04)
+    import_note = None
+
+    def _blank_template(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        for d in ("/usr/share/folio-page/templates",
+                  os.path.join(here, "..", "..", "..", "share", "templates")):
+            p = os.path.join(d, "Normal-Letter.docx")
+            if os.path.exists(p):
+                return p
+        return None
+
     def _import(self, path):
+        self.import_note = None
         """An Editor for a file that isn't Word's own format: plain text read
         here; .doc, .odt and .rtf by Folio's own readers; the rest through LibreOffice's converter,
         when it's installed."""
         ext = os.path.splitext(path)[1].lower()
         if ext in (".txt", ".text", ".md", ".csv", ".log"):
-            tpl = None
-            here = os.path.dirname(os.path.abspath(__file__))
-            for d in ("/usr/share/folio-page/templates",
-                      os.path.join(here, "..", "..", "..", "share", "templates")):
-                p = os.path.join(d, "Normal-Letter.docx")
-                if os.path.exists(p):
-                    tpl = p
-                    break
+            tpl = self._blank_template()
             from . import plaintext
             text = plaintext.read(path)
             ed = plaintext.editor_for(core(), tpl, text)
@@ -165,6 +171,7 @@ class NativeEngine(GObject.GObject):
             tmpd = tempfile.mkdtemp(prefix="folio-")
             try:
                 out = importers.to_docx(path, os.path.join(tmpd, "imported.docx"))
+                self.import_note = importers.dropped_note(importers.to_docx.dropped)
                 return core().Editor.open(out)
             finally:
                 shutil.rmtree(tmpd, ignore_errors=True)
