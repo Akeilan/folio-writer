@@ -129,7 +129,7 @@ def a():
     src = open(os.path.join(os.path.dirname(drawing.__file__), "ribbon_defs.py")).read()
     want = ["Diagonal Down Border", "Diagonal Up Border", "Save Selection to Bibliography Gallery",
             "Just Mine", "Save Selection to Text Box Gallery", "E-mail Messages", "Normal Word Document",
-            "Step-by-Step Mail Merge Wizard", "Choose from Outlook Contacts", "Send Email Messages", "3-D Rotation"]
+            "Step-by-Step Mail Merge Wizard", "Choose from Contacts", "Send Email Messages", "3-D Rotation"]
     check("menu items as in the original", all(w in src for w in want), [w for w in want if w not in src])
     yield 0.3
 run_scenarios(a)

@@ -7,6 +7,17 @@ import zlib
 from . import docxbuild as B
 
 
+def _has_words(blocks):
+    """Whether a header or footer story holds anything at all (W5-04)."""
+    for b in blocks or []:
+        if b.get("kind") == "table" or b.get("rows"):
+            return True
+        for r in b.get("runs", []) or []:
+            if r.get("t") != "text" or (r.get("text") or "").strip():
+                return True
+    return False
+
+
 class Unsupported(Exception):
     """A file this reader doesn't handle (Word 95 and older, encrypted files)."""
 
@@ -1313,7 +1324,13 @@ class Reader:
                 a, b2 = stories[6 + si * 6 + j]
                 if b2 - a > 1:
                     blocks = self.story_blocks(a, b2 - 1)
-                    prev[(key, typ)] = blocks
+                    # A story holding one empty paragraph means "no header of this kind". Kept,
+                    # it became an empty first-page or even-page header that hid the running one,
+                    # so pages came out blank (W5-04).
+                    if _has_words(blocks):
+                        prev[(key, typ)] = blocks
+                    else:
+                        prev.pop((key, typ), None)
                 if (key, typ) in prev:
                     got[key][typ] = prev[(key, typ)]
             out[si] = got

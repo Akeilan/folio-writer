@@ -72,6 +72,10 @@ impl Editor {
                 "w14:ligatures" | "w14:numForm" | "w14:numSpacing" | "w14:stylisticSets" | "w14:cntxtAlts" => add("typography", 1),
                 "w14:glow" | "w14:shadow" | "w14:reflection" | "w14:textOutline" | "w14:textFill" | "a:prstTxWarp" => add("wordart", 1),
                 "wps:linkedTxbx" => add("textlinks", 1),
+                // a shape, text box or WordArt: converters carry pictures but not these (W5-02)
+                "wps:wsp" | "v:shape" | "v:rect" | "v:oval" | "v:line" => add("shapes", 1),
+                "w:highlight" => add("highlight", 1),
+                "w:ins" | "w:del" => add("tracked", 1),
                 "w:rPrChange" | "w:pPrChange" | "w:sectPrChange" | "w:tblPrChange" => add("tracked_fmt", 1),
                 "w:bookmarkStart" => {
                     if dom.attr(n, "w:name").map_or(false, |s| s.chars().count() > 40) {

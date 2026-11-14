@@ -2,10 +2,18 @@ use folio_core::document::Document;
 use folio_core::editor::{Editor, Pos, PropEdit};
 use folio_core::fonts::FontCache;
 
-const CORPUS: &str = "/home/claude/corpus/poi/test-data/document";
+/// The fixtures live in the repository (tools/make_core_fixtures.py writes them), so these
+/// tests run on any machine. FOLIO_CORPUS still points them at a bigger corpus (W5-22).
+fn corpus() -> String {
+    std::env::var("FOLIO_CORPUS").ok()
+        .and_then(|d| d.split(':').map(String::from).find(|d| std::path::Path::new(d).join("sample.docx").exists()))
+        .unwrap_or_else(|| format!("{}/tests/data", env!("CARGO_MANIFEST_DIR")))
+}
 
 fn open(name: &str) -> Editor {
-    let doc = Document::open_path(&format!("{CORPUS}/{name}")).unwrap();
+    let path = format!("{}/{name}", corpus());
+    let doc = Document::open_path(&path)
+        .unwrap_or_else(|e| panic!("fixture {path} did not open: {} \u{2014} run tools/make_core_fixtures.py", e.0));
     Editor::new(doc, FontCache::new())
 }
 

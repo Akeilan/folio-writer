@@ -253,6 +253,15 @@ class DocWindow(Gtk.ApplicationWindow):
                    "table": "insert-table-dialog", "format-painter": ".uno:FormatPaintbrush",
                    "autoformat": "autoformat"}
 
+    def rebuild_icons(self):
+        """The Office theme changed: the icons are drawn again in its colours (W5-19)."""
+        self.build_qat()
+        self.qat.show_all()
+        try:
+            self.ribbon.rebuild_icons()
+        except AttributeError:
+            pass
+
     def build_qat(self):
         qat = self.qat
         for c in qat.get_children():
@@ -407,6 +416,10 @@ class DocWindow(Gtk.ApplicationWindow):
                     docprotect.apply_final(self)
             except Exception as e:
                 print("protection:", e)
+        note = getattr(self.engine, "import_note", None)
+        if ok and note:
+            self.dialogs.message(note)
+            self.engine.import_note = None
         if ok and self.app.settings.get("track_options"):
             from . import trackoptions
             trackoptions.apply(self)
@@ -1125,7 +1138,9 @@ class DocWindow(Gtk.ApplicationWindow):
         elif shutil.which("xdg-email"):
             subprocess.Popen(["xdg-email", "--subject", name, "--attach", path])
         else:
-            self.dialogs.message("Sending needs a mail app: install Folio Post.")
+            self.dialogs.message("Sending needs a mail program set up on this computer. Install "
+                                 "one (Thunderbird, Evolution or another) and set up your account "
+                                 "there, then try again.")
             return None
         return path
 

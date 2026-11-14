@@ -24,6 +24,9 @@ impl Editor {
     /// Put (or with None remove) a settings.xml element, in schema order.
     pub fn set_settings_xml(&mut self, tag: &str, xml: Option<&str>) -> bool {
         let Some(sp) = self.settings_name() else { return false };
+        // settings.xml is not part of the journal, so remember it the way a chart part is
+        // remembered: without this, Undo left the page colour and the rest behind (W5-10)
+        let before = self.part_bytes(&sp);
         let parsed = match xml {
             Some(x) => {
                 let wrapped = format!("<root xmlns:w=\"{}\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">{x}</root>",
@@ -54,7 +57,10 @@ impl Editor {
             };
             x.insert(root, idx, n);
         }
-        self.modified = true;
+        if self.part_bytes(&sp) != before {
+            self.pending_parts.push((sp.clone(), before));
+            self.modified = true;
+        }
         true
     }
 

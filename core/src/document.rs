@@ -297,6 +297,7 @@ pub struct Notes {
     pub pr_dirty: bool,
 }
 
+#[derive(Clone, PartialEq)]
 pub struct Settings {
     /// w:doNotUseHTMLParagraphAutoSpacing
     pub no_html_spacing: bool,

@@ -1,7 +1,7 @@
 //! Editing: caret and selection, geometry (where the caret is drawn, what a
 //! click hits), changes to the document's XML with undo/redo, and relayout.
 
-use crate::document::{Document, Item, Piece};
+use crate::document::{Document, Item, Piece, Settings};
 use crate::fonts::FontCache;
 use crate::layout::{ParaLayout, UnitKind};
 use crate::paginate::{layout_document_cached, Layout, ParaCache};
@@ -31,6 +31,10 @@ struct Txn {
     theme: Option<Box<XmlDoc>>,
     /// package parts as they were before (charts), by name
     parts: Vec<(String, Vec<u8>)>,
+    /// document settings as they were before, when a change touched them (W5-10). They live
+    /// outside the DOM, so without this Undo left Track Changes, mirrored margins, hyphenation
+    /// and the mail-merge kind as the undone command had set them.
+    settings: Option<Box<Settings>>,
 }
 
 /// Schema order of run properties (Word rejects files with them out of
@@ -196,6 +200,8 @@ pub struct Editor {
     /// the theme before a change in the open transaction
     pending_theme: Option<Box<XmlDoc>>,
     pending_parts: Vec<(String, Vec<u8>)>,
+    /// the settings as they stood when the current transaction began (W5-10)
+    settings_before: Option<Box<Settings>>,
     /// more selected stretches besides anchor..caret (Select All Text With Similar
     /// Formatting, Select All N Instances): formatting goes to each
     pub extra_sel: Vec<(Pos, Pos)>,
@@ -277,6 +283,7 @@ impl Editor {
             painter: None,
             pending_theme: None,
             pending_parts: Vec::new(),
+            settings_before: None,
             extra_sel: Vec::new(),
         };
         e.track = e.doc.settings.track_revisions;
@@ -1164,8 +1171,12 @@ impl Editor {
             None => Vec::new(),
         };
         let before = self.txn_before.take().unwrap_or((self.anchor, self.caret));
+        let settings = match self.settings_before.take() {
+            Some(b) if *b != self.doc.settings => Some(b),
+            _ => None,
+        };
         if ops.is_empty() && num_ops.is_empty() && sty_ops.is_empty() && self.pending_theme.is_none()
-            && self.pending_parts.is_empty() {
+            && self.pending_parts.is_empty() && settings.is_none() {
             return;
         }
         self.dirty_paras(&ops);
@@ -1204,7 +1215,7 @@ impl Editor {
         self.relayout();
         let after = (self.anchor, self.caret);
         if mergeable && self.typing && num_ops.is_empty() && sty_ops.is_empty() && self.pending_theme.is_none()
-            && self.pending_parts.is_empty() {
+            && self.pending_parts.is_empty() && settings.is_none() {
             if let Some(last) = self.undo.last_mut() {
                 if last.name == name {
                     last.ops.extend(ops);
@@ -1217,7 +1228,7 @@ impl Editor {
         }
         let theme = self.pending_theme.take();
         let parts = std::mem::take(&mut self.pending_parts);
-        self.undo.push(Txn { name: name.into(), ops, num_ops, sty_ops, before, after, theme, parts });
+        self.undo.push(Txn { name: name.into(), ops, num_ops, sty_ops, before, after, theme, parts, settings });
         if self.undo.len() > 500 {
             self.undo.remove(0);
         }
@@ -1248,6 +1259,7 @@ impl Editor {
         let mut num_ops = Vec::new();
         let mut sty_ops = Vec::new();
         let mut theme = None;
+        let mut settings = None;
         let mut pparts: Vec<(String, Vec<u8>)> = Vec::new();
         for t in parts {
             ops.extend(t.ops);
@@ -1256,13 +1268,16 @@ impl Editor {
             if theme.is_none() {
                 theme = t.theme;
             }
+            if settings.is_none() {
+                settings = t.settings;      // the oldest "before" is the one to go back to
+            }
             for (n, b) in t.parts {
                 if !pparts.iter().any(|(m, _)| *m == n) {
                     pparts.push((n, b));
                 }
             }
         }
-        self.undo.push(Txn { name, ops, num_ops, sty_ops, before, after, theme, parts: pparts });
+        self.undo.push(Txn { name, ops, num_ops, sty_ops, before, after, theme, parts: pparts, settings });
         self.typing = false;
     }
 
@@ -1312,6 +1327,7 @@ impl Editor {
         let redo_sty = self.revert_sty(&t.sty_ops);
         let redo_theme = t.theme.map(|th| Box::new(self.swap_theme(*th)));
         let redo_parts = self.swap_parts(t.parts);
+        let redo_settings = t.settings.map(|b| Box::new(self.swap_settings(*b)));
         self.dirty_paras(&t.ops);
         self.dirty_paras(&redo_ops);
         self.doc.scan();
@@ -1319,7 +1335,7 @@ impl Editor {
         self.anchor = t.before.0;
         self.caret = t.before.1;
         self.redo.push(Txn { name: t.name, ops: redo_ops, num_ops: redo_num, sty_ops: redo_sty, before: t.before, after: t.after,
-                             theme: redo_theme, parts: redo_parts });
+                             theme: redo_theme, parts: redo_parts, settings: redo_settings });
         self.typing = false;
         self.modified = true;
     }
@@ -1332,6 +1348,7 @@ impl Editor {
         let undo_sty = self.revert_sty(&t.sty_ops);
         let undo_theme = t.theme.map(|th| Box::new(self.swap_theme(*th)));
         let undo_parts = self.swap_parts(t.parts);
+        let undo_settings = t.settings.map(|b| Box::new(self.swap_settings(*b)));
         self.dirty_paras(&t.ops);
         self.dirty_paras(&undo_ops);
         self.doc.scan();
@@ -1339,9 +1356,25 @@ impl Editor {
         self.anchor = t.after.0;
         self.caret = t.after.1;
         self.undo.push(Txn { name: t.name, ops: undo_ops, num_ops: undo_num, sty_ops: undo_sty, before: t.before, after: t.after,
-                             theme: undo_theme, parts: undo_parts });
+                             theme: undo_theme, parts: undo_parts, settings: undo_settings });
         self.typing = false;
         self.modified = true;
+    }
+
+    /// The settings as the transaction began, so Undo can put them back (W5-10). Called by
+    /// everything that changes `doc.settings`; the first call of a transaction is the one kept.
+    pub(crate) fn remember_settings(&mut self) {
+        if self.settings_before.is_none() {
+            self.settings_before = Some(Box::new(self.doc.settings.clone()));
+        }
+    }
+
+    /// Put the settings back as they were; returns them as they are now.
+    fn swap_settings(&mut self, s: Settings) -> Settings {
+        let now = std::mem::replace(&mut self.doc.settings, s);
+        self.cache.clear();
+        self.relayout();
+        now
     }
 
     /// Put parts back as they were; returns them as they are now.

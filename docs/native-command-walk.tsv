@@ -133,9 +133,9 @@ Home	Font Color > More Colors...		UI
 Home	Font Settings	font-dialog	UI
 Home	Bullets	bullets	CHANGED
 Home	Bullets > •  Filled bullet		CHANGED
-Home	Bullets > ◦  Open bullet	-	SKIP
+Home	Bullets > ◦  Open bullet		CHANGED
 Home	Bullets > ▪  Square bullet		CHANGED
-Home	Bullets > None		CHANGED
+Home	Bullets > None		SAME
 Home	Numbering	numbering	CHANGED
 Home	Numbering > 1.  2.  3.		CHANGED
 Home	Numbering > 1)  2)  3)		CHANGED
@@ -263,14 +263,14 @@ Home	Paragraph Settings	paragraph-dialog	UI
 Home	Styles Settings	styles-pane	UI
 Home	Find (Ctrl+F)	find-pane	SAME
 Home	Find (Ctrl+F) > Find	find-pane	SAME
-Home	Find (Ctrl+F) > Advanced Find...	replace	UI MODEL
+Home	Find (Ctrl+F) > Advanced Find...	replace	UI
 Home	Find (Ctrl+F) > Go To...	goto	UI
-Home	Replace (Ctrl+H)	replace	UI MODEL
+Home	Replace (Ctrl+H)	replace	UI
 Home	Select > Select All		SAME
 Home	Select > Select Objects		SAME
 Home	Select > Select All Text With Similar Formatting	select-similar	SAME
 Home	Select > Selection Pane...	selection-pane	SAME
-Insert	Cover Page > Simple		CHANGED MODEL
+Insert	Cover Page > Simple		CHANGED
 Insert	Cover Page > Banded		CHANGED
 Insert	Cover Page > Grid		CHANGED
 Insert	Cover Page > Facet		CHANGED
@@ -282,10 +282,10 @@ Insert	Cover Page > Semaphore		CHANGED
 Insert	Cover Page > Sideline		CHANGED
 Insert	Cover Page > Slice (Dark)		CHANGED
 Insert	Cover Page > Whisp		CHANGED
-Insert	Cover Page > Remove Current Cover Page		CHANGED MODEL
-Insert	Cover Page > Save Selection to Cover Page Gallery...	-	SKIP
-Insert	Blank Page	blank-page	CHANGED MODEL
-Insert	Page Break (Ctrl+Enter)	.uno:InsertPagebreak	CHANGED MODEL
+Insert	Cover Page > Remove Current Cover Page		CHANGED
+Insert	Cover Page > Save Selection to Cover Page Gallery...		SAME
+Insert	Blank Page	blank-page	CHANGED
+Insert	Page Break (Ctrl+Enter)	.uno:InsertPagebreak	CHANGED
 Insert	Add a Table > Insert Table...		UI
 Insert	Add a Table > Draw Table		SAME
 Insert	Add a Table > Convert Text to Table...		SAME
@@ -351,6 +351,23 @@ Insert	Shapes > Thought Bubble: Cloud	('draw-shape', 'cloud-callout')	SAME
 Insert	Shapes > Text Box	('draw-shape', 'textbox')	SAME
 Insert	Shapes > New Drawing Canvas	('draw-shape', 'canvas')	CHANGED
 Insert	Icons	<lambda>	UI
+Insert	3D Models > This Device...	insert-3d-model	UI
+Insert	3D Models > Front	('model-view', 'front')	SAME
+Insert	3D Models > Back	('model-view', 'back')	SAME
+Insert	3D Models > Left	('model-view', 'left')	SAME
+Insert	3D Models > Right	('model-view', 'right')	SAME
+Insert	3D Models > Top	('model-view', 'top')	SAME
+Insert	3D Models > Bottom	('model-view', 'bottom')	SAME
+Insert	3D Models > Above Front Left	('model-view', 'above-front-left')	SAME
+Insert	3D Models > Above Front Right	('model-view', 'above-front-right')	SAME
+Insert	3D Models > Below Front Left	('model-view', 'below-front-left')	SAME
+Insert	3D Models > Below Front Right	('model-view', 'below-front-right')	SAME
+Insert	3D Models > Turn...	model-turn	SAME
+Insert	3D Models > Turn Left	('model-nudge', 'left')	SAME
+Insert	3D Models > Turn Right	('model-nudge', 'right')	SAME
+Insert	3D Models > Tip Up	('model-nudge', 'up')	SAME
+Insert	3D Models > Tip Down	('model-nudge', 'down')	SAME
+Insert	3D Models > Reset 3D Model	model-reset	SAME
 Insert	SmartArt	<lambda>	UI
 Insert	Chart	<lambda>	UI
 Insert	Screenshot > Screen Clipping		SAME
@@ -371,8 +388,8 @@ Insert	Header > Retrospect		CHANGED
 Insert	Header > Sideline		CHANGED
 Insert	Header > Whisp		CHANGED
 Insert	Header > Edit Header	header	SAME
-Insert	Header > Remove Header	remove-header	UI MODEL
-Insert	Header > Save Selection to Header Gallery...	-	SKIP
+Insert	Header > Remove Header	remove-header	UI
+Insert	Header > Save Selection to Header Gallery...		SAME
 Insert	Footer > Blank		CHANGED
 Insert	Footer > Blank (Three Columns)		CHANGED
 Insert	Footer > Austin		CHANGED
@@ -384,8 +401,8 @@ Insert	Footer > Retrospect		CHANGED
 Insert	Footer > Semaphore		CHANGED
 Insert	Footer > Sideline		CHANGED
 Insert	Footer > Edit Footer	footer	SAME
-Insert	Footer > Remove Footer	remove-footer	CHANGED MODEL
-Insert	Footer > Save Selection to Footer Gallery...	-	SKIP
+Insert	Footer > Remove Footer	remove-footer	CHANGED
+Insert	Footer > Save Selection to Footer Gallery...		SAME
 Insert	Page Number > Top of Page		SAME
 Insert	Page Number > Plain Number 1		CHANGED
 Insert	Page Number > Plain Number 2		CHANGED
@@ -399,7 +416,7 @@ Insert	Page Number > Plain Number 3		CHANGED
 Insert	Page Number > Bold Numbers		CHANGED
 Insert	Page Number > Page X of Y		CHANGED
 Insert	Page Number > Page Margins		SAME
-Insert	Page Number > Circle, Right		CHANGED MODEL
+Insert	Page Number > Circle, Right		CHANGED
 Insert	Page Number > Plain Number, Right		CHANGED
 Insert	Page Number > Plain Number, Left		CHANGED
 Insert	Page Number > Current Position		SAME
@@ -409,14 +426,14 @@ Insert	Page Number > Top of Page		SAME
 Insert	Page Number > Bottom of Page		SAME
 Insert	Page Number > Page Margins		SAME
 Insert	Page Number > Current Position		SAME
-Insert	Page Number > Format Page Numbers...		SAME MODEL
-Insert	Page Number > Remove Page Numbers	remove-page-numbers	CHANGED MODEL
+Insert	Page Number > Format Page Numbers...		UI
+Insert	Page Number > Remove Page Numbers	remove-page-numbers	CHANGED
 Insert	Text Box > Simple Text Box		CHANGED
 Insert	Text Box > Sidebar		CHANGED
 Insert	Text Box > Quote		CHANGED
 Insert	Text Box > Banded		CHANGED
 Insert	Text Box > Draw Text Box	('draw-shape', 'textbox')	SAME
-Insert	Text Box > Save Selection to Text Box Gallery...	-	SKIP
+Insert	Text Box > Save Selection to Text Box Gallery...		SAME
 Insert	Quick Parts > Author		CHANGED
 Insert	Quick Parts > Title		CHANGED
 Insert	Quick Parts > Subject		CHANGED
@@ -424,9 +441,9 @@ Insert	Quick Parts > Company		CHANGED
 Insert	Quick Parts > Keywords		CHANGED
 Insert	Quick Parts > Comments		CHANGED
 Insert	Quick Parts > Status		CHANGED
-Insert	Quick Parts > Field...	field-dialog	UI MODEL
+Insert	Quick Parts > Field...	field-dialog	UI
 Insert	Quick Parts > Building Blocks Organizer...		UI
-Insert	Quick Parts > Save Selection to Quick Part Gallery...	-	SKIP
+Insert	Quick Parts > Save Selection to Quick Part Gallery...		SAME
 Insert	WordArt > Fill: Black, Text color 1; Outline: White		CHANGED
 Insert	WordArt > Fill: Blue, Accent color 5; Outline: White		CHANGED
 Insert	WordArt > Fill: Green, Accent color 6; Outline		CHANGED
@@ -437,13 +454,13 @@ Insert	WordArt > Fill: Orange, Accent color 2; Outline: Orange		CHANGED
 Insert	WordArt > Fill: Blue, Accent color 1; Shadow		CHANGED
 Insert	WordArt > Fill: Black, Text color 1; Shadow		CHANGED
 Insert	Date & Time	date-time	UI
-Insert	Field	field-dialog	UI MODEL
+Insert	Field	field-dialog	UI
 Insert	Drop Cap > None		SAME
 Insert	Drop Cap > Dropped		SAME
 Insert	Drop Cap > In margin		SAME
 Insert	Drop Cap > Drop Cap Options...	drop-cap	UI
-Insert	Signature Line > Signature Line...		UI MODEL
-Insert	Object > Object...		UI MODEL
+Insert	Signature Line > Signature Line...		UI
+Insert	Object > Object...		UI
 Insert	Object > Text from File...	text-from-file	UI
 Insert	Equation (Alt+=)	equation	CHANGED
 Insert	Equation (Alt+=) > Area of Circle		CHANGED
@@ -460,7 +477,7 @@ Insert	Equation (Alt+=) > Gaussian Integral		CHANGED
 Insert	Equation (Alt+=) > Normal Distribution		CHANGED
 Insert	Equation (Alt+=) > Bayes' Theorem		CHANGED
 Insert	Equation (Alt+=) > Definition of Derivative		CHANGED
-Insert	Equation (Alt+=) > Save Selection to Equation Gallery...	-	SKIP
+Insert	Equation (Alt+=) > Save Selection to Equation Gallery...		SAME
 Insert	Equation (Alt+=) > Insert New Equation		CHANGED
 Insert	Symbol > √		CHANGED
 Insert	Symbol > ∑		CHANGED
@@ -537,65 +554,65 @@ Draw	Highlighter > 3.5 mm		SAME
 Draw	Highlighter > 5 mm		SAME
 Draw	Highlighter > 8 mm		SAME
 Draw	Ink to Math	<lambda>	UI
-Design	Themes > Default	('doc-theme', 'Default')	CHANGED MODEL
-Design	Themes > Default 2023	('doc-theme', 'Default 2023')	CHANGED MODEL
-Design	Themes > Classic	('doc-theme', 'Classic')	CHANGED MODEL
-Design	Themes > Slate	('doc-theme', 'Slate')	CHANGED MODEL
-Design	Themes > Meadow	('doc-theme', 'Meadow')	CHANGED MODEL
-Design	Themes > Ember	('doc-theme', 'Ember')	CHANGED MODEL
-Design	Themes > Lagoon	('doc-theme', 'Lagoon')	CHANGED MODEL
-Design	Themes > Royal	('doc-theme', 'Royal')	CHANGED MODEL
-Design	Themes > Harbor	('doc-theme', 'Harbor')	CHANGED MODEL
-Design	Themes > Paperback	('doc-theme', 'Paperback')	CHANGED MODEL
-Design	Themes > Marquee	('doc-theme', 'Marquee')	CHANGED MODEL
-Design	Themes > Slipstream	('doc-theme', 'Slipstream')	CHANGED MODEL
-Design	Themes > Reset to Theme from Template	('doc-theme', 'Default')	CHANGED MODEL
-Design	Colors > Standard	('doc-colors', 'Standard')	CHANGED MODEL
-Design	Colors > Standard 2023	('doc-colors', 'Standard 2023')	CHANGED MODEL
-Design	Colors > Standard 2007	('doc-colors', 'Standard 2007')	CHANGED MODEL
-Design	Colors > Grayscale	('doc-colors', 'Grayscale')	CHANGED MODEL
-Design	Colors > Blue Warm	('doc-colors', 'Blue Warm')	CHANGED MODEL
-Design	Colors > Blue	('doc-colors', 'Blue')	CHANGED MODEL
-Design	Colors > Blue II	('doc-colors', 'Blue II')	CHANGED MODEL
-Design	Colors > Blue Green	('doc-colors', 'Blue Green')	CHANGED MODEL
-Design	Colors > Green	('doc-colors', 'Green')	CHANGED MODEL
-Design	Colors > Green Yellow	('doc-colors', 'Green Yellow')	CHANGED MODEL
-Design	Colors > Yellow	('doc-colors', 'Yellow')	CHANGED MODEL
-Design	Colors > Yellow Orange	('doc-colors', 'Yellow Orange')	CHANGED MODEL
-Design	Colors > Orange	('doc-colors', 'Orange')	CHANGED MODEL
-Design	Colors > Orange Red	('doc-colors', 'Orange Red')	CHANGED MODEL
-Design	Colors > Red Orange	('doc-colors', 'Red Orange')	CHANGED MODEL
-Design	Colors > Red	('doc-colors', 'Red')	CHANGED MODEL
-Design	Colors > Red Violet	('doc-colors', 'Red Violet')	CHANGED MODEL
-Design	Colors > Violet	('doc-colors', 'Violet')	CHANGED MODEL
-Design	Colors > Violet II	('doc-colors', 'Violet II')	CHANGED MODEL
-Design	Colors > Median	('doc-colors', 'Median')	CHANGED MODEL
-Design	Colors > Paper	('doc-colors', 'Paper')	CHANGED MODEL
-Design	Colors > Marquee	('doc-colors', 'Marquee')	CHANGED MODEL
-Design	Colors > Slipstream	('doc-colors', 'Slipstream')	CHANGED MODEL
-Design	Colors > Aspect	('doc-colors', 'Aspect')	CHANGED MODEL
-Design	Fonts > Standard  (Calibri Light / Calibri)	('doc-fonts', 'Standard')	CHANGED MODEL
-Design	Fonts > Standard 2023  (Aptos Display / Aptos)	('doc-fonts', 'Standard 2023')	CHANGED MODEL
-Design	Fonts > Standard 2007  (Cambria / Calibri)	('doc-fonts', 'Standard 2007')	CHANGED MODEL
-Design	Fonts > Calibri  (Calibri / Calibri)	('doc-fonts', 'Calibri')	CHANGED MODEL
-Design	Fonts > Arial  (Arial / Arial)	('doc-fonts', 'Arial')	CHANGED MODEL
-Design	Fonts > Cambria  (Cambria / Cambria)	('doc-fonts', 'Cambria')	CHANGED MODEL
-Design	Fonts > Georgia  (Georgia / Georgia)	('doc-fonts', 'Georgia')	CHANGED MODEL
-Design	Fonts > Times New Roman  (Times New Roman / Times New Roman)	('doc-fonts', 'Times New Roman')	CHANGED MODEL
-Design	Fonts > Calibri-Cambria  (Calibri / Cambria)	('doc-fonts', 'Calibri-Cambria')	CHANGED MODEL
-Design	Fonts > Arial-Times New Roman  (Arial / Times New Roman)	('doc-fonts', 'Arial-Times New Roman')	CHANGED MODEL
-Design	Fonts > Candara  (Candara / Candara)	('doc-fonts', 'Candara')	CHANGED MODEL
-Design	Fonts > Constantia  (Constantia / Constantia)	('doc-fonts', 'Constantia')	CHANGED MODEL
-Design	Fonts > Liberation Sans  (Liberation Sans / Liberation Sans)	('doc-fonts', 'Liberation Sans')	CHANGED MODEL
-Design	Fonts > Liberation Serif  (Liberation Serif / Liberation Serif)	('doc-fonts', 'Liberation Serif')	CHANGED MODEL
-Design	Fonts > DejaVu  (DejaVu Sans / DejaVu Serif)	('doc-fonts', 'DejaVu')	CHANGED MODEL
-Design	Paragraph Spacing > Default	doc-spacing-default	CHANGED MODEL
-Design	Paragraph Spacing > No Paragraph Space	doc-spacing-none	CHANGED MODEL
-Design	Paragraph Spacing > Compact	doc-spacing-compact	CHANGED MODEL
-Design	Paragraph Spacing > Tight	doc-spacing-tight	CHANGED MODEL
-Design	Paragraph Spacing > Open	-	SKIP
-Design	Paragraph Spacing > Relaxed	doc-spacing-relaxed	CHANGED MODEL
-Design	Paragraph Spacing > Double	doc-spacing-double	CHANGED MODEL
+Design	Themes > Default	('doc-theme', 'Default')	CHANGED
+Design	Themes > Default 2023	('doc-theme', 'Default 2023')	CHANGED
+Design	Themes > Classic	('doc-theme', 'Classic')	CHANGED
+Design	Themes > Slate	('doc-theme', 'Slate')	CHANGED
+Design	Themes > Meadow	('doc-theme', 'Meadow')	CHANGED
+Design	Themes > Ember	('doc-theme', 'Ember')	CHANGED
+Design	Themes > Lagoon	('doc-theme', 'Lagoon')	CHANGED
+Design	Themes > Royal	('doc-theme', 'Royal')	CHANGED
+Design	Themes > Harbor	('doc-theme', 'Harbor')	CHANGED
+Design	Themes > Paperback	('doc-theme', 'Paperback')	CHANGED
+Design	Themes > Marquee	('doc-theme', 'Marquee')	CHANGED
+Design	Themes > Slipstream	('doc-theme', 'Slipstream')	CHANGED
+Design	Themes > Reset to Theme from Template	('doc-theme', 'Default')	CHANGED
+Design	Colors > Standard	('doc-colors', 'Standard')	CHANGED
+Design	Colors > Standard 2023	('doc-colors', 'Standard 2023')	CHANGED
+Design	Colors > Standard 2007	('doc-colors', 'Standard 2007')	CHANGED
+Design	Colors > Grayscale	('doc-colors', 'Grayscale')	CHANGED
+Design	Colors > Blue Warm	('doc-colors', 'Blue Warm')	CHANGED
+Design	Colors > Blue	('doc-colors', 'Blue')	CHANGED
+Design	Colors > Blue II	('doc-colors', 'Blue II')	CHANGED
+Design	Colors > Blue Green	('doc-colors', 'Blue Green')	CHANGED
+Design	Colors > Green	('doc-colors', 'Green')	CHANGED
+Design	Colors > Green Yellow	('doc-colors', 'Green Yellow')	CHANGED
+Design	Colors > Yellow	('doc-colors', 'Yellow')	CHANGED
+Design	Colors > Yellow Orange	('doc-colors', 'Yellow Orange')	CHANGED
+Design	Colors > Orange	('doc-colors', 'Orange')	CHANGED
+Design	Colors > Orange Red	('doc-colors', 'Orange Red')	CHANGED
+Design	Colors > Red Orange	('doc-colors', 'Red Orange')	CHANGED
+Design	Colors > Red	('doc-colors', 'Red')	CHANGED
+Design	Colors > Red Violet	('doc-colors', 'Red Violet')	CHANGED
+Design	Colors > Violet	('doc-colors', 'Violet')	CHANGED
+Design	Colors > Violet II	('doc-colors', 'Violet II')	CHANGED
+Design	Colors > Median	('doc-colors', 'Median')	CHANGED
+Design	Colors > Paper	('doc-colors', 'Paper')	CHANGED
+Design	Colors > Marquee	('doc-colors', 'Marquee')	CHANGED
+Design	Colors > Slipstream	('doc-colors', 'Slipstream')	CHANGED
+Design	Colors > Aspect	('doc-colors', 'Aspect')	CHANGED
+Design	Fonts > Standard  (Calibri Light / Calibri)	('doc-fonts', 'Standard')	CHANGED
+Design	Fonts > Standard 2023  (Aptos Display / Aptos)	('doc-fonts', 'Standard 2023')	CHANGED
+Design	Fonts > Standard 2007  (Cambria / Calibri)	('doc-fonts', 'Standard 2007')	CHANGED
+Design	Fonts > Calibri  (Calibri / Calibri)	('doc-fonts', 'Calibri')	CHANGED
+Design	Fonts > Arial  (Arial / Arial)	('doc-fonts', 'Arial')	CHANGED
+Design	Fonts > Cambria  (Cambria / Cambria)	('doc-fonts', 'Cambria')	CHANGED
+Design	Fonts > Georgia  (Georgia / Georgia)	('doc-fonts', 'Georgia')	CHANGED
+Design	Fonts > Times New Roman  (Times New Roman / Times New Roman)	('doc-fonts', 'Times New Roman')	CHANGED
+Design	Fonts > Calibri-Cambria  (Calibri / Cambria)	('doc-fonts', 'Calibri-Cambria')	CHANGED
+Design	Fonts > Arial-Times New Roman  (Arial / Times New Roman)	('doc-fonts', 'Arial-Times New Roman')	CHANGED
+Design	Fonts > Candara  (Candara / Candara)	('doc-fonts', 'Candara')	CHANGED
+Design	Fonts > Constantia  (Constantia / Constantia)	('doc-fonts', 'Constantia')	CHANGED
+Design	Fonts > Liberation Sans  (Liberation Sans / Liberation Sans)	('doc-fonts', 'Liberation Sans')	CHANGED
+Design	Fonts > Liberation Serif  (Liberation Serif / Liberation Serif)	('doc-fonts', 'Liberation Serif')	CHANGED
+Design	Fonts > DejaVu  (DejaVu Sans / DejaVu Serif)	('doc-fonts', 'DejaVu')	CHANGED
+Design	Paragraph Spacing > Default	doc-spacing-default	CHANGED
+Design	Paragraph Spacing > No Paragraph Space	doc-spacing-none	CHANGED
+Design	Paragraph Spacing > Compact	doc-spacing-compact	CHANGED
+Design	Paragraph Spacing > Tight	doc-spacing-tight	CHANGED
+Design	Paragraph Spacing > Open	doc-spacing-open	CHANGED
+Design	Paragraph Spacing > Relaxed	doc-spacing-relaxed	CHANGED
+Design	Paragraph Spacing > Double	doc-spacing-double	CHANGED
 Design	Paragraph Spacing > Custom Paragraph Spacing...	paragraph-dialog	UI
 Design	Set as Default	set-as-default	SAME
 Design	Watermark > CONFIDENTIAL	('watermark', 'CONFIDENTIAL')	CHANGED
@@ -605,7 +622,7 @@ Design	Watermark > SAMPLE	('watermark', 'SAMPLE')	CHANGED
 Design	Watermark > URGENT	('watermark', 'URGENT')	CHANGED
 Design	Watermark > Custom Watermark...	watermark-dialog	UI
 Design	Watermark > Remove Watermark	('watermark', '')	CHANGED
-Design	Page Color > No Color	('page-color', None)	CHANGED
+Design	Page Color > No Color	('page-color', None)	SAME
 Design	Page Color > #385623	('page-color', 3692067)	CHANGED
 Design	Page Color > #548135	('page-color', 5538101)	CHANGED
 Design	Page Color > #A9CD90	('page-color', 11128208)	CHANGED
@@ -763,8 +780,8 @@ References	Bibliography > Bibliography		CHANGED
 References	Bibliography > References		SAME
 References	Bibliography > Works Cited		SAME
 References	Bibliography > Insert Bibliography		SAME
-References	Bibliography > Save Selection to Bibliography Gallery...	-	SKIP
-References	Insert Caption	caption	UI MODEL
+References	Bibliography > Save Selection to Bibliography Gallery...		SAME
+References	Insert Caption	caption	UI
 References	Insert Table of Figures	table-of-figures	UI
 References	Update Table	update-toc	CHANGED
 References	Cross-reference	cross-reference	UI
@@ -776,45 +793,45 @@ References	Insert Table of Authorities	<lambda> ; insert-toa	SAME
 References	Update Table	<lambda> ; update-toa	CHANGED
 Mailings	Envelopes	<lambda>	UI
 Mailings	Labels	<lambda>	UI
-Mailings	Start Mail Merge > Letters		CHANGED MODEL
+Mailings	Start Mail Merge > Letters		CHANGED
 Mailings	Start Mail Merge > Envelopes...		UI
 Mailings	Start Mail Merge > Labels...		UI
-Mailings	Start Mail Merge > E-mail Messages		SAME
-Mailings	Start Mail Merge > Directory		CHANGED MODEL
-Mailings	Start Mail Merge > Normal Word Document		CHANGED MODEL
+Mailings	Start Mail Merge > E-mail Messages		CHANGED
+Mailings	Start Mail Merge > Directory		CHANGED
+Mailings	Start Mail Merge > Normal Word Document		CHANGED
 Mailings	Start Mail Merge > Step-by-Step Mail Merge Wizard...		UI
 Mailings	Select Recipients > Type a New List...		UI
 Mailings	Select Recipients > Use an Existing List...		UI
-Mailings	Select Recipients > Choose from Outlook Contacts...		SAME
+Mailings	Select Recipients > Choose from Contacts...		SAME
 Mailings	Edit Recipient List	<lambda>	SAME
 Mailings	Highlight Merge Fields	highlight-merge-fields	SAME
-Mailings	Address Block	<lambda>	SAME MODEL
+Mailings	Address Block	<lambda>	SAME
 Mailings	Greeting Line	<lambda>	UI
 Mailings	Rules > Ask...		UI
 Mailings	Rules > Fill-in...		UI
 Mailings	Rules > If...Then...Else...		UI
-Mailings	Rules > Merge Record #	-	SKIP
-Mailings	Rules > Merge Sequence #		CHANGED MODEL
-Mailings	Rules > Next Record	-	SKIP
-Mailings	Rules > Next Record If...	-	SKIP
+Mailings	Rules > Merge Record #		CHANGED
+Mailings	Rules > Merge Sequence #		CHANGED
+Mailings	Rules > Next Record		CHANGED
+Mailings	Rules > Next Record If...		UI
 Mailings	Rules > Set Bookmark...		UI
-Mailings	Rules > Skip Record If...	-	SKIP
-Mailings	Match Fields	<lambda>	SAME MODEL
-Mailings	Update Labels	<lambda>	SAME MODEL
-Mailings	Preview Results	merge-preview	SAME MODEL
-Mailings	First Record	-	SKIP
-Mailings	Previous Record	-	SKIP
-Mailings	Next Record	-	SKIP
-Mailings	Last Record	-	SKIP
-Mailings	Find Recipient	find-recipient	SAME MODEL
-Mailings	Auto Check for Errors	<lambda>	UI MODEL
+Mailings	Rules > Skip Record If...		UI
+Mailings	Match Fields	<lambda>	SAME
+Mailings	Update Labels	<lambda>	SAME
+Mailings	Preview Results	merge-preview	SAME
+Mailings	First Record	<lambda>	SAME
+Mailings	Previous Record	<lambda>	SAME
+Mailings	Next Record	<lambda>	SAME
+Mailings	Last Record	<lambda>	SAME
+Mailings	Find Recipient	find-recipient	SAME
+Mailings	Auto Check for Errors	<lambda>	UI
 Mailings	Finish & Merge > Edit Individual Documents...		SAME
-Mailings	Finish & Merge > Print Documents...	-	SKIP
+Mailings	Finish & Merge > Print Documents...		SAME
 Mailings	Finish & Merge > Send Email Messages...		SAME
 Review	Spelling & Grammar (F7)	spelling	UI
 Review	Thesaurus (Shift+F7)	thesaurus	SAME
 Review	Word Count (Ctrl+Shift+G)	word-count	UI
-Review	Read Aloud (Ctrl+Alt+Space)	read-aloud	SAME
+Review	Read Aloud (Ctrl+Alt+Space)	-	SKIP
 Review	Check Accessibility	<lambda> ; check-accessibility	SAME
 Review	Check Accessibility > Check Accessibility	check-accessibility	SAME
 Review	Check Accessibility > Alt Text		SAME
@@ -863,12 +880,12 @@ Review	Compare > Show Revised		SAME
 Review	Compare > Show Both		SAME
 Review	Restrict Editing	<lambda>	SAME
 View	Read Mode	read-mode	SAME
-View	Print Layout	-	SKIP
-View	Web Layout	web-layout	SAME MODEL
-View	Outline	outline-view	UI MODEL
-View	Draft	draft-view	UI MODEL
+View	Print Layout	print-layout	SAME
+View	Web Layout	web-layout	SAME
+View	Outline	outline-view	UI
+View	Draft	draft-view	UI
 View	Focus	focus-mode	SAME
-View	Immersive Reader	immersive-reader	UI MODEL
+View	Immersive Reader	immersive-reader	UI
 View	Vertical	<lambda>	SAME
 View	Side to Side	side-to-side	UI
 View	Ruler	toggle-ruler	SAME
@@ -879,20 +896,20 @@ View	100%	zoom-100	UI
 View	One Page	zoom-one-page	UI
 View	Multiple Pages	multiple-pages	UI
 View	Page Width	zoom-page-width	UI
-View	New Window	new-window	UI
+View	New Window	-	SKIP
 View	Arrange All	arrange-all	SAME
 View	Split	split	SAME
 View	View Side by Side	side-by-side	SAME
 View	Synchronous Scrolling	sync-scrolling	SAME
 View	Reset Window Position	reset-window-position	SAME
 View	Switch Windows > ✓ 1 Document1		SAME
-View	Macros (Alt+F8)	-	SKIP
-View	Macros (Alt+F8) > View Macros	-	SKIP
-View	Macros (Alt+F8) > Record Macro...	-	SKIP
-View	Macros (Alt+F8) > Stop Recording	-	SKIP
-View	Macros (Alt+F8) > Pause Recording	-	SKIP
+View	Macros (Alt+F8)	view-macros	UI
+View	Macros (Alt+F8) > View Macros	view-macros	UI
+View	Macros (Alt+F8) > Record Macro...	record-macro	UI
+View	Macros (Alt+F8) > Stop Recording	stop-recording	SAME
+View	Macros (Alt+F8) > Pause Recording	pause-recording	SAME
 Help	Help (F1)	-	SKIP
-Help	Keyboard Shortcuts	help	UI
+Help	Keyboard Shortcuts	-	SKIP
 Help	About	about	UI
 Outlining	Promote to Heading 1	<lambda>	SAME
 Outlining	Promote (Alt+Shift+Left)	<lambda>	SAME
@@ -914,7 +931,15 @@ Outlining	Show Level > Level 9		SAME
 Outlining	Show Level > All Levels		SAME
 Outlining	Show Text Formatting	go	SAME
 Outlining	Show First Line Only	go	SAME
-Outlining	Close Outline View	-	SKIP
+Outlining	Show Document: the commands for working with subdocuments	<lambda>	SAME
+Outlining	Collapse or expand the subdocuments	<lambda>	SAME
+Outlining	Create a subdocument from the selected heading	<lambda>	SAME
+Outlining	Insert a document as a subdocument	<lambda>	UI
+Outlining	Make the subdocument part of the master document	<lambda>	SAME
+Outlining	Merge the selected subdocuments into one	<lambda>	SAME
+Outlining	Split the subdocument at the cursor	<lambda>	SAME
+Outlining	Lock the master document so it can't be changed	<lambda>	SAME
+Outlining	Close Outline View	close-outline	UI
 Developer	Rich Text Content Control	<lambda>	CHANGED
 Developer	Plain Text Content Control	<lambda>	SAME
 Developer	Picture Content Control	<lambda>	SAME
@@ -941,8 +966,8 @@ Immersive Reader	Line Focus > Three Lines		SAME
 Immersive Reader	Line Focus > Five Lines		SAME
 Immersive Reader	Text Spacing	go	SAME
 Immersive Reader	Syllables	go	SAME
-Immersive Reader	Read Aloud	read-aloud	SAME
-Immersive Reader	Close Immersive Reader	-	SKIP
+Immersive Reader	Read Aloud	-	SKIP
+Immersive Reader	Close Immersive Reader	close-immersive	UI
 Picture Format	Remove Background	<lambda>	CHANGED
 Picture Format	Corrections > Brightness: -40%  Contrast: -20%		CHANGED
 Picture Format	Corrections > Brightness: -40%  Contrast: +0%		CHANGED
@@ -959,7 +984,7 @@ Picture Format	Corrections > Brightness: +20%  Contrast: +20%		CHANGED
 Picture Format	Corrections > Brightness: +40%  Contrast: -20%		CHANGED
 Picture Format	Corrections > Brightness: +40%  Contrast: +0%		CHANGED
 Picture Format	Corrections > Brightness: +40%  Contrast: +20%		CHANGED
-Picture Format	Corrections > Picture Corrections Options...		SAME
+Picture Format	Corrections > Picture Corrections Options...		CHANGED
 Picture Format	Color > No Recolor		CHANGED
 Picture Format	Color > Grayscale		CHANGED
 Picture Format	Color > Black and White		CHANGED
@@ -971,8 +996,20 @@ Picture Format	Transparency > 50%		CHANGED
 Picture Format	Transparency > 65%		CHANGED
 Picture Format	Transparency > 80%		CHANGED
 Picture Format	Transparency > 95%		CHANGED
+Picture Format	Artistic Effects > None		CHANGED
+Picture Format	Artistic Effects > Pencil Grayscale		CHANGED
+Picture Format	Artistic Effects > Pencil Sketch		CHANGED
+Picture Format	Artistic Effects > Line Drawing		CHANGED
+Picture Format	Artistic Effects > Blur		CHANGED
+Picture Format	Artistic Effects > Paint Strokes		CHANGED
+Picture Format	Artistic Effects > Glow Edges		CHANGED
+Picture Format	Artistic Effects > Mosaic Bubbles		CHANGED
+Picture Format	Artistic Effects > Cutout		CHANGED
+Picture Format	Artistic Effects > Emboss		CHANGED
+Picture Format	Artistic Effects > Watercolor Sponge		CHANGED
+Picture Format	Artistic Effects > Film Grain		CHANGED
 Picture Format	Compress Pictures	<lambda>	UI
-Picture Format	Change Picture	<lambda>	SAME
+Picture Format	Change Picture	<lambda>	UI
 Picture Format	Reset Picture	<lambda>	SAME
 Picture Format	Reset Picture > Reset Picture		SAME
 Picture Format	Reset Picture > Reset Picture & Size		CHANGED
@@ -1713,9 +1750,9 @@ Shape Format	Align Text > Bottom		CHANGED
 Shape Format	Create Link	<lambda>	SAME
 Shape Format	Break Link	<lambda>	SAME
 Shape Format	Position > In Line with Text		CHANGED
-Shape Format	Position > Position in Top Left		CHANGED MODEL
+Shape Format	Position > Position in Top Left		CHANGED
 Shape Format	Position > Position in Top Center		CHANGED
-Shape Format	Position > Position in Top Right		CHANGED MODEL
+Shape Format	Position > Position in Top Right		CHANGED
 Shape Format	Position > Position in Middle Left		CHANGED
 Shape Format	Position > Position in Middle Center		CHANGED
 Shape Format	Position > Position in Middle Right		CHANGED
@@ -1757,3 +1794,344 @@ Shape Format	Rotate > Rotate Left 90°		CHANGED
 Shape Format	Rotate > Flip Vertical		CHANGED
 Shape Format	Rotate > Flip Horizontal		CHANGED
 Shape Format	Size Settings	object-size	UI
+Table Layout	Select > Select Cell	select-cell	SAME
+Table Layout	Select > Select Column		SAME
+Table Layout	Select > Select Row		SAME
+Table Layout	Select > Select Table		SAME
+Table Layout	View Gridlines	.uno:TableBoundaries	SAME
+Table Layout	Properties	table-properties	UI
+Table Layout	Draw Table	<lambda>	SAME
+Table Layout	Eraser	<lambda>	SAME
+Table Layout	Delete Table	.uno:DeleteTable	CHANGED
+Table Layout	Insert Above	.uno:InsertRowsBefore	CHANGED
+Table Layout	Insert Below	.uno:InsertRowsAfter	CHANGED
+Table Layout	Delete Rows	.uno:DeleteRows	CHANGED
+Table Layout	Insert Left	.uno:InsertColumnsBefore	CHANGED
+Table Layout	Insert Right	.uno:InsertColumnsAfter	CHANGED
+Table Layout	Delete Columns	.uno:DeleteColumns	CHANGED
+Table Layout	Rows & Columns Settings	insert-cells	UI
+Table Layout	Merge Cells	.uno:MergeCells	SAME
+Table Layout	Split Cells	split-cells	UI
+Table Layout	Split Table	split-table	CHANGED
+Table Layout	AutoFit > AutoFit Contents		CHANGED
+Table Layout	AutoFit > AutoFit Window		CHANGED
+Table Layout	AutoFit > Fixed Column Width		CHANGED
+Table Layout	Distribute Rows	.uno:DistributeRows	CHANGED
+Table Layout	Distribute Columns	.uno:DistributeColumns	CHANGED
+Table Layout	Cell Size Settings	table-properties	UI
+Table Layout	Align Top Left	<lambda>	CHANGED
+Table Layout	Align Top Center	<lambda>	CHANGED
+Table Layout	Align Top Right	<lambda>	CHANGED
+Table Layout	Align Center Left	<lambda>	CHANGED
+Table Layout	Align Center	<lambda>	CHANGED
+Table Layout	Align Center Right	<lambda>	CHANGED
+Table Layout	Align Bottom Left	<lambda>	CHANGED
+Table Layout	Align Bottom Center	<lambda>	CHANGED
+Table Layout	Align Bottom Right	<lambda>	CHANGED
+Table Layout	Text Direction	<lambda>	CHANGED
+Table Layout	Cell Margins	<lambda>	UI
+Table Layout	Repeat Header Rows	<lambda>	CHANGED
+Table Layout	Sort	<lambda>	UI
+Table Layout	Convert to Text	<lambda>	UI
+Table Layout	Formula	<lambda>	UI
+Table Design	Header Row	<lambda> ; ('table-option', 'header')	CHANGED
+Table Design	Total Row	<lambda> ; ('table-option', 'total')	CHANGED
+Table Design	Banded Rows	<lambda> ; ('table-option', 'banded_rows')	CHANGED
+Table Design	First Column	<lambda> ; ('table-option', 'first_col')	CHANGED
+Table Design	Last Column	<lambda> ; ('table-option', 'last_col')	CHANGED
+Table Design	Banded Columns	<lambda> ; ('table-option', 'banded_cols')	CHANGED
+Table Design	Borders > Bottom Border		CHANGED
+Table Design	Borders > Top Border		CHANGED
+Table Design	Borders > Left Border		CHANGED
+Table Design	Borders > Right Border		CHANGED
+Table Design	Borders > No Border		CHANGED
+Table Design	Borders > All Borders		CHANGED
+Table Design	Borders > Outside Borders		CHANGED
+Table Design	Borders > Inside Borders		CHANGED
+Table Design	Borders > Inside Horizontal Border		CHANGED
+Table Design	Borders > Inside Vertical Border		CHANGED
+Table Design	Borders > View Gridlines		SAME
+Table Design	Borders > Borders and Shading...	paragraph-borders	UI
+Table Design	Shading > No Color		SAME
+Table Design	Shading > #385623		CHANGED
+Table Design	Shading > #548135		CHANGED
+Table Design	Shading > #A9CD90		CHANGED
+Table Design	Shading > #C5DEB5		CHANGED
+Table Design	Shading > #E2EEDA		CHANGED
+Table Design	Shading > #70AD47		CHANGED
+Table Design	Shading > #2D4D6A		CHANGED
+Table Design	Shading > #44749F		CHANGED
+Table Design	Shading > #9CC3E5		CHANGED
+Table Design	Shading > #BDD7EE		CHANGED
+Table Design	Shading > #DEEBF6		CHANGED
+Table Design	Shading > #5B9BD5		CHANGED
+Table Design	Shading > #7F6000		CHANGED
+Table Design	Shading > #BF9000		CHANGED
+Table Design	Shading > #FFD966		CHANGED
+Table Design	Shading > #FFE599		CHANGED
+Table Design	Shading > #FFF2CC		CHANGED
+Table Design	Shading > #FFC000		CHANGED
+Table Design	Shading > #525252		CHANGED
+Table Design	Shading > #7B7B7B		CHANGED
+Table Design	Shading > #C9C9C9		CHANGED
+Table Design	Shading > #DBDBDB		CHANGED
+Table Design	Shading > #EDEDED		CHANGED
+Table Design	Shading > #A5A5A5		CHANGED
+Table Design	Shading > #763E18		CHANGED
+Table Design	Shading > #B15D24		CHANGED
+Table Design	Shading > #F4B183		CHANGED
+Table Design	Shading > #F7CBAC		CHANGED
+Table Design	Shading > #FBE5D5		CHANGED
+Table Design	Shading > #ED7D31		CHANGED
+Table Design	Shading > #223962		CHANGED
+Table Design	Shading > #335593		CHANGED
+Table Design	Shading > #8EAADB		CHANGED
+Table Design	Shading > #B4C6E7		CHANGED
+Table Design	Shading > #D9E2F3		CHANGED
+Table Design	Shading > #4472C4		CHANGED
+Table Design	Shading > #222A35		CHANGED
+Table Design	Shading > #333F4F		CHANGED
+Table Design	Shading > #8E98A5		CHANGED
+Table Design	Shading > #B4BAC3		CHANGED
+Table Design	Shading > #D9DCE1		CHANGED
+Table Design	Shading > #44546A		CHANGED
+Table Design	Shading > #737373		CHANGED
+Table Design	Shading > #ADACAC		CHANGED
+Table Design	Shading > #F0F0F0		CHANGED
+Table Design	Shading > #F5F5F5		CHANGED
+Table Design	Shading > #FAFAFA		CHANGED
+Table Design	Shading > #E7E6E6		CHANGED
+Table Design	Shading > #595959		CHANGED
+Table Design	Shading > #7F7F7F		CHANGED
+Table Design	Shading > #666666		CHANGED
+Table Design	Shading > #999999		CHANGED
+Table Design	Shading > #CCCCCC		CHANGED
+Table Design	Shading > #000000		CHANGED
+Table Design	Shading > #7F7F7F		CHANGED
+Table Design	Shading > #BFBFBF		CHANGED
+Table Design	Shading > #D8D8D8		CHANGED
+Table Design	Shading > #E5E5E5		CHANGED
+Table Design	Shading > #F2F2F2		CHANGED
+Table Design	Shading > #FFFFFF		CHANGED
+Table Design	Shading > #C00000		CHANGED
+Table Design	Shading > #FF0000		CHANGED
+Table Design	Shading > #FFC000		CHANGED
+Table Design	Shading > #FFFF00		CHANGED
+Table Design	Shading > #92D050		CHANGED
+Table Design	Shading > #00B050		CHANGED
+Table Design	Shading > #00B0F0		CHANGED
+Table Design	Shading > #0070C0		CHANGED
+Table Design	Shading > #002060		CHANGED
+Table Design	Shading > #7030A0		CHANGED
+Header & Footer	Header	header	SAME
+Header & Footer	Footer	footer	SAME
+Header & Footer	Page Number > Top of Page		SAME
+Header & Footer	Page Number > Plain Number 1		CHANGED
+Header & Footer	Page Number > Plain Number 2		CHANGED
+Header & Footer	Page Number > Plain Number 3		CHANGED
+Header & Footer	Page Number > Bold Numbers		CHANGED
+Header & Footer	Page Number > Page X of Y		CHANGED
+Header & Footer	Page Number > Bottom of Page		SAME
+Header & Footer	Page Number > Plain Number 1		CHANGED
+Header & Footer	Page Number > Plain Number 2		CHANGED
+Header & Footer	Page Number > Plain Number 3		CHANGED
+Header & Footer	Page Number > Bold Numbers		CHANGED
+Header & Footer	Page Number > Page X of Y		CHANGED
+Header & Footer	Page Number > Page Margins		SAME
+Header & Footer	Page Number > Circle, Right		CHANGED
+Header & Footer	Page Number > Plain Number, Right		CHANGED
+Header & Footer	Page Number > Plain Number, Left		CHANGED
+Header & Footer	Page Number > Current Position		SAME
+Header & Footer	Page Number > Plain Number		CHANGED
+Header & Footer	Page Number > Page X of Y		CHANGED
+Header & Footer	Page Number > Top of Page		SAME
+Header & Footer	Page Number > Bottom of Page		SAME
+Header & Footer	Page Number > Page Margins		SAME
+Header & Footer	Page Number > Current Position		SAME
+Header & Footer	Page Number > Format Page Numbers...		UI
+Header & Footer	Page Number > Remove Page Numbers	remove-page-numbers	CHANGED
+Header & Footer	Date & Time	date-time	UI
+Header & Footer	Document Info > Author		CHANGED
+Header & Footer	Document Info > File Name		CHANGED
+Header & Footer	Document Info > Document Title		CHANGED
+Header & Footer	Document Info > Document Property	field-dialog	UI
+Header & Footer	Quick Parts > Author		CHANGED
+Header & Footer	Quick Parts > Title		CHANGED
+Header & Footer	Quick Parts > Subject		CHANGED
+Header & Footer	Quick Parts > Company		CHANGED
+Header & Footer	Quick Parts > Keywords		CHANGED
+Header & Footer	Quick Parts > Comments		CHANGED
+Header & Footer	Quick Parts > Status		CHANGED
+Header & Footer	Quick Parts > Field...	field-dialog	UI
+Header & Footer	Quick Parts > Building Blocks Organizer...		UI
+Header & Footer	Quick Parts > Save Selection to Quick Part Gallery...		SAME
+Header & Footer	Pictures	insert-picture	UI
+Header & Footer	Go to Header	.uno:JumpToHeader	SAME
+Header & Footer	Go to Footer	.uno:JumpToFooter	SAME
+Header & Footer	Previous	<lambda>	SAME
+Header & Footer	Next	<lambda>	SAME
+Header & Footer	Link to Previous	<lambda>	SAME
+Header & Footer	Different First Page	<lambda> ; ('hf-option', 'first')	CHANGED
+Header & Footer	Different Odd & Even Pages	<lambda> ; ('hf-option', 'odd_even')	CHANGED
+Header & Footer	Show Document Text	<lambda> ; ('hf-option', 'show_text')	SAME
+Header & Footer	Insert Alignment Tab	<lambda>	UI
+Header & Footer	Close Header and Footer	close-header-footer	UI
+Equation	Equation > Area of Circle		CHANGED
+Equation	Equation > Binomial Theorem		CHANGED
+Equation	Equation > Expansion of a Sum		CHANGED
+Equation	Equation > Fourier Series		CHANGED
+Equation	Equation > Pythagorean Theorem		CHANGED
+Equation	Equation > Quadratic Formula		CHANGED
+Equation	Equation > Taylor Expansion		CHANGED
+Equation	Equation > Trig Identity 1		CHANGED
+Equation	Equation > Trig Identity 2		CHANGED
+Equation	Equation > Euler's Identity		CHANGED
+Equation	Equation > Gaussian Integral		CHANGED
+Equation	Equation > Normal Distribution		CHANGED
+Equation	Equation > Bayes' Theorem		CHANGED
+Equation	Equation > Definition of Derivative		CHANGED
+Equation	Equation > Save Selection to Equation Gallery...		SAME
+Equation	Equation > Insert New Equation		CHANGED
+Equation	Ink Equation	<lambda>	UI
+Equation	Tools Settings	<lambda>	UI
+Equation	Unicode	<lambda>	SAME
+Equation	LaTeX	<lambda>	SAME
+Equation	Convert > Current - Professional		SAME
+Equation	Convert > Current - Linear		SAME
+Equation	Convert > All - Professional		CHANGED
+Equation	Convert > All - Linear		CHANGED
+Equation	Normal Text	<lambda>	SAME
+Equation	Fraction > Stacked Fraction		SAME
+Equation	Fraction > Skewed Fraction		SAME
+Equation	Fraction > Linear Fraction		SAME
+Equation	Fraction > Fraction without Bar		SAME
+Equation	Fraction > dy over dx		SAME
+Equation	Fraction > Delta y over Delta x		SAME
+Equation	Fraction > Partial y over partial x		SAME
+Equation	Fraction > delta y over delta x		SAME
+Equation	Fraction > Pi over 2		SAME
+Equation	Script > Superscript		SAME
+Equation	Script > Subscript		SAME
+Equation	Script > Subscript-Superscript		SAME
+Equation	Script > Left Subscript-Superscript		SAME
+Equation	Script > Subscript-Superscript		SAME
+Equation	Script > Exponential		SAME
+Equation	Script > x squared		SAME
+Equation	Script > x sub n		SAME
+Equation	Radical > Square Root		SAME
+Equation	Radical > Radical with Degree		SAME
+Equation	Radical > Cube Root		SAME
+Equation	Radical > Fourth Root		SAME
+Equation	Radical > Quadratic Root		SAME
+Equation	Radical > Hypotenuse		SAME
+Equation	Integral > Integral		SAME
+Equation	Integral > Integral with Limits		SAME
+Equation	Integral > Double Integral		SAME
+Equation	Integral > Double Integral with Limits		SAME
+Equation	Integral > Triple Integral		SAME
+Equation	Integral > Triple Integral with Limits		SAME
+Equation	Integral > Contour Integral		SAME
+Equation	Integral > Contour Integral with Limits		SAME
+Equation	Integral > Surface Integral		SAME
+Equation	Integral > Volume Integral		SAME
+Equation	Integral > Differential x		SAME
+Equation	Integral > Differential y		SAME
+Equation	Integral > Differential theta		SAME
+Equation	Large Operator > Summation		SAME
+Equation	Large Operator > Summation with Limits		SAME
+Equation	Large Operator > Summation with Subscript Limit		SAME
+Equation	Large Operator > Product		SAME
+Equation	Large Operator > Co-Product		SAME
+Equation	Large Operator > Union		SAME
+Equation	Large Operator > Intersection		SAME
+Equation	Large Operator > Logical OR		SAME
+Equation	Large Operator > Logical AND		SAME
+Equation	Large Operator > Summation over k		SAME
+Equation	Large Operator > Summation over i		SAME
+Equation	Large Operator > Union of intersections		SAME
+Equation	Bracket > Parentheses		SAME
+Equation	Bracket > Brackets		SAME
+Equation	Bracket > Braces		SAME
+Equation	Bracket > Angle Brackets		SAME
+Equation	Bracket > Floor		SAME
+Equation	Bracket > Ceiling		SAME
+Equation	Bracket > Absolute Value		SAME
+Equation	Bracket > Norm		SAME
+Equation	Bracket > Double Square Brackets		SAME
+Equation	Bracket > Half-open Interval		SAME
+Equation	Bracket > Half-open Interval		SAME
+Equation	Bracket > Bra-ket		SAME
+Equation	Bracket > Set Builder		SAME
+Equation	Bracket > Left Brace		SAME
+Equation	Bracket > Cases		SAME
+Equation	Bracket > Binomial Coefficient		SAME
+Equation	Bracket > Binomial Coefficient in Angle Brackets		SAME
+Equation	Function > Sine		SAME
+Equation	Function > Cosine		SAME
+Equation	Function > Tangent		SAME
+Equation	Function > Cosecant		SAME
+Equation	Function > Secant		SAME
+Equation	Function > Cotangent		SAME
+Equation	Function > Inverse Sine		SAME
+Equation	Function > Inverse Cosine		SAME
+Equation	Function > Inverse Tangent		SAME
+Equation	Function > Hyperbolic Sine		SAME
+Equation	Function > Hyperbolic Cosine		SAME
+Equation	Function > Hyperbolic Tangent		SAME
+Equation	Function > Sine theta		SAME
+Equation	Function > Cosine 2x		SAME
+Equation	Function > Tangent formula		SAME
+Equation	Accent > Dot		SAME
+Equation	Accent > Double Dot		SAME
+Equation	Accent > Triple Dot		SAME
+Equation	Accent > Hat		SAME
+Equation	Accent > Check		SAME
+Equation	Accent > Acute		SAME
+Equation	Accent > Grave		SAME
+Equation	Accent > Breve		SAME
+Equation	Accent > Tilde		SAME
+Equation	Accent > Bar		SAME
+Equation	Accent > Vector Arrow		SAME
+Equation	Accent > Overbar		SAME
+Equation	Accent > Underbar		SAME
+Equation	Accent > Overbrace		SAME
+Equation	Accent > Underbrace		SAME
+Equation	Accent > Bar over AB		SAME
+Equation	Accent > x hat		SAME
+Equation	Limit and Log > Logarithm with Base		SAME
+Equation	Limit and Log > Logarithm		SAME
+Equation	Limit and Log > Limit		SAME
+Equation	Limit and Log > Minimum		SAME
+Equation	Limit and Log > Maximum		SAME
+Equation	Limit and Log > Natural Logarithm		SAME
+Equation	Limit and Log > Limit Example		SAME
+Equation	Limit and Log > Maximum Example		SAME
+Equation	Operator > Colon Equal		SAME
+Equation	Operator > Equal by Definition		SAME
+Equation	Operator > Character Above		SAME
+Equation	Operator > Character Below		SAME
+Equation	Operator > Right Arrow with Text Above		SAME
+Equation	Operator > Left Arrow with Text Above		SAME
+Equation	Operator > Long Right Arrow with Text Above		SAME
+Equation	Operator > Double Right Arrow with Text Above		SAME
+Equation	Operator > Double Arrow with Text Above		SAME
+Equation	Operator > Yields		SAME
+Equation	Matrix > 1×2 Empty Matrix		SAME
+Equation	Matrix > 2×1 Empty Matrix		SAME
+Equation	Matrix > 1×3 Empty Matrix		SAME
+Equation	Matrix > 3×1 Empty Matrix		SAME
+Equation	Matrix > 2×2 Empty Matrix		SAME
+Equation	Matrix > 2×3 Empty Matrix		SAME
+Equation	Matrix > 3×2 Empty Matrix		SAME
+Equation	Matrix > 3×3 Empty Matrix		SAME
+Equation	Matrix > Midline Dots		SAME
+Equation	Matrix > Vertical Dots		SAME
+Equation	Matrix > Diagonal Dots		SAME
+Equation	Matrix > 2×2 Identity Matrix		SAME
+Equation	Matrix > 3×3 Identity Matrix		SAME
+Equation	Matrix > Matrix with Parentheses		SAME
+Equation	Matrix > Matrix with Brackets		SAME
+Equation	Matrix > Determinant		SAME
+Equation	Matrix > Two Equations		SAME
+Equation	Matrix > Three Equations		SAME
+Equation	Matrix > Aligned Equations		SAME

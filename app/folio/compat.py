@@ -21,12 +21,34 @@ ISSUES = {
     "bookmarks": ("Bookmark names longer than 40 characters will be shortened.", ("doc",)),
     "tracked_fmt": ("Tracked formatting changes will be accepted.", ("rtf",)),
     "wordart": ("Text effects on shapes will be removed.", ("doc", "rtf", "odt")),
+    # measured against a document holding one of each, saved and read back again (W5-02)
+    "shapes": ("Shapes, text boxes and WordArt will be lost. Pictures are kept.", ("doc", "rtf", "odt")),
+    "tracked": ("Tracked insertions and deletions will become ordinary text, as though they had "
+                "all been accepted.", ("doc", "rtf", "odt")),
+    "controls_all": ("Content controls will be converted to static text.", ("odt",)),
+    "highlight": ("Highlighting will be removed. Shading stays.", ("odt",)),
+    "tables_doc": ("Tables may gain cells or blank paragraphs.", ("doc",)),
 }
+# keys the scan does not count on its own: what they are counted from
+ALIASES = {"controls_all": "controls", "tables_doc": "tbl"}
 
 
 def scan(win):
     """{issue key: occurrences}"""
-    return {k: n for k, n in win.engine.ed.inspect_counts().items() if k in ISSUES and n}
+    counts = win.engine.ed.inspect_counts()
+    found = {k: n for k, n in counts.items() if k in ISSUES and n}
+    for key, src in ALIASES.items():
+        n = counts.get(src, 0) if src != "tbl" else _tables(win)
+        if n:
+            found[key] = n
+    return found
+
+
+def _tables(win):
+    try:
+        return sum(1 for k, _n, _t in win.engine.ed.body_blocks() if k == "tbl")
+    except Exception:       # noqa: BLE001
+        return 0
 
 
 def issues_for(found, fmt):
@@ -94,7 +116,7 @@ def dialog(win, fmt=None, saving=False):
 def check_before_save(win, fmt):
     """Saving in an older format: show the checker when something would be
     lost, as the original does."""
-    if fmt not in ("doc", "rtf") or not win.app.settings.get("check_compat", True):
+    if fmt not in ("doc", "rtf", "odt") or not win.app.settings.get("check_compat", True):
         return True
     if win.engine.ed is None or not issues_for(scan(win), fmt):
         return True

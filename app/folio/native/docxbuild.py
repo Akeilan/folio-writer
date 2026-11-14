@@ -85,6 +85,9 @@ class Doc:
         self.comments = []
         self.meta = {}
         self.tab_stop = 720
+        # what the reader had to leave out, by kind: {"objects": 2}. Page tells the user rather
+        # than dropping it in silence (W5-04).
+        self.dropped = {}
 
     def style(self, sid):
         for s in self.styles:
@@ -446,6 +449,10 @@ class _Writer:
                     out.append('<w:p>%s</w:p>' % ppr_xml({}, sect=last_sect))
                 continue
             inner = []
+            if b.get("ppr", {}).get("colbb"):
+                # Word has no "column break before" property: it is a break at the paragraph's
+                # start (W5-04)
+                inner.append('<w:r><w:br w:type="column"/></w:r>')
             self.runs(part, b.get("runs", []), inner)
             out.append('<w:p>%s%s</w:p>' % (
                 ppr_xml(b.get("ppr", {}), b.get("style"), b.get("rpr"),

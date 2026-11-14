@@ -1551,7 +1551,7 @@ def build_ribbon(win):
         MenuButton(r, "Select\nRecipients", "cmd/lc_addressbooksource", [
             ("Type a New List...", lambda: DM.type_new_list(win)),
             ("Use an Existing List...", lambda: DM.use_existing_list(win)),
-            ("Choose from Outlook Contacts...", lambda: DM.choose_post_contacts(win))],
+            ("Choose from Contacts...", lambda: DM.choose_post_contacts(win))],
             keytip="R"),
         needs(btn("Edit\nRecipient List", "cmd/lc_mailmergeemaildocuments" if False else
                   "cmd/lc_dbviewtables", lambda: DM.edit_recipients(win), size="large",

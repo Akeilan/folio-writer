@@ -159,6 +159,28 @@ class Control:
         pass
 
 
+def _repaint_icons(root):
+    """Every Gtk.Image under `root` drawn from an icon name again, in the Office theme's
+    colours (W5-19). The name is kept on the image when it is made."""
+    n = 0
+    for w in _walk(root):
+        name = getattr(w, "folio_icon", None)
+        if isinstance(w, Gtk.Image) and name:
+            pb = icons.pixbuf(name[0], name[1])
+            if pb is not None:
+                w.set_from_pixbuf(pb)
+                n += 1
+    return n
+
+
+def _walk(w):
+    yield w
+    if isinstance(w, Gtk.Container):
+        for c in w.get_children():
+            for x in _walk(c):
+                yield x
+
+
 class RibbonButton(Gtk.Button, Control):
     """size: 'large' (icon above label), 'small' (icon + label), 'icon'."""
     def __init__(self, ribbon, label, icon, action, size="small", state=None,
@@ -629,6 +651,10 @@ class Ribbon(Gtk.Box):
     __gsignals__ = {
         "file-clicked": (GObject.SignalFlags.RUN_LAST, None, ()),
     }
+
+    def rebuild_icons(self):
+        """Draw every icon in the ribbon again after the Office theme changed (W5-19)."""
+        return _repaint_icons(self)
 
     def __init__(self, runner, focus_document):
         Gtk.Box.__init__(self, orientation=Gtk.Orientation.VERTICAL, spacing=0)
