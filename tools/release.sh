@@ -7,9 +7,24 @@ set -u
 W=/home/claude/folio-writer
 LOGS=${LOGS:-/home/claude/out/page_release_logs}; mkdir -p $LOGS
 PREV=${PREV:-/home/claude/out/folio-writer_2.32.0_amd64.deb}
+SUITE=${SUITE:-/home/claude/foliostudio}   # the suite checkout, for X4-05 and the Wayland harness
+for f in $SUITE/tools/compare-release.sh $SUITE/tests/wl.sh; do
+  [ -f "$f" ] || { echo "missing $f -- is $SUITE on master?"; exit 1; }
+done
+[ -f "$PREV" ] || { echo "missing the upgrade fixture $PREV"; exit 1; }
 /home/claude/mounts.sh
-for d in ${XD:-99} 93 92; do pgrep -f "^Xvfb :$d " >/dev/null || { rm -f /tmp/.X$d-lock /tmp/.X11-unix/X$d; setsid -f Xvfb :$d -screen 0 1600x1000x24 -nolisten tcp </dev/null >/dev/null 2>&1; }; done
-sleep 1
+# Own the three displays outright: a server left behind by an earlier run answers but still
+# holds that run's windows, and synthetic keystrokes then land in the wrong one.
+answers() { chroot /srv/jammy bash -c "DISPLAY=:$1 xdpyinfo" >/dev/null 2>&1; }
+for d in ${XD:-99} 93 92; do
+  pkill -f "^Xvfb :$d " 2>/dev/null; sleep 0.3
+  rm -f /tmp/.X$d-lock /tmp/.X11-unix/X$d
+  setsid -f Xvfb :$d -screen 0 1600x1000x24 -nolisten tcp </dev/null >/dev/null 2>&1
+done
+for d in ${XD:-99} 93 92; do
+  for _i in $(seq 30); do answers $d && break; sleep 0.5; done
+  answers $d || { echo "display :$d would not start"; exit 1; }
+done
 quiet() {  # keep lines that aren't a clean result; count the clean ones
   awk '/ rc=0 pass=[1-9][0-9]* fail=0 err=0( done=1)?$/ || / rc=0 pass=0 fail=0 err=0 done=1$/ || /^theme [a-z]+ rc=0 0 problems/ {ok++; next} / rc=/ {bad++} {print} END {printf "  (%d clean, %d not)\n", ok, bad}'
 }
@@ -31,7 +46,7 @@ NEW=$(grep "folio-page_.*\.deb$" $LOGS/build.log | tail -1); TRANS=$(grep "folio
 for f in "$NEW" "$TRANS"; do [ -f "$f" ] || { echo "build failed"; tail -20 $LOGS/build.log; exit 1; }; cp -f "$f" /home/claude/out/ 2>/dev/null; done
 NEW=/home/claude/out/$(basename $NEW); TRANS=/home/claude/out/$(basename $TRANS); ls -la $NEW $TRANS
 echo "== X4-05: against the app it replaces"
-bash /home/claude/folio-suite/tools/compare-release.sh folio-page /home/claude/folio-writer "$NEW" || \
+bash $SUITE/tools/compare-release.sh folio-page /home/claude/folio-writer "$NEW" || \
   echo "X4-05 FAILED: this candidate shows less than the app it replaces"
 machine() {  # root display
   local m=$1 d=$2 log=$LOGS/$(basename $1).log
@@ -53,7 +68,7 @@ machine() {  # root display
     echo "-- installed tests"
     chroot $m bash -c "DISPLAY=:$d bash /tmp/fw/tools/run_installed_tests.sh" 2>&1 | grep -v "^--- failures$" | quiet
     if [ "$(basename $m)" = noble ]; then
-      cp /home/claude/folio-suite/tests/wl.sh $m/tmp/wl.sh; chmod +x $m/tmp/wl.sh
+      cp $SUITE/tests/wl.sh $m/tmp/wl.sh; chmod +x $m/tmp/wl.sh
       echo "-- Wayland"
       chroot $m bash -c "export DISPLAY=:$d; APP=installed /tmp/wl.sh bash /tmp/fw/tools/run_theme_audit.sh"
       chroot $m bash -c "export DISPLAY=:$d XTEST_DISPLAY=:$d; TESTS='tests/native/n1.py tests/native/n31.py tests/native/n37.py tests/native/n44.py tests/native/n45.py' /tmp/wl.sh bash /tmp/fw/tools/run_installed_tests.sh" 2>&1 | quiet
