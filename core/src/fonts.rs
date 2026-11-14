@@ -30,6 +30,32 @@ pub const SUBSTITUTES: &[(&str, &str)] = &[
     ("wingdings", "OpenSymbol"),
 ];
 
+/// Colour emoji fonts, best first. Whatever the system has: nothing is
+/// downloaded, and a machine with none of them falls back as before.
+const EMOJI_FONTS: &[&str] = &[
+    "Noto Color Emoji",
+    "Twemoji Mozilla",
+    "Segoe UI Emoji",
+    "Apple Color Emoji",
+    "JoyPixels",
+    "EmojiOne Color",
+    "OpenMoji Color",
+];
+
+/// Characters that are drawn as emoji unless something says otherwise: the
+/// pictographic planes. The dingbats and arrows in the BMP are text by
+/// default, as the original draws them, so they are not here.
+pub fn is_emoji(ch: char) -> bool {
+    matches!(ch as u32, 0x1F000..=0x1FAFF | 0x1F0A0..=0x1F0FF)
+}
+
+/// Characters that carry on the emoji before them -- a zero-width joiner, a
+/// variation selector, a skin-tone modifier, a keycap or a tag -- and so must
+/// be shaped with it rather than picked a font of their own.
+pub fn joins_emoji(ch: char) -> bool {
+    matches!(ch as u32, 0x200D | 0xFE0E | 0xFE0F | 0x1F3FB..=0x1F3FF | 0x20E3 | 0xE0020..=0xE007F)
+}
+
 const FALLBACKS: &[&str] = &[
     "Carlito",
     "Liberation Sans",
@@ -110,10 +136,19 @@ impl Font {
     /// Shape `text` at `size` points. Word turns kerning and ligatures off
     /// unless a run asks for them.
     pub fn shape(&self, text: &str, size: f64, kern: bool, ligatures: bool) -> Vec<Glyph> {
+        self.shape_dir(text, size, kern, ligatures, false)
+    }
+
+    /// Shape a stretch of text. `rtl` forces right-to-left, for a bidi run the
+    /// layout has already resolved; otherwise the script decides.
+    pub fn shape_dir(&self, text: &str, size: f64, kern: bool, ligatures: bool, rtl: bool) -> Vec<Glyph> {
         let Some(face) = rustybuzz::Face::from_slice(&self.data, self.index) else { return Vec::new() };
         let mut buf = rustybuzz::UnicodeBuffer::new();
         buf.push_str(text);
         buf.guess_segment_properties();
+        if rtl {
+            buf.set_direction(rustybuzz::Direction::RightToLeft);
+        }
         let tag = rustybuzz::ttf_parser::Tag::from_bytes;
         let mut feats = vec![rustybuzz::Feature::new(tag(b"kern"), kern as u32, ..)];
         if !ligatures {
@@ -133,6 +168,25 @@ impl Font {
                 y_offset: p.y_offset as f64 * scale,
             })
             .collect()
+    }
+
+    /// A glyph's colour picture (CBDT or sbix), as the font stores it: the PNG
+    /// bytes and where it sits, for the pixel size asked for. Fonts that draw
+    /// their emoji as outlines or COLR layers have none.
+    pub fn raster(&self, gid: u16, px: u16) -> Option<RasterGlyph> {
+        let f = ttf_parser::Face::parse(&self.data, self.index).ok()?;
+        let img = f.glyph_raster_image(ttf_parser::GlyphId(gid), px)?;
+        if img.format != ttf_parser::RasterImageFormat::PNG {
+            return None;
+        }
+        Some(RasterGlyph {
+            png: img.data.to_vec(),
+            x: img.x as f64,
+            y: img.y as f64,
+            width: img.width as f64,
+            height: img.height as f64,
+            ppem: if img.pixels_per_em == 0 { 1 } else { img.pixels_per_em },
+        })
     }
 
     /// Advance width of a single character, in points.
@@ -260,6 +314,19 @@ impl FontCache {
     }
 
     /// A font that has `ch`, for text the document's font can't show.
+    /// The colour emoji font the system has, if any.
+    pub fn emoji(&mut self, ch: char) -> Option<Arc<Font>> {
+        for name in EMOJI_FONTS {
+            if self.has_family(name) {
+                let f = self.get(name, false, false);
+                if f.has_char(ch) {
+                    return Some(f);
+                }
+            }
+        }
+        None
+    }
+
     pub fn fallback(&mut self, ch: char, bold: bool, italic: bool) -> Option<Arc<Font>> {
         if self.fallback_ids.is_none() {
             let mut ids = Vec::new();
@@ -280,6 +347,17 @@ impl FontCache {
         }
         None
     }
+}
+
+/// A glyph the font keeps as a colour picture.
+#[derive(Clone, Debug)]
+pub struct RasterGlyph {
+    pub png: Vec<u8>,
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub ppem: u16,
 }
 
 fn make_font(id: usize, family: String, path: PathBuf, index: u32, data: Arc<Vec<u8>>,
