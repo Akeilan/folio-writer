@@ -253,6 +253,15 @@ class DocWindow(Gtk.ApplicationWindow):
                    "table": "insert-table-dialog", "format-painter": ".uno:FormatPaintbrush",
                    "autoformat": "autoformat"}
 
+    def rebuild_icons(self):
+        """The Office theme changed: the icons are drawn again in its colours (W5-19)."""
+        self.build_qat()
+        self.qat.show_all()
+        try:
+            self.ribbon.rebuild_icons()
+        except AttributeError:
+            pass
+
     def build_qat(self):
         qat = self.qat
         for c in qat.get_children():

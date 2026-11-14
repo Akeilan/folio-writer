@@ -11,6 +11,8 @@ import re
 BOUNDARY = set(" \t.,;:!?)]}\"'”’")
 OPENERS = set(" \t([{ \n—–-") | {""}
 SENT_END = re.compile(r"[.!?][\"'”’)\]]*\s+$")
+# ... or … at the end of the words before the caret, allowing for closing quotes
+ELLIPSIS = re.compile(r"(\.\.\.|…)[\"'”’)\]]*\s+$")
 DAYS = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
 WORD = re.compile(r"[\w'’]+$", re.UNICODE)
 
@@ -206,6 +208,17 @@ class AutoCorrect:
                 body = text[:end]
                 token = body[start:]
                 done = True
+        # three dots become an ellipsis wherever they are, not only on their own (W5-20)
+        if self.opt("ac_ellipsis", True):
+            m = re.search(r"(?<!\.)\.\.\.(?!\.)$", body)
+            if m:
+                self._replace(p, m.start(), m.end(), "\u2026")
+                self._note("replace")
+                p, off, text = self._before()
+                end = off - skip
+                body = text[:end]
+                token = body[max(body.rfind(" "), body.rfind("\t")) + 1:]
+                done = True
         # dashes: "word -- word" and "word--word"
         if self.opt("ac_dashes"):
             m = re.search(r"(\w)( ?)--( ?)(\w+)$", body)
@@ -271,6 +284,9 @@ class AutoCorrect:
         if not s.strip():
             return True
         if not SENT_END.search(s):
+            return False
+        # an ellipsis is a pause, not a full stop: "so… what then" keeps its small w (W5-20)
+        if ELLIPSIS.search(s):
             return False
         prev = s.rstrip().split()[-1] if s.split() else ""
         self._load()

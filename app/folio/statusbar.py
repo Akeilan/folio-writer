@@ -135,6 +135,25 @@ class StatusBar(Gtk.Box):
         for w in self.widgets.values():
             w.set_no_show_all(True)
         GLib.idle_add(lambda: (self.apply_items(), False)[1])
+        self.connect("size-allocate", self._fit_to_allocation)
+        self._fitting = False
+
+    # The smallest the bar asks for: enough for the items it always keeps. Without this the
+    # window could never be narrower than the whole row of items (W5-21).
+    MIN_WIDTH = 420
+
+    def do_get_preferred_width(self):
+        minimum, natural = Gtk.Box.do_get_preferred_width(self)
+        return min(minimum, self.MIN_WIDTH), natural
+
+    def _fit_to_allocation(self, _w, alloc):
+        if self._fitting:
+            return
+        self._fitting = True
+        try:
+            self.fit(alloc.width)
+        finally:
+            GLib.idle_add(lambda: (setattr(self, "_fitting", False), False)[1])
 
     # ------------------------------------------------------------ customize
     def enabled(self):
@@ -142,6 +161,37 @@ class StatusBar(Gtk.Box):
         if not isinstance(st, dict):
             st = {}
         return {k: st.get(k, default) for k, _l, default in ITEMS}
+
+    # Word drops status items as the window narrows; Page kept them all, and their widths set
+    # the window's smallest size: 859 px, too wide to put side by side on a 1366 px screen
+    # (W5-21). These go first, least useful first, and come back as the window grows.
+    SHRINK = ["formatted_page", "section", "vpos", "line", "column", "chars", "track",
+              "lang", "words", "page"]
+
+    def fit(self, width):
+        """Show as many status items as the width allows."""
+        on = self.enabled()
+        hidden = 0
+        for k in self.SHRINK:
+            w = self.widgets.get(k)
+            if w is None or not on.get(k):
+                continue
+            if self.get_preferred_width()[0] <= width:
+                break
+            if w.get_visible():
+                w.hide()
+                hidden += 1
+        for k in reversed(self.SHRINK):
+            w = self.widgets.get(k)
+            if w is None or not on.get(k) or w.get_visible():
+                continue
+            w.set_no_show_all(False)
+            w.show_all()
+            w.set_no_show_all(True)
+            if self.get_preferred_width()[0] > width:
+                w.hide()
+                break
+        return hidden
 
     def apply_items(self):
         on = self.enabled()

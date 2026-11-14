@@ -20,10 +20,14 @@
 @define-color backstage_bg #ffffff;
 @define-color backstage_nav #2e6b3f;
 
-/* ---------- chrome typeface: compact, like a desktop office suite ---------- */
+/* ---------- chrome typeface: compact, like a desktop office suite ----------
+   Carlito comes with Page, so the ribbon measures the same on every machine. It used to take
+   whichever of these the computer happened to have, and each is a different height: the ribbon
+   came out 96 px here, 101 px with DejaVu Sans and 107 px with Noto Sans, which Ubuntu and
+   Zorin ship, pushing the groups out of the band they are drawn in (W5-13). */
 .folio-ribbon, .folio-tabs, .folio-status, .folio-titlebar, .folio-backstage,
 .folio-pane, .folio-dialog, .folio-eqbar, popover, menu, .folio-menu {
-  font-family: "Segoe UI", "Noto Sans", "Open Sans", "Ubuntu", sans-serif;
+  font-family: "Carlito", "Segoe UI", "Noto Sans", "Open Sans", "Ubuntu", sans-serif;
   font-size: 9pt;
 }
 .folio-tab { font-size: 9.5pt; }
@@ -255,25 +259,6 @@
   font-size: 1.15em; min-height: 28px; border-radius: 2px; }
 .folio-eq-error { color: #a4262c; font-size: 0.85em; padding-left: 36px; }
 
-/* ---------- Office themes ---------- */
-.theme-darkgray .folio-ribbon, .theme-darkgray .folio-tabs, .theme-darkgray .folio-status
-  { background: #444444; color: #f0f0f0; }
-.theme-darkgray .folio-btn, .theme-darkgray .folio-tab, .theme-darkgray .folio-caption,
-.theme-darkgray .folio-status button { color: #f0f0f0; }
-.theme-darkgray .folio-btn:hover, .theme-darkgray .folio-tab:hover { background: #5a5a5a; }
-.theme-darkgray .folio-canvas { background: #666666; }
-.theme-darkgray .folio-titlebar { background: #262626; }
-.theme-black .folio-ribbon, .theme-black .folio-tabs, .theme-black .folio-status
-  { background: #262626; color: #f0f0f0; }
-.theme-black .folio-btn, .theme-black .folio-tab, .theme-black .folio-caption,
-.theme-black .folio-status button { color: #f0f0f0; }
-.theme-black .folio-btn:hover, .theme-black .folio-tab:hover { background: #3c3c3c; }
-.theme-black .folio-canvas { background: #1f1f1f; }
-.theme-black .folio-titlebar { background: #000000; }
-.theme-white .folio-titlebar { background: #ffffff; color: #262626; }
-.theme-white .folio-titlebar label.title, .theme-white .folio-titlebar button { color: #262626; }
-.theme-white .folio-ribbon, .theme-white .folio-tabs { background: #ffffff; }
-
 popover.folio-keytip-pop { padding: 0; border: none; background: transparent; box-shadow: none; }
 
 /* ---------- comment balloons ---------- */
@@ -479,3 +464,62 @@ headerbar.default-decoration button.titlebutton, headerbar.default-decoration:ba
   color: #262626; -gtk-icon-shadow: none; }
 headerbar.default-decoration button.titlebutton:hover { background-color: #e1e1e1; }
 headerbar.default-decoration button.titlebutton.close:hover { background-color: #e81123; color: #ffffff; }
+
+/* ---------- Office themes (File > Options > Office Theme) ----------
+   These come last on purpose. The "light chrome" rules above paint every ribbon label, image
+   and caption dark so a dark desktop theme cannot show through; a dark Office theme has to
+   win over them, which it did not, so Black and Dark Gray showed dark text on dark chrome and
+   White lost its title-bar icons (W5-19). Each theme names the same surfaces the light block
+   names. */
+.theme-darkgray .folio-ribbon, .theme-darkgray .folio-tabs, .theme-darkgray .folio-status,
+.theme-darkgray .folio-minibar, .theme-darkgray .folio-backstage-side
+  { background: #444444; color: #f0f0f0; }
+.theme-darkgray .folio-ribbon label, .theme-darkgray .folio-tabs label,
+.theme-darkgray .folio-status label, .theme-darkgray .folio-ribbon checkbutton label,
+.theme-darkgray .folio-ribbon radiobutton label, .theme-darkgray .folio-ribbon checkbutton,
+.theme-darkgray .folio-ribbon radiobutton, .theme-darkgray .folio-btn,
+.theme-darkgray .folio-tab, .theme-darkgray .folio-caption,
+.theme-darkgray .folio-status button, .theme-darkgray .folio-minibar label
+  { color: #f0f0f0; text-shadow: none; }
+.theme-darkgray .folio-ribbon image, .theme-darkgray .folio-tabs image,
+.theme-darkgray .folio-status image, .theme-darkgray .folio-minibar image { color: #e4e4e4; }
+.theme-darkgray .folio-tab.active, .theme-darkgray .folio-tab.active label { color: #ffffff; }
+.theme-darkgray .folio-tab.contextual, .theme-darkgray .folio-tab.contextual label { color: #ffc083; }
+.theme-darkgray .folio-btn:hover, .theme-darkgray .folio-tab:hover { background: #5a5a5a; }
+.theme-darkgray .folio-canvas { background: #666666; }
+.theme-darkgray .folio-titlebar { background: #262626; }
+.theme-darkgray .folio-ruler { background: #4e4e4e; color: #e0e0e0; }
+.theme-darkgray .folio-gallery { border-color: #5a5a5a; }
+
+.theme-black .folio-ribbon, .theme-black .folio-tabs, .theme-black .folio-status,
+.theme-black .folio-minibar, .theme-black .folio-backstage-side
+  { background: #262626; color: #f0f0f0; }
+.theme-black .folio-ribbon label, .theme-black .folio-tabs label,
+.theme-black .folio-status label, .theme-black .folio-ribbon checkbutton label,
+.theme-black .folio-ribbon radiobutton label, .theme-black .folio-ribbon checkbutton,
+.theme-black .folio-ribbon radiobutton, .theme-black .folio-btn,
+.theme-black .folio-tab, .theme-black .folio-caption,
+.theme-black .folio-status button, .theme-black .folio-minibar label
+  { color: #f0f0f0; text-shadow: none; }
+.theme-black .folio-ribbon image, .theme-black .folio-tabs image,
+.theme-black .folio-status image, .theme-black .folio-minibar image { color: #e4e4e4; }
+.theme-black .folio-tab.active, .theme-black .folio-tab.active label { color: #ffffff; }
+.theme-black .folio-tab.contextual, .theme-black .folio-tab.contextual label { color: #ffc083; }
+.theme-black .folio-btn:hover, .theme-black .folio-tab:hover { background: #3c3c3c; }
+.theme-black .folio-canvas { background: #1f1f1f; }
+.theme-black .folio-titlebar { background: #000000; }
+.theme-black .folio-ruler { background: #333333; color: #e0e0e0; }
+.theme-black .folio-gallery { border-color: #4a4a4a; }
+
+/* White: a light title bar, so its words and icons have to turn dark with it */
+.theme-white .folio-titlebar { background: #ffffff; color: #262626; border-bottom: 1px solid #d4d4d4; }
+.theme-white .folio-titlebar label, .theme-white .folio-titlebar label.title,
+.theme-white .folio-titlebar button { color: #262626; text-shadow: none; }
+.theme-white .folio-titlebar image, .theme-white .folio-titlebar button image { color: #444444; }
+.theme-white .folio-titlebar button:hover { background: alpha(#000000, 0.08); }
+.theme-white .folio-titlebar button:active { background: alpha(#000000, 0.16); }
+.theme-white .folio-titlebar button.titlebutton.close:hover { background: #e81123; }
+.theme-white .folio-titlebar button.titlebutton.close:hover image { color: #ffffff; }
+.theme-white .folio-titlebar entry.folio-search { background: #f3f3f3; color: #262626;
+  border: 1px solid #d0d0d0; }
+.theme-white .folio-ribbon, .theme-white .folio-tabs { background: #ffffff; }

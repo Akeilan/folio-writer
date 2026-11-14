@@ -139,6 +139,8 @@ class FolioApp(Gtk.Application):
 
     def apply_theme(self):
         theme = self.settings.get("theme", "Colorful")
+        from . import icons
+        icons.set_theme(theme)
         screen = Gdk.Screen.get_default()
         for w in self.windows:
             ctx = w.get_style_context()
@@ -146,6 +148,10 @@ class FolioApp(Gtk.Application):
                 ctx.remove_class(t)
             if theme != "Colorful":
                 ctx.add_class("theme-" + theme.lower().replace(" ", ""))
+            try:
+                w.rebuild_icons()
+            except Exception as e:      # noqa: BLE001
+                print("theme icons:", e)
 
     # -------------------------------------------------------- templates
     def user_template_path(self):
