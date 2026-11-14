@@ -3,6 +3,7 @@ tables, for the new engine's paste: headings, paragraphs, line breaks, lists, bo
 underline / strike / super- and subscript, fonts, colours and sizes from inline styles, links
 (as HYPERLINK fields) and tables."""
 import html
+import os
 import re
 from html.parser import HTMLParser
 
@@ -51,9 +52,65 @@ def _esc(t):
     return html.escape(t, quote=False)
 
 
+# numbering ids for lists read from a page, kept clear of a document's own
+NUM_BULLET, NUM_NUMBER = 971, 972
+
+HIGHLIGHTS = {"FFFF00": "yellow", "00FF00": "green", "00FFFF": "cyan", "FF00FF": "magenta",
+              "0000FF": "blue", "FF0000": "red", "000080": "darkBlue", "008080": "darkCyan",
+              "008000": "darkGreen", "800080": "darkMagenta", "800000": "darkRed",
+              "808000": "darkYellow", "808080": "darkGray", "C0C0C0": "lightGray",
+              "000000": "black", "FFFFFF": "white"}
+
+
+def _image_bytes(src, base):
+    """The bytes and extension of an <img src>: a data: URI, or a file beside
+    the page. Nothing is fetched over the network."""
+    import base64 as _b64
+    if not src:
+        return None, ""
+    if src.startswith("data:"):
+        head, _sep, payload = src.partition(",")
+        if not _sep or ";base64" not in head:
+            return None, ""
+        ext = head[5:].split(";")[0].split("/")[-1].lower() or "png"
+        try:
+            return _b64.b64decode(payload), ext
+        except (ValueError, TypeError):
+            return None, ""
+    if re.match(r"[a-zA-Z][\w+.-]*:", src):
+        return None, ""          # http and friends: not fetched
+    if not base:
+        return None, ""
+    from urllib.parse import unquote
+    path = os.path.normpath(os.path.join(base, unquote(src)))
+    if not path.startswith(os.path.normpath(base)) or not os.path.isfile(path):
+        return None, ""
+    try:
+        with open(path, "rb") as fh:
+            return fh.read(), os.path.splitext(path)[1].lstrip(".").lower() or "png"
+    except OSError:
+        return None, ""
+
+
+def _pixels(data, ext):
+    try:
+        from PIL import Image
+        import io as _io
+        with Image.open(_io.BytesIO(data)) as im:
+            return im.size
+    except Exception:      # noqa: BLE001
+        return (0, 0) if ext != "svg" else (96, 96)
+
+
 class _Conv(HTMLParser):
-    def __init__(self, styles):
+    def __init__(self, styles, base=""):
         super().__init__(convert_charrefs=True)
+        self.base = base              # the folder the page was read from
+        self.media = []               # (name, bytes) for the pictures found
+        self.hrefs = []               # link targets, when they go in as relationships
+        self.rel_links = False        # a whole page: links as w:hyperlink, not fields
+        self.numbered = set()         # list kinds used, when real lists can be made
+        self.real_lists = False
         self.styles = styles          # paragraph style ids in the document
         self.out = []                 # finished block XML
         self.runs = []                # runs of the paragraph being built
@@ -97,12 +154,58 @@ class _Conv(HTMLParser):
         if f.get("size"):
             parts.append('<w:sz w:val="%d"/>' % int(round(f["size"] * 2)))
         if f.get("hl"):
-            parts.append('<w:shd w:val="clear" w:color="auto" w:fill="%s"/>' % f["hl"])
+            name = HIGHLIGHTS.get(str(f["hl"]).upper())
+            if name:
+                parts.append('<w:highlight w:val="%s"/>' % name)
+            else:
+                parts.append('<w:shd w:val="clear" w:color="auto" w:fill="%s"/>' % f["hl"])
         if f.get("u"):
             parts.append('<w:u w:val="single"/>')
         if f.get("va"):
             parts.append('<w:vertAlign w:val="%s"/>' % f["va"])
         return "<w:rPr>%s</w:rPr>" % "".join(parts) if parts else ""
+
+    def _image(self, a):
+        data, ext = _image_bytes(a.get("src", ""), self.base)
+        if not data:
+            return False
+        ext = {"jpeg": "jpg", "svg+xml": "svg"}.get(ext, ext)
+        if ext not in ("png", "jpg", "gif", "bmp", "tiff", "webp", "svg"):
+            return False
+        px_w, px_h = _pixels(data, ext)
+        def _num(v):
+            m = re.match(r"\s*(\d+(?:\.\d+)?)", str(v or ""))
+            return float(m.group(1)) if m else 0.0
+        w = _num(a.get("width")) or _num(_style(a.get("style")).get("width"))
+        h = _num(a.get("height")) or _num(_style(a.get("style")).get("height"))
+        if w and not h and px_w:
+            h = w * px_h / px_w
+        if h and not w and px_h:
+            w = h * px_w / px_h
+        if not w or not h:
+            w, h = px_w or 96, px_h or 96
+        # the page gives pixels; a picture is placed at 96 to the inch
+        cx, cy = int(w * 9525), int(h * 9525)
+        if cx <= 0 or cy <= 0:
+            return False
+        self.media.append((len(self.media) + 1, data, ext))
+        n = len(self.media)
+        rid = "rIdHtml%d" % n
+        oid = 1000 + n
+        descr = _esc(a.get("alt", ""))
+        self.runs.append(
+            '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
+            '<wp:extent cx="%d" cy="%d"/><wp:effectExtent l="0" t="0" r="0" b="0"/>'
+            '<wp:docPr id="%d" name="Picture %d" descr="%s"/><wp:cNvGraphicFramePr>'
+            '<a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+            '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            '<pic:pic><pic:nvPicPr><pic:cNvPr id="%d" name="Picture %d" descr="%s"/><pic:cNvPicPr/></pic:nvPicPr>'
+            '<pic:blipFill><a:blip r:embed="%s"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+            '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="%d" cy="%d"/></a:xfrm>'
+            '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>'
+            '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>'
+            % (cx, cy, oid, n, descr, oid, n, descr, rid, cx, cy))
+        return True
 
     def _text(self, t):
         if not t:
@@ -144,16 +247,22 @@ class _Conv(HTMLParser):
             f["color"] = _color(st["color"])
         if a.get("color") and _color(a["color"]):
             f["color"] = _color(a["color"])
-        if st.get("background-color") and _color(st["background-color"]) and tag not in ("td", "th", "table", "tr"):
-            f["hl"] = _color(st["background-color"])
+        bg = st.get("background-color") or (st.get("background") or "").split()[0] if (
+            st.get("background-color") or st.get("background")) else ""
+        if bg and _color(bg) and tag not in ("td", "th", "table", "tr"):
+            f["hl"] = _color(bg)
         if st.get("font-size") and _size_pt(st["font-size"]):
             f["size"] = _size_pt(st["font-size"])
         if tag == "a" and a.get("href"):
             f["u"] = True
             f["color"] = "0563C1"
-            self.link.append(a["href"])
-            self.runs.append('<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> HYPERLINK "%s" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>'
-                             % html.escape(a["href"]))
+            if self.rel_links:
+                # remember where this link's runs start; they are wrapped on </a>
+                self.link.append((a["href"], len(self.runs)))
+            else:
+                self.link.append(a["href"])
+                self.runs.append('<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> HYPERLINK "%s" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+                                 % html.escape(a["href"]))
         self.fmt.append(f)
         if tag == "br":
             self.runs.append("<w:r><w:br/></w:r>")
@@ -171,7 +280,15 @@ class _Conv(HTMLParser):
                 kind[1] += 1
                 sid = "ListBullet" if kind[0] == "ul" else "ListNumber"
                 self.ppr = self._style_ppr(sid)
-                if self.ppr is None:
+                if self.ppr is None and self.real_lists:
+                    # a real list, numbered by the document rather than typed in
+                    which = "bullet" if kind[0] == "ul" else "number"
+                    self.numbered.add(which)
+                    lvl = min(len(self.lists) - 1, 8)
+                    self.ppr = ('<w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr>'
+                                '<w:ilvl w:val="%d"/><w:numId w:val="%d"/></w:numPr></w:pPr>'
+                                % (lvl, NUM_BULLET if which == "bullet" else NUM_NUMBER))
+                elif self.ppr is None:
                     lvl = len(self.lists) - 1
                     self.ppr = '<w:pPr><w:ind w:left="%d" w:hanging="360"/></w:pPr>' % (720 * (lvl + 1))
                     self._text(("•\t" if kind[0] == "ul" else "%d.\t" % kind[1]))
@@ -199,9 +316,8 @@ class _Conv(HTMLParser):
             if tag == "th":
                 self.fmt[-1]["b"] = True
         elif tag == "img":
-            alt = a.get("alt")
-            if alt:
-                self._text("[%s]" % alt)
+            if not self._image(a) and a.get("alt"):
+                self._text("[%s]" % a["alt"])
 
     def handle_endtag(self, tag):
         if tag in SKIP:
@@ -218,8 +334,17 @@ class _Conv(HTMLParser):
 
     def _close(self, tag):
         if tag == "a" and self.link:
-            self.link.pop()
-            self.runs.append('<w:r><w:fldChar w:fldCharType="end"/></w:r>')
+            top = self.link.pop()
+            if self.rel_links:
+                href, at = top
+                self.hrefs.append(href)
+                inner = "".join(self.runs[at:])
+                del self.runs[at:]
+                if inner:
+                    self.runs.append('<w:hyperlink r:id="rIdHtmlLink%d">%s</w:hyperlink>'
+                                     % (len(self.hrefs), inner))
+            else:
+                self.runs.append('<w:r><w:fldChar w:fldCharType="end"/></w:r>')
         elif tag in ("ul", "ol"):
             self._flush()
             if self.lists:
@@ -312,3 +437,16 @@ def to_fragment(text, styles=()):
     c.feed(text)
     c.close()
     return "".join(c.out)
+
+
+def to_document(text, styles=(), base=""):
+    """Body XML, the pictures [(index, bytes, ext)] and the link targets of a
+    whole page. Links come back as w:hyperlink, so the caller adds a
+    relationship rIdHtmlLink<n> for each target, in order."""
+    c = _Conv(set(styles), base)
+    c.rel_links = True
+    c.real_lists = True
+    c.feed(text)
+    c.close()
+    c._flush()
+    return "".join(c.out), c.media, c.hrefs, c.numbered
