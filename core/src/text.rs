@@ -220,6 +220,21 @@ pub fn shape_bidi(fonts: &mut FontCache, styles: &StyleSheet, r: &RunProps, styl
     let mut fid: Vec<Arc<Font>> = Vec::with_capacity(chars.len());
     let mut last: Option<(String, Arc<Font>)> = None;
     for (i, &c) in chars.iter().enumerate() {
+        // a joiner, variation selector or skin-tone modifier belongs to the
+        // emoji before it: same font, so the sequence shapes as one glyph
+        if i > 0 && crate::fonts::joins_emoji(c) {
+            let f = fid[i - 1].clone();
+            fid.push(f);
+            continue;
+        }
+        // an emoji is drawn with the colour emoji font, not with whichever
+        // text font happens to carry a black and white version of it
+        if crate::fonts::is_emoji(c) {
+            if let Some(f) = fonts.emoji(c) {
+                fid.push(f);
+                continue;
+            }
+        }
         let fam = family_for(styles, r, c);
         let base = match &last {
             Some((f, font)) if *f == fam => font.clone(),
