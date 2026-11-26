@@ -1099,6 +1099,23 @@ class Reader:
         else:
             runs.append({"t": "cend", "id": cid})
 
+    def chart_of(self, obj):
+        """The chart model of an embedded object, or None when it isn't a chart (W5-04)."""
+        if obj is None or self.zip is None:
+            return None
+        href = (A(obj, "xlink:href", "") or "").lstrip("./").rstrip("/")
+        if not href:
+            return None
+        try:
+            content = self.zip.read(href + "/content.xml")
+        except KeyError:
+            return None
+        from . import odfchart
+        try:
+            return odfchart.read(content)
+        except Exception:       # noqa: BLE001 - a chart that can't be read is reported, as before
+            return None
+
     def frame(self, fr, runs, rpr, para):
         w = twips(A(fr, "svg:width"), 1440) or 1440
         h = twips(A(fr, "svg:height"), 1440) or 1440
@@ -1109,7 +1126,10 @@ class Reader:
             blocks = self.blocks(tb)
             self.extra_after.extend(blocks)
             return
-        obj = fr.find(q("draw:object")) or fr.find(q("draw:object-ole"))
+        obj = fr.find(q("draw:object"))
+        if obj is None:
+            obj = fr.find(q("draw:object-ole"))
+        chart = self.chart_of(obj)
         pick = None
         for im in imgs:
             href = A(im, "xlink:href", "") or ""
@@ -1136,6 +1156,13 @@ class Reader:
                 break
             if pick is None and ext:
                 pick = (data, ext)
+        if chart is not None:
+            r = {"t": "chart", "model": chart, "cx": w * B.EMU_PER_TWIP, "cy": h * B.EMU_PER_TWIP,
+                 "name": A(fr, "draw:name") or "", "rpr": {}}
+            self.place(fr, r, anchor)
+            runs.append(r)
+            self.ws_space = False
+            return
         if pick is None:
             if obj is not None:
                 # An embedded object - a chart or a drawing made in another program. Its only
@@ -1152,6 +1179,12 @@ class Reader:
         r = {"t": "image", "data": data, "ext": ext, "cx": w * B.EMU_PER_TWIP, "cy": h * B.EMU_PER_TWIP,
              "name": A(fr, "draw:name") or "", "descr": (desc.text if desc is not None else None) or
              (title.text if title is not None else "") or "", "rpr": {}}
+        self.place(fr, r, anchor)
+        runs.append(r)
+        self.ws_space = False
+
+    def place(self, fr, r, anchor):
+        """Where a picture or a chart sits: in line, or anchored with its wrapping."""
         if anchor in ("paragraph", "char", "page"):
             gs = self.merged_graphic(A(fr, "draw:style-name"))
             wrap = "square"
@@ -1183,8 +1216,6 @@ class Reader:
             r["anchor"] = {"wrap": wrap, "behind": behind, "hrel": hrel, "vrel": vrel,
                            "x": x * B.EMU_PER_TWIP, "y": y * B.EMU_PER_TWIP,
                            "halign": halign, "valign": valign if vrel != "paragraph" else None}
-        runs.append(r)
-        self.ws_space = False
 
     def merged_graphic(self, name):
         """A graphic style with what it inherits, as one style:graphic-properties element."""

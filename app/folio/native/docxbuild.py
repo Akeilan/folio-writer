@@ -344,6 +344,8 @@ class _Writer:
                 out.append('<w:r>%s<w:br w:type="column"/></w:r>' % rp)
             elif t == "image":
                 out.append('<w:r>%s%s</w:r>' % (rp, self.image(part, r)))
+            elif t == "chart":
+                out.append('<w:r>%s%s</w:r>' % (rp, self.chart(part, r)))
             elif t == "note":
                 lst = self.footnotes if r.get("kind") != "endnote" else self.endnotes
                 nid = len(lst) + 1
@@ -394,6 +396,29 @@ class _Writer:
                 bid = self.bm_ids.setdefault(r["name"], len(self.bm_ids))
                 out.append('<w:bookmarkEnd w:id="%d"/>' % bid)
 
+    def chart(self, part, r):
+        """A chart from a converted file (an .odt's, W5-04): its chart part with the values
+        cached in it, the workbook holding its data, and the drawing that shows it."""
+        from . import charts
+        m = r["model"]
+        n = sum(1 for k in self.files if k.startswith("word/charts/chart")) + 1
+        name = "charts/chart%d.xml" % n
+        book = "embeddings/Microsoft_Excel_Worksheet%d.xlsx" % n
+        self.files["word/" + book] = charts.workbook(m["data"])
+        self.files["word/" + name] = charts.write(m).encode()
+        self.files["word/charts/_rels/chart%d.xml.rels" % n] = (
+            HDR + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="%spackage" Target="../%s"/></Relationships>' % (REL, book)).encode()
+        self.media_types.add("xlsx")
+        self.overrides.append(("/word/" + name, "application/vnd.openxmlformats-officedocument.drawingml.chart+xml"))
+        rid = part.rel("chart", name)
+        oid = self.obj_id
+        self.obj_id += 1
+        graphic = ('<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">'
+                   '<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="%s"/>'
+                   '</a:graphicData></a:graphic>' % rid)
+        return self.drawing(r, oid, esc(r.get("name") or "Chart %d" % oid), "", graphic, lock=False)
+
     def image(self, part, r):
         self.media += 1
         ext = (r.get("ext") or "png").lower().replace("jpeg", "jpg")
@@ -412,6 +437,10 @@ class _Writer:
                    '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="%d" cy="%d"/></a:xfrm>'
                    '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic>'
                    % (oid, nm, descr, rid, cx, cy))
+        return self.drawing(r, oid, nm, descr, graphic)
+
+    def drawing(self, r, oid, nm, descr, graphic, lock=True):
+        cx, cy = int(r["cx"]), int(r["cy"])
         if r.get("anchor"):
             a = r["anchor"]
             wrap = {"square": '<wp:wrapSquare wrapText="bothSides"/>', "none": '<wp:wrapNone/>',
@@ -431,9 +460,9 @@ class _Writer:
                        cx, cy, wrap, oid, nm, descr, graphic))
         return ('<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
                 '<wp:extent cx="%d" cy="%d"/><wp:effectExtent l="0" t="0" r="0" b="0"/>'
-                '<wp:docPr id="%d" name="%s" descr="%s"/><wp:cNvGraphicFramePr>'
-                '<a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>%s</wp:inline></w:drawing>'
-                % (cx, cy, oid, nm, descr, graphic))
+                '<wp:docPr id="%d" name="%s" descr="%s"/><wp:cNvGraphicFramePr>%s</wp:cNvGraphicFramePr>%s'
+                '</wp:inline></w:drawing>'
+                % (cx, cy, oid, nm, descr, '<a:graphicFrameLocks noChangeAspect="1"/>' if lock else "", graphic))
 
     # ---- blocks
     def blocks(self, part, blocks, out, last_sect=None):
@@ -809,7 +838,7 @@ class _Writer:
                       % ("".join(parts), esc(created), esc(m.get("modified") or now)))
 
     def types_xml(self):
-        mt = {"png": "image/png", "jpg": "image/jpeg", "gif": "image/gif", "bmp": "image/bmp",
+        mt = {"xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "png": "image/png", "jpg": "image/jpeg", "gif": "image/gif", "bmp": "image/bmp",
               "tif": "image/tiff", "tiff": "image/tiff", "svg": "image/svg+xml", "emf": "image/x-emf",
               "wmf": "image/x-wmf"}
         out = [HDR, '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'

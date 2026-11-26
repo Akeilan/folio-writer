@@ -54,7 +54,7 @@ def dropped_note(dropped):
     n = (dropped or {}).get("objects") or 0
     if not n:
         return None
-    return ("This file holds %d embedded object%s - a chart or a drawing made in another "
+    return ("This file holds %d embedded object%s - a drawing or a formula made in another "
             "program. %s can't show %s: the file carries only a preview picture that no "
             "program outside the one that made it can read. The rest of the document is here."
             % (n, "" if n == 1 else "s", "Folio Page", "it" if n == 1 else "them"))
