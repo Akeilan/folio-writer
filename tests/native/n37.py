@@ -105,16 +105,17 @@ def a():
     cols, rows, inc = MM.recipients(win)
     check("contacts become the recipient list (group Team: 2)", cols == MM.CONTACT_COLUMNS and len(rows) == 2, (cols, rows))
     check("names split", rows[0]["First Name"] == "Ann" and rows[0]["Last Name"] == "Smith" and rows[1]["First Name"] == "Cy" and rows[1]["Company Name"] == "Lee & Co", rows)
-    # ---- without Folio Post: says it needs it
+    # ---- with no mail program at all (Folio Post was discontinued): says one is needed (W5-11)
     os.environ["PATH"] = os.environ["PATH"].replace(BIN + ":", "")
     msgs.clear()
-    real_find = MM.post_program
-    MM.post_program = lambda *a, **k: None   # as if Post weren't installed (the test machines have it)
+    real_find, real_mail = MM.post_program, MM.mail_program
+    MM.post_program = lambda *a, **k: None
+    MM.mail_program = lambda *a, **k: None
     try:
         dlg_mail.send_email(win)
     finally:
-        MM.post_program = real_find
-    check("without Post: needs Folio Post", any("Folio Post" in str(x) for x in msgs), msgs)
+        MM.post_program, MM.mail_program = real_find, real_mail
+    check("without a mail program: says one is needed", any("needs a mail program" in str(x) for x in msgs), msgs)
     ed.mark_saved()
 
 
