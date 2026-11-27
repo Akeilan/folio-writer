@@ -34,7 +34,7 @@ GALLERIES = [
         ("fr_nobar", "Fraction without Bar", "(⬚¦⬚)"),
         ("#", "Common Fractions", None),
         ("fr_dydx", "dy over dx", "dy/dx"),
-        ("fr_DyDx", "Delta y over Delta x", "Δy/Δx"),
+        ("fr_deltayx", "Delta y over Delta x", "Δy/Δx"),
         ("fr_partial", "Partial y over partial x", "∂y/∂x"),
         ("fr_delta", "delta y over delta x", "δy/δx"),
         ("fr_pi2", "Pi over 2", "π/2"),
