@@ -4,6 +4,7 @@ paragraphs in order, the next misspelling or grammar issue from the caret, the t
 import glob
 import os
 import re
+from .. import folio_os
 
 from . import spell
 
@@ -136,7 +137,7 @@ def _thesaurus(lang):
     if tag in _TH:
         return _TH[tag]
     th = None
-    for d in ("/usr/share/mythes", "/usr/share/myspell/dicts", "/usr/share/hunspell"):
+    for d in folio_os.dict_dirs():
         for pat in ("th_%s_v2.idx" % tag, "th_%s*.idx" % tag, "th_%s*.idx" % tag.split("_")[0]):
             hits = sorted(glob.glob(os.path.join(d, pat)))
             if hits:

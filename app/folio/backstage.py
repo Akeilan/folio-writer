@@ -8,7 +8,7 @@ import tempfile
 
 from gi.repository import GdkPixbuf, GLib, Gtk, Pango
 
-from . import APP_NAME, SHARE, icons
+from . import APP_NAME, SHARE, folio_os, icons
 from . import modelapi
 
 NAV = [("back", None), ("home", "Home"), ("new", "New"), ("open", "Open"), None,
@@ -279,7 +279,7 @@ class Backstage(Gtk.Box):
         p = row.path
         pop = menu_popover(lb, [
             ("Open", lambda: self._open_path(p)),
-            ("Open Containing Folder", lambda: subprocess.Popen(["xdg-open", os.path.dirname(p)])),
+            ("Open Containing Folder", lambda: folio_os.show_in_folder(p)),
             ("Unpin from List" if p in self.win.app.pinned() else "Pin to List",
              lambda: (self.win.app.toggle_pin(p), self.nav(self.current or "home"))),
             ("Copy Path to Clipboard", lambda: Gtk.Clipboard.get(
@@ -411,7 +411,7 @@ class Backstage(Gtk.Box):
             box.pack_start(p, False, False, 0)
             ob = Gtk.Box(spacing=8)
             loc = Gtk.Button(label="Open File Location")
-            loc.connect("clicked", lambda *_: subprocess.Popen(["xdg-open", os.path.dirname(eng.path)]))
+            loc.connect("clicked", lambda *_: folio_os.show_in_folder(eng.path))
             ob.pack_start(loc, False, False, 0)
             box.pack_start(ob, False, False, 0)
         cols = Gtk.Box(spacing=40)
@@ -847,7 +847,7 @@ class Backstage(Gtk.Box):
         if eng.save_as(path, "pdf", keep=False, filter_data=fd):
             self.close()
             if oa:
-                subprocess.Popen(["xdg-open", path])
+                folio_os.open_path(path)
         else:
             self.win.dialogs.message("The PDF couldn't be created.")
 
@@ -911,6 +911,9 @@ class Backstage(Gtk.Box):
     def _printers(self):
         out = []
         default = None
+        if folio_os.WINDOWS:
+            out = folio_os.printers()
+            return out, (out[0] if out else None)
         try:
             r = subprocess.run(["lpstat", "-e"], capture_output=True, text=True, timeout=5)
             out = [l.strip() for l in r.stdout.splitlines() if l.strip()]
@@ -1082,7 +1085,7 @@ class Backstage(Gtk.Box):
             import gi
             gi.require_version("Poppler", "0.18")
             from gi.repository import Poppler
-            self.pv_doc = Poppler.Document.new_from_file("file://" + path, None)
+            self.pv_doc = Poppler.Document.new_from_file(folio_os.file_uri(path), None)
             n = self.pv_doc.get_n_pages()
         except Exception:
             self.pv_doc = None
@@ -1125,6 +1128,60 @@ class Backstage(Gtk.Box):
                   "A4": "A4", "A5": "A5", "B5 (JIS)": "B5", "Tabloid": "Tabloid",
                   "Envelope #10": "Env10", "Envelope DL": "EnvDL"}
 
+    def _print_windows(self, pdf, printer, copies, rng, pages, collate):
+        """Windows: the prepared PDF printed through Windows' own printing (GTK's print
+        operation), page by page, on the printer and with the copies already chosen."""
+        try:
+            import gi
+            gi.require_version("Poppler", "0.18")
+            from gi.repository import Poppler
+            doc = Poppler.Document.new_from_file(folio_os.file_uri(pdf), None)
+        except Exception as e:       # noqa: BLE001
+            self.win.dialogs.message("The document couldn't be prepared for printing. (%s)" % e)
+            return False
+        n = doc.get_n_pages()
+        if rng == "current":
+            want = [min(n - 1, max(0, self.win.engine.ed.caret_page()))]
+        elif rng == "custom" and pages.strip():
+            want = []
+            for part in pages.replace(" ", "").split(","):
+                a, _, b = part.partition("-")
+                try:
+                    lo, hi = int(a), int(b or a)
+                except ValueError:
+                    continue
+                want += [i - 1 for i in range(lo, hi + 1) if 1 <= i <= n]
+        else:
+            want = list(range(n))
+        if not want:
+            self.win.dialogs.message("Those pages aren't in the document.")
+            return False
+        op = Gtk.PrintOperation()
+        ps = Gtk.PrintSettings()
+        if printer:
+            ps.set_printer(printer)
+        ps.set_n_copies(max(1, int(copies)))
+        ps.set_collate(bool(collate))
+        op.set_print_settings(ps)
+        op.set_n_pages(len(want))
+        op.set_use_full_page(True)
+        op.set_unit(Gtk.Unit.POINTS)
+
+        def draw(_op, ctx, i):
+            page = doc.get_page(want[i])
+            w, h = page.get_size()
+            cr = ctx.get_cairo_context()
+            k = min(ctx.get_width() / w, ctx.get_height() / h)
+            cr.scale(k, k)
+            page.render_for_printing(cr)
+        op.connect("draw-page", draw)
+        try:
+            r = op.run(Gtk.PrintOperationAction.PRINT, self.win)
+        except GLib.Error as e:
+            self.win.dialogs.message("Printing failed: %s" % e.message)
+            return False
+        return r != Gtk.PrintOperationResult.ERROR
+
     def _print(self, printer, copies, rng, pages, sides, collate, nup, scale="none"):
         if not self.preview_pdf:
             self._render_preview()
@@ -1135,26 +1192,31 @@ class Backstage(Gtk.Box):
         if printer == "__pdf__":
             self._export("pdf")
             return
-        args = ["lp", "-d", printer, "-n", str(copies), "-o", "sides=" + sides,
-                "-o", "collate=" + ("true" if collate else "false")]
-        if nup > 1:
-            args += ["-o", "number-up=%d" % nup]
-        if scale and scale != "none":
-            args += ["-o", "media=" + self.CUPS_MEDIA.get(scale, scale), "-o", "fit-to-page"]
-        if rng == "current":
-            cur = self.win.engine.ed.caret_page() + 1
-            args += ["-P", str(cur)]
-        elif rng == "custom" and pages.strip():
-            args += ["-P", pages.replace(" ", "")]
-        args.append(pdf)
-        try:
-            r = subprocess.run(args, capture_output=True, text=True, timeout=30)
-            if r.returncode != 0:
-                self.win.dialogs.message("Printing failed: " + (r.stderr.strip() or "unknown error"))
+        if folio_os.WINDOWS:
+            if not self._print_windows(pdf, printer, copies, rng, pages, collate):
                 return
-        except FileNotFoundError:
-            self.win.dialogs.message("No printing system was found on this computer.")
-            return
+            args = None
+        else:
+            args = ["lp", "-d", printer, "-n", str(copies), "-o", "sides=" + sides,
+                    "-o", "collate=" + ("true" if collate else "false")]
+            if nup > 1:
+                args += ["-o", "number-up=%d" % nup]
+            if scale and scale != "none":
+                args += ["-o", "media=" + self.CUPS_MEDIA.get(scale, scale), "-o", "fit-to-page"]
+            if rng == "current":
+                cur = self.win.engine.ed.caret_page() + 1
+                args += ["-P", str(cur)]
+            elif rng == "custom" and pages.strip():
+                args += ["-P", pages.replace(" ", "")]
+            args.append(pdf)
+            try:
+                r = subprocess.run(args, capture_output=True, text=True, timeout=30)
+                if r.returncode != 0:
+                    self.win.dialogs.message("Printing failed: " + (r.stderr.strip() or "unknown error"))
+                    return
+            except FileNotFoundError:
+                self.win.dialogs.message("No printing system was found on this computer.")
+                return
         import datetime
         from .native import docprops
         ed = self.win.engine.ed

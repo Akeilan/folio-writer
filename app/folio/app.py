@@ -85,7 +85,7 @@ class FolioApp(Gtk.Application):
         self.settings["recent"] = rec[:30]
         self.save_settings()
         try:
-            Gtk.RecentManager.get_default().add_item("file://" + path)
+            Gtk.RecentManager.get_default().add_item(GLib.filename_to_uri(os.path.abspath(path), None))
         except Exception:
             pass
 
@@ -113,14 +113,8 @@ class FolioApp(Gtk.Application):
         name = self.settings.get("user_name")
         if name:
             return name
-        try:
-            import pwd
-            gecos = pwd.getpwuid(os.getuid()).pw_gecos.split(",")[0].strip()
-            if gecos:
-                return gecos
-        except Exception:
-            pass
-        return os.environ.get("USER", "Author")
+        from . import folio_os
+        return folio_os.user_name()
 
     def apply_settings(self):
         from .widgets import set_units

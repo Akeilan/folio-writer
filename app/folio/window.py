@@ -1132,11 +1132,12 @@ class DocWindow(Gtk.ApplicationWindow):
         if not ok or not os.path.exists(path):
             self.dialogs.message("%s couldn't make the attachment." % APP_NAME, kind="error")
             return None
+        from . import folio_os
         post = shutil.which("folio-post")
         if post:
             subprocess.Popen([post, "--attach", path])
-        elif shutil.which("xdg-email"):
-            subprocess.Popen(["xdg-email", "--subject", name, "--attach", path])
+        elif folio_os.can_mail() and folio_os.mail_file(path, name):
+            pass
         else:
             self.dialogs.message("Sending needs a mail program set up on this computer. Install "
                                  "one (Thunderbird, Evolution or another) and set up your account "
@@ -1984,7 +1985,8 @@ class DocWindow(Gtk.ApplicationWindow):
         try:
             Gtk.show_uri_on_window(self, url, Gtk.get_current_event_time())
         except GLib.Error:
-            subprocess.Popen(["xdg-open", url])
+            from . import folio_os
+            folio_os.open_path(url)
 
     # ---------------------------------------------------------- panes
     def show_pane(self, cls, side="right"):

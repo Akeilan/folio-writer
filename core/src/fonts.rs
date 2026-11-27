@@ -226,9 +226,10 @@ impl FontCache {
             }
         }
         // fonts a document carries (embedded fonts, extracted for this session)
-        if let Ok(dirs) = std::env::var("FOLIO_FONT_DIRS") {
-            for d in dirs.split(':').filter(|d| !d.is_empty()) {
-                if std::path::Path::new(d).is_dir() {
+        // (a list in the system's own form: ':' between folders on Linux, ';' on Windows)
+        if let Some(dirs) = std::env::var_os("FOLIO_FONT_DIRS") {
+            for d in std::env::split_paths(&dirs) {
+                if d.is_dir() {
                     db.load_fonts_dir(d);
                 }
             }

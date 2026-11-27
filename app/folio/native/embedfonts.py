@@ -440,8 +440,8 @@ def extract(path):
         targets.update({a: b for b, a in re.findall(r'Target="([^"]+)"[^>]*Id="([^"]+)"', rels)})
         if _SESSION_DIR is None:
             _SESSION_DIR = tempfile.mkdtemp(prefix="folio-fonts-")
-            dirs = [d for d in os.environ.get("FOLIO_FONT_DIRS", "").split(":") if d]
-            os.environ["FOLIO_FONT_DIRS"] = ":".join(dirs + [_SESSION_DIR])
+            dirs = [d for d in os.environ.get("FOLIO_FONT_DIRS", "").split(os.pathsep) if d]
+            os.environ["FOLIO_FONT_DIRS"] = os.pathsep.join(dirs + [_SESSION_DIR])
         have = {k[0] for k in installed()}
         for m in re.finditer(r'<w:font w:name="([^"]+)"[^>]*>(.*?)</w:font>', ft, re.S):
             fam = m.group(1)

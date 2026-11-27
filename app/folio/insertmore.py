@@ -130,6 +130,9 @@ class ClipWindow(Gtk.Window):
 ICON_DIRS = ["/usr/share/icons/Adwaita/scalable", "/usr/share/icons/Adwaita/symbolic",
              "/usr/share/icons/hicolor/scalable", "/usr/share/icons/Yaru/scalable",
              "/usr/share/icons/ZorinBlue-Light/scalable"]
+if os.environ.get("FOLIO_ROOT"):      # Windows: the icon themes that ship with the suite
+    ICON_DIRS = [os.path.join(os.environ["FOLIO_ROOT"], "share", "icons", t) for t in
+                 ("Adwaita/scalable", "Adwaita/symbolic", "hicolor/scalable")] + ICON_DIRS
 CATEGORY_NAMES = {"actions": "Actions", "apps": "Apps", "categories": "Categories",
                   "devices": "Devices", "emblems": "Emblems", "emotes": "Faces",
                   "mimetypes": "Files", "places": "Places", "status": "Status", "ui": "Interface"}

@@ -13,6 +13,8 @@ _CANDIDATES = [
     os.path.normpath(os.path.join(_HERE, "..", "..", "..", "core", "target", "release",
                                   "libfolio_core.so")),
     "/usr/lib/folio-page/folio_core.so",
+    # Windows: the engine is a .pyd beside the code
+    os.path.join(_HERE, "..", "..", "folio_core.pyd"),
 ]
 
 _core = None

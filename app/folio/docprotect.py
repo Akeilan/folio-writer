@@ -413,10 +413,10 @@ def history_dialog(win):
         fill()
 
     def do_folder():
-        import subprocess
+        from . import folio_os
         dd = versions_dir(app, eng.path)
         os.makedirs(dd, exist_ok=True)
-        subprocess.Popen(["xdg-open", dd])
+        folio_os.open_path(dd)
 
     for label, cb, key in (("Open", do_open, "open"), ("Restore", do_restore, "restore"),
                            ("Delete", do_delete, "delete"), ("Delete All", do_clear, "clear")):

@@ -708,6 +708,17 @@ def _launch_desktop_mail(win, job, tmpd, n):
     prog = _M(win).mail_program()
     with open(job, encoding="utf-8") as fh:
         msgs = json.load(fh).get("messages", [])
+    if prog == "mapi":
+        from . import folio_os
+        opened = 0
+        for msg in msgs:
+            atts = msg.get("attachments") or [None]
+            if folio_os.mail_file(atts[0], msg.get("subject") or "", msg.get("text") or "", msg.get("to") or ""):
+                opened += 1
+        win.status.flash("%d message%s opened in your mail program; press Send in each."
+                         % (opened, "" if opened == 1 else "s"))
+        win.merge_mail_result = {"status": 0, "sent": 0, "opened": opened, "failed": []}
+        return
     if prog is None or not prog.endswith("xdg-email"):
         shutil.rmtree(tmpd, ignore_errors=True)
         win.dialogs.message("Page can open these messages only through xdg-email, which isn't "

@@ -3,6 +3,7 @@ own document engine, so the ribbon, keys and status bar drive it."""
 import os
 import shutil
 import tempfile
+from .. import SHARE as _SHARE, folio_os
 
 from gi.repository import GLib, GObject
 
@@ -58,11 +59,9 @@ def _load_fragment(text):
 
 def _user_name():
     try:
-        import pwd
-        n = pwd.getpwuid(os.getuid()).pw_gecos.split(",")[0]
-        return n or os.environ.get("USER", "Author")
+        return folio_os.user_name()
     except Exception:
-        return os.environ.get("USER", "Author")
+        return os.environ.get("USER") or os.environ.get("USERNAME") or "Author"
 
 
 def _arg(args, key, default=None):
@@ -143,7 +142,7 @@ class NativeEngine(GObject.GObject):
 
     def _blank_template(self):
         here = os.path.dirname(os.path.abspath(__file__))
-        for d in ("/usr/share/folio-page/templates",
+        for d in (os.path.join(_SHARE, "templates"),
                   os.path.join(here, "..", "..", "..", "share", "templates")):
             p = os.path.join(d, "Normal-Letter.docx")
             if os.path.exists(p):
@@ -182,7 +181,7 @@ class NativeEngine(GObject.GObject):
                 return core().Editor.open(out)
             finally:
                 shutil.rmtree(tmpd, ignore_errors=True)
-        soffice = shutil.which("soffice") or shutil.which("libreoffice")
+        soffice = folio_os.office_program()
         if not soffice:
             raise RuntimeError("needs-converter")
         tmpd = tempfile.mkdtemp(prefix="folio-")
@@ -260,7 +259,7 @@ class NativeEngine(GObject.GObject):
                 template = cand
             else:
                 here = os.path.dirname(os.path.abspath(__file__))
-                for d in ("/usr/share/folio-page/templates",
+                for d in (os.path.join(_SHARE, "templates"),
                           os.path.join(here, "..", "..", "..", "share", "templates")):
                     p = os.path.join(d, os.path.basename(base) + ".docx")
                     if os.path.exists(p):
@@ -417,7 +416,7 @@ class NativeEngine(GObject.GObject):
                 return True
             finally:
                 shutil.rmtree(tmpd, ignore_errors=True)
-        if not (shutil.which("soffice") or shutil.which("libreoffice")):
+        if not folio_os.office_program():
             self.save_error = "needs-converter"
             return False
         tmpd = tempfile.mkdtemp(prefix="folio-")
@@ -426,7 +425,7 @@ class NativeEngine(GObject.GObject):
             self.ed.save(src)
             filt = {"odt": "odt", "rtf": "rtf", "txt": "txt:Text",
                     "html": "html:HTML (StarWriter)", "epub": "epub"}.get(ext, ext)
-            r = subprocess.run(["soffice", "--headless", "--convert-to", filt, "--outdir", tmpd,
+            r = subprocess.run([folio_os.office_program(), "--headless", "--convert-to", filt, "--outdir", tmpd,
                                 src], capture_output=True, timeout=120)
             out = os.path.join(tmpd, "doc." + ext)
             if r.returncode != 0 or not os.path.exists(out):

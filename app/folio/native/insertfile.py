@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from .. import folio_os
 
 from . import core
 
@@ -35,7 +36,7 @@ def insert(win, path):
             path = importers.to_docx(path, os.path.join(tmp, "inserted.docx"))
         elif ext not in (".docx", ".docm", ".dotx", ".dotm"):
             tmp = tempfile.mkdtemp(prefix="folio-insert-")
-            r = subprocess.run(["soffice", "--headless", "--convert-to", "docx", "--outdir", tmp, path],
+            r = subprocess.run([folio_os.office_program() or "soffice", "--headless", "--convert-to", "docx", "--outdir", tmp, path],
                                capture_output=True, timeout=120)
             out = os.path.join(tmp, os.path.splitext(os.path.basename(path))[0] + ".docx")
             if r.returncode != 0 or not os.path.exists(out):

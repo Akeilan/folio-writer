@@ -926,6 +926,10 @@ def mail_program():
     was discontinued, so Page hands messages to whatever the desktop uses, the way every other
     Linux program does (W5-11)."""
     import shutil
+    from .. import folio_os
+    if folio_os.WINDOWS:
+        # Windows: the default mail program, through Simple MAPI (Outlook, Thunderbird, Mail)
+        return "mapi" if folio_os.can_mail() else None
     for name in ("xdg-email", "thunderbird", "evolution", "kmail", "geary"):
         p = shutil.which(name)
         if p:
